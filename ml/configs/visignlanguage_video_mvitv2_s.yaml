@@ -1,0 +1,45 @@
+# Primary training source for the VSign common-word demo.
+experiment:
+  name: visignlanguage_video_mvitv2_s_common20
+  seed: 20260910
+source:
+  repository: star092304/ViSignLanguage-Video
+  revision: 906306d7cc9c684b034bc8e96494ce9a99bc1bfc
+  license: CC-BY-4.0
+  archive_sha256: cdfec1080e8b75cf10a972a4d7cf54fcfa4bf1b874002d28eae8405188a2a308
+model:
+  architecture: mvitv2_s
+  pretrained_source: kinetics_400
+  num_classes: 20
+data:
+  manifest: ml/data/raw/visignlanguage-video/common20_manifest.csv
+  root: ml/data/raw/visignlanguage-video/dataset
+input:
+  frames: 16
+  height: 224
+  width: 224
+  color_space: RGB
+  normalization:
+    mean: [0.485, 0.456, 0.406]
+    std: [0.229, 0.224, 0.225]
+augmentation:
+  horizontal_flip: false
+training:
+  epochs: 8
+  batch_size: 2
+  gradient_accumulation_steps: 2
+  num_workers: 2
+  learning_rate: 0.0002
+  min_learning_rate: 0.000002
+  weight_decay: 0.05
+  early_stopping_metric: macro_f1
+  early_stopping_mode: max
+split:
+  strategy: stratified_filename_group
+  train_fraction_target: 0.80
+  validation_fraction_target: 0.10
+  test_fraction_target: 0.10
+  signer_independent: false
+labels:
+  source: ml/data/raw/visignlanguage-video/common20_label_map.json
+  unicode_normalization: NFC

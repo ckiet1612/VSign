@@ -1,0 +1,37 @@
+"""Compatibility import for the versioned contract owned by ``contracts/v1``."""
+
+from contracts.v1.inference import (
+    CollectionHand,
+    CollectionHandCounts,
+    CollectionSampleRequest,
+    CollectionSampleResponse,
+    CollectionSummaryResponse,
+    FRAME_COUNT,
+    FRAME_SIZE,
+    PROTOCOL_VERSION,
+    SUPPORTED_MIME_TYPES,
+    FramesMessage,
+    HealthResponse,
+    MetadataResponse,
+    PredictionCandidate,
+    PredictionMessage,
+    PredictionStatus,
+)
+
+__all__ = [
+    "CollectionHand",
+    "CollectionHandCounts",
+    "CollectionSampleRequest",
+    "CollectionSampleResponse",
+    "CollectionSummaryResponse",
+    "FRAME_COUNT",
+    "FRAME_SIZE",
+    "PROTOCOL_VERSION",
+    "SUPPORTED_MIME_TYPES",
+    "FramesMessage",
+    "HealthResponse",
+    "MetadataResponse",
+    "PredictionCandidate",
+    "PredictionMessage",
+    "PredictionStatus",
+]

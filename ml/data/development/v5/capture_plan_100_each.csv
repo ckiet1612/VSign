@@ -1,0 +1,919 @@
+order,expected_label,hand,distance,lighting,execution
+1,Chào,right,standard,normal,natural
+2,Chào,right,near,normal,natural
+3,Chào,right,far,normal,slightly_slow
+4,Chào,right,standard,normal,natural
+5,Chào,right,standard,side,slightly_fast
+6,Chào,right,near,side,natural
+7,Chào,right,far,low,natural
+8,Chào,right,standard,low,slightly_slow
+9,Chào,right,standard,normal,natural
+10,Chào,right,near,normal,slightly_fast
+11,Chào,right,far,normal,natural
+12,Chào,right,standard,normal,natural
+13,Chào,right,standard,side,slightly_slow
+14,Chào,right,near,side,natural
+15,Chào,right,far,low,slightly_fast
+16,Chào,right,standard,low,natural
+17,Chào,right,standard,normal,natural
+18,Chào,right,near,normal,slightly_slow
+19,Chào,right,far,normal,natural
+20,Chào,right,standard,normal,slightly_fast
+21,Chào,right,standard,side,natural
+22,Chào,right,near,side,natural
+23,Chào,right,far,low,slightly_slow
+24,Chào,right,standard,low,natural
+25,Chào,right,standard,normal,slightly_fast
+26,Chào,right,near,normal,natural
+27,Chào,right,far,normal,natural
+28,Chào,right,standard,normal,slightly_slow
+29,Chào,right,standard,side,natural
+30,Chào,right,near,side,slightly_fast
+31,Chào,left,near,normal,natural
+32,Chào,left,far,normal,slightly_slow
+33,Chào,left,standard,normal,natural
+34,Chào,left,standard,side,slightly_fast
+35,Chào,left,near,side,natural
+36,Chào,left,far,low,natural
+37,Chào,left,standard,low,slightly_slow
+38,Chào,left,standard,normal,natural
+39,Chào,left,near,normal,slightly_fast
+40,Chào,left,far,normal,natural
+41,Chào,left,standard,normal,natural
+42,Chào,left,standard,side,slightly_slow
+43,Chào,left,near,side,natural
+44,Chào,left,far,low,slightly_fast
+45,Chào,left,standard,low,natural
+46,Chào,left,standard,normal,natural
+47,Chào,left,near,normal,slightly_slow
+48,Chào,left,far,normal,natural
+49,Chào,left,standard,normal,slightly_fast
+50,Chào,left,standard,side,natural
+51,Chào,left,near,side,natural
+52,Chào,left,far,low,slightly_slow
+53,Chào,left,standard,low,natural
+54,Chào,left,standard,normal,slightly_fast
+55,Chào,left,near,normal,natural
+56,Chào,left,far,normal,natural
+57,Chào,left,standard,normal,slightly_slow
+58,Chào,left,standard,side,natural
+59,Chào,left,near,side,slightly_fast
+60,Cảm ơn,right,standard,normal,natural
+61,Cảm ơn,right,standard,side,slightly_fast
+62,Cảm ơn,right,near,side,natural
+63,Cảm ơn,right,far,low,natural
+64,Cảm ơn,right,standard,low,slightly_slow
+65,Cảm ơn,right,standard,normal,natural
+66,Cảm ơn,right,near,normal,slightly_fast
+67,Cảm ơn,right,far,normal,natural
+68,Cảm ơn,right,standard,normal,natural
+69,Cảm ơn,right,standard,side,slightly_slow
+70,Cảm ơn,right,near,side,natural
+71,Cảm ơn,right,far,low,slightly_fast
+72,Cảm ơn,right,standard,low,natural
+73,Cảm ơn,right,standard,normal,natural
+74,Cảm ơn,right,near,normal,slightly_slow
+75,Cảm ơn,right,far,normal,natural
+76,Cảm ơn,right,standard,normal,slightly_fast
+77,Cảm ơn,right,standard,side,natural
+78,Cảm ơn,left,standard,side,slightly_fast
+79,Cảm ơn,left,near,side,natural
+80,Cảm ơn,left,far,low,natural
+81,Cảm ơn,left,standard,low,slightly_slow
+82,Cảm ơn,left,standard,normal,natural
+83,Cảm ơn,left,near,normal,slightly_fast
+84,Cảm ơn,left,far,normal,natural
+85,Cảm ơn,left,standard,normal,natural
+86,Cảm ơn,left,standard,side,slightly_slow
+87,Cảm ơn,left,near,side,natural
+88,Cảm ơn,left,far,low,slightly_fast
+89,Cảm ơn,left,standard,low,natural
+90,Cảm ơn,left,standard,normal,natural
+91,Cảm ơn,left,near,normal,slightly_slow
+92,Cảm ơn,left,far,normal,natural
+93,Cảm ơn,left,standard,normal,slightly_fast
+94,Cảm ơn,left,standard,side,natural
+95,Xin lỗi,right,far,low,natural
+96,Xin lỗi,right,standard,low,slightly_slow
+97,Xin lỗi,right,standard,normal,natural
+98,Xin lỗi,right,near,normal,slightly_fast
+99,Xin lỗi,right,far,normal,natural
+100,Xin lỗi,right,standard,normal,natural
+101,Xin lỗi,right,standard,side,slightly_slow
+102,Xin lỗi,right,near,side,natural
+103,Xin lỗi,right,far,low,slightly_fast
+104,Xin lỗi,right,standard,low,natural
+105,Xin lỗi,right,standard,normal,natural
+106,Xin lỗi,right,near,normal,slightly_slow
+107,Xin lỗi,right,far,normal,natural
+108,Xin lỗi,right,standard,normal,slightly_fast
+109,Xin lỗi,right,standard,side,natural
+110,Xin lỗi,right,near,side,natural
+111,Xin lỗi,right,far,low,slightly_slow
+112,Xin lỗi,right,standard,low,natural
+113,Xin lỗi,right,standard,normal,slightly_fast
+114,Xin lỗi,right,near,normal,natural
+115,Xin lỗi,right,far,normal,natural
+116,Xin lỗi,right,standard,normal,slightly_slow
+117,Xin lỗi,right,standard,side,natural
+118,Xin lỗi,right,near,side,slightly_fast
+119,Xin lỗi,right,far,low,natural
+120,Xin lỗi,right,standard,low,natural
+121,Xin lỗi,right,standard,normal,slightly_slow
+122,Xin lỗi,right,near,normal,natural
+123,Xin lỗi,right,far,normal,slightly_fast
+124,Xin lỗi,right,standard,normal,natural
+125,Xin lỗi,right,standard,side,natural
+126,Xin lỗi,right,near,side,slightly_slow
+127,Xin lỗi,right,far,low,natural
+128,Xin lỗi,right,standard,low,slightly_fast
+129,Xin lỗi,right,standard,normal,natural
+130,Xin lỗi,right,near,normal,natural
+131,Xin lỗi,left,standard,low,slightly_slow
+132,Xin lỗi,left,standard,normal,natural
+133,Xin lỗi,left,near,normal,slightly_fast
+134,Xin lỗi,left,far,normal,natural
+135,Xin lỗi,left,standard,normal,natural
+136,Xin lỗi,left,standard,side,slightly_slow
+137,Xin lỗi,left,near,side,natural
+138,Xin lỗi,left,far,low,slightly_fast
+139,Xin lỗi,left,standard,low,natural
+140,Xin lỗi,left,standard,normal,natural
+141,Xin lỗi,left,near,normal,slightly_slow
+142,Xin lỗi,left,far,normal,natural
+143,Xin lỗi,left,standard,normal,slightly_fast
+144,Xin lỗi,left,standard,side,natural
+145,Xin lỗi,left,near,side,natural
+146,Xin lỗi,left,far,low,slightly_slow
+147,Xin lỗi,left,standard,low,natural
+148,Xin lỗi,left,standard,normal,slightly_fast
+149,Xin lỗi,left,near,normal,natural
+150,Xin lỗi,left,far,normal,natural
+151,Xin lỗi,left,standard,normal,slightly_slow
+152,Xin lỗi,left,standard,side,natural
+153,Xin lỗi,left,near,side,slightly_fast
+154,Xin lỗi,left,far,low,natural
+155,Xin lỗi,left,standard,low,natural
+156,Xin lỗi,left,standard,normal,slightly_slow
+157,Xin lỗi,left,near,normal,natural
+158,Xin lỗi,left,far,normal,slightly_fast
+159,Xin lỗi,left,standard,normal,natural
+160,Xin lỗi,left,standard,side,natural
+161,Xin lỗi,left,near,side,slightly_slow
+162,Xin lỗi,left,far,low,natural
+163,Xin lỗi,left,standard,low,slightly_fast
+164,Xin lỗi,left,standard,normal,natural
+165,Xin lỗi,left,near,normal,natural
+166,Xin lỗi,left,far,normal,slightly_slow
+167,Tôi,right,near,normal,slightly_fast
+168,Tôi,right,far,normal,natural
+169,Tôi,right,standard,normal,natural
+170,Tôi,right,standard,side,slightly_slow
+171,Tôi,right,near,side,natural
+172,Tôi,right,far,low,slightly_fast
+173,Tôi,right,standard,low,natural
+174,Tôi,right,standard,normal,natural
+175,Tôi,right,near,normal,slightly_slow
+176,Tôi,right,far,normal,natural
+177,Tôi,right,standard,normal,slightly_fast
+178,Tôi,right,standard,side,natural
+179,Tôi,right,near,side,natural
+180,Tôi,right,far,low,slightly_slow
+181,Tôi,right,standard,low,natural
+182,Tôi,right,standard,normal,slightly_fast
+183,Tôi,right,near,normal,natural
+184,Tôi,right,far,normal,natural
+185,Tôi,right,standard,normal,slightly_slow
+186,Tôi,right,standard,side,natural
+187,Tôi,right,near,side,slightly_fast
+188,Tôi,right,far,low,natural
+189,Tôi,left,far,normal,natural
+190,Tôi,left,standard,normal,natural
+191,Tôi,left,standard,side,slightly_slow
+192,Tôi,left,near,side,natural
+193,Tôi,left,far,low,slightly_fast
+194,Tôi,left,standard,low,natural
+195,Tôi,left,standard,normal,natural
+196,Tôi,left,near,normal,slightly_slow
+197,Tôi,left,far,normal,natural
+198,Tôi,left,standard,normal,slightly_fast
+199,Tôi,left,standard,side,natural
+200,Tôi,left,near,side,natural
+201,Tôi,left,far,low,slightly_slow
+202,Tôi,left,standard,low,natural
+203,Tôi,left,standard,normal,slightly_fast
+204,Tôi,left,near,normal,natural
+205,Tôi,left,far,normal,natural
+206,Tôi,left,standard,normal,slightly_slow
+207,Tôi,left,standard,side,natural
+208,Tôi,left,near,side,slightly_fast
+209,Tôi,left,far,low,natural
+210,Đi,right,standard,side,slightly_slow
+211,Đi,right,near,side,natural
+212,Đi,right,far,low,slightly_fast
+213,Đi,right,standard,low,natural
+214,Đi,right,standard,normal,natural
+215,Đi,right,near,normal,slightly_slow
+216,Đi,right,far,normal,natural
+217,Đi,right,standard,normal,slightly_fast
+218,Đi,right,standard,side,natural
+219,Đi,right,near,side,natural
+220,Đi,right,far,low,slightly_slow
+221,Đi,right,standard,low,natural
+222,Đi,right,standard,normal,slightly_fast
+223,Đi,right,near,normal,natural
+224,Đi,right,far,normal,natural
+225,Đi,right,standard,normal,slightly_slow
+226,Đi,right,standard,side,natural
+227,Đi,right,near,side,slightly_fast
+228,Đi,right,far,low,natural
+229,Đi,right,standard,low,natural
+230,Đi,left,near,side,natural
+231,Đi,left,far,low,slightly_fast
+232,Đi,left,standard,low,natural
+233,Đi,left,standard,normal,natural
+234,Đi,left,near,normal,slightly_slow
+235,Đi,left,far,normal,natural
+236,Đi,left,standard,normal,slightly_fast
+237,Đi,left,standard,side,natural
+238,Đi,left,near,side,natural
+239,Đi,left,far,low,slightly_slow
+240,Đi,left,standard,low,natural
+241,Đi,left,standard,normal,slightly_fast
+242,Đi,left,near,normal,natural
+243,Đi,left,far,normal,natural
+244,Đi,left,standard,normal,slightly_slow
+245,Đi,left,standard,side,natural
+246,Đi,left,near,side,slightly_fast
+247,Uống,right,standard,low,natural
+248,Uống,right,standard,normal,natural
+249,Uống,right,near,normal,slightly_slow
+250,Uống,right,far,normal,natural
+251,Uống,right,standard,normal,slightly_fast
+252,Uống,right,standard,side,natural
+253,Uống,right,near,side,natural
+254,Uống,right,far,low,slightly_slow
+255,Uống,right,standard,low,natural
+256,Uống,right,standard,normal,slightly_fast
+257,Uống,right,near,normal,natural
+258,Uống,right,far,normal,natural
+259,Uống,right,standard,normal,slightly_slow
+260,Uống,right,standard,side,natural
+261,Uống,right,near,side,slightly_fast
+262,Uống,right,far,low,natural
+263,Uống,right,standard,low,natural
+264,Uống,right,standard,normal,slightly_slow
+265,Uống,right,near,normal,natural
+266,Uống,right,far,normal,slightly_fast
+267,Uống,right,standard,normal,natural
+268,Uống,right,standard,side,natural
+269,Uống,right,near,side,slightly_slow
+270,Uống,right,far,low,natural
+271,Uống,right,standard,low,slightly_fast
+272,Uống,right,standard,normal,natural
+273,Uống,right,near,normal,natural
+274,Uống,right,far,normal,slightly_slow
+275,Uống,right,standard,normal,natural
+276,Uống,right,standard,side,slightly_fast
+277,Uống,right,near,side,natural
+278,Uống,right,far,low,natural
+279,Uống,right,standard,low,slightly_slow
+280,Uống,right,standard,normal,natural
+281,Uống,left,standard,normal,natural
+282,Uống,left,near,normal,slightly_slow
+283,Uống,left,far,normal,natural
+284,Uống,left,standard,normal,slightly_fast
+285,Uống,left,standard,side,natural
+286,Uống,left,near,side,natural
+287,Uống,left,far,low,slightly_slow
+288,Uống,left,standard,low,natural
+289,Uống,left,standard,normal,slightly_fast
+290,Uống,left,near,normal,natural
+291,Uống,left,far,normal,natural
+292,Uống,left,standard,normal,slightly_slow
+293,Uống,left,standard,side,natural
+294,Uống,left,near,side,slightly_fast
+295,Uống,left,far,low,natural
+296,Uống,left,standard,low,natural
+297,Uống,left,standard,normal,slightly_slow
+298,Uống,left,near,normal,natural
+299,Uống,left,far,normal,slightly_fast
+300,Uống,left,standard,normal,natural
+301,Uống,left,standard,side,natural
+302,Uống,left,near,side,slightly_slow
+303,Uống,left,far,low,natural
+304,Uống,left,standard,low,slightly_fast
+305,Uống,left,standard,normal,natural
+306,Uống,left,near,normal,natural
+307,Uống,left,far,normal,slightly_slow
+308,Uống,left,standard,normal,natural
+309,Uống,left,standard,side,slightly_fast
+310,Uống,left,near,side,natural
+311,Uống,left,far,low,natural
+312,Uống,left,standard,low,slightly_slow
+313,Uống,left,standard,normal,natural
+314,Uống,left,near,normal,slightly_fast
+315,Ăn,right,far,normal,natural
+316,Ăn,right,standard,normal,slightly_fast
+317,Ăn,right,standard,side,natural
+318,Ăn,right,near,side,natural
+319,Ăn,right,far,low,slightly_slow
+320,Ăn,right,standard,low,natural
+321,Ăn,right,standard,normal,slightly_fast
+322,Ăn,right,near,normal,natural
+323,Ăn,right,far,normal,natural
+324,Ăn,right,standard,normal,slightly_slow
+325,Ăn,right,standard,side,natural
+326,Ăn,right,near,side,slightly_fast
+327,Ăn,right,far,low,natural
+328,Ăn,right,standard,low,natural
+329,Ăn,right,standard,normal,slightly_slow
+330,Ăn,right,near,normal,natural
+331,Ăn,right,far,normal,slightly_fast
+332,Ăn,left,standard,normal,slightly_fast
+333,Ăn,left,standard,side,natural
+334,Ăn,left,near,side,natural
+335,Ăn,left,far,low,slightly_slow
+336,Ăn,left,standard,low,natural
+337,Ăn,left,standard,normal,slightly_fast
+338,Ăn,left,near,normal,natural
+339,Ăn,left,far,normal,natural
+340,Ăn,left,standard,normal,slightly_slow
+341,Ăn,left,standard,side,natural
+342,Ăn,left,near,side,slightly_fast
+343,Ăn,left,far,low,natural
+344,Ăn,left,standard,low,natural
+345,Ăn,left,standard,normal,slightly_slow
+346,Ăn,left,near,normal,natural
+347,Ăn,left,far,normal,slightly_fast
+348,Ăn,left,standard,normal,natural
+349,Nhà,right,near,side,natural
+350,Nhà,right,far,low,slightly_slow
+351,Nhà,right,standard,low,natural
+352,Nhà,right,standard,normal,slightly_fast
+353,Nhà,right,near,normal,natural
+354,Nhà,right,far,normal,natural
+355,Nhà,right,standard,normal,slightly_slow
+356,Nhà,right,standard,side,natural
+357,Nhà,right,near,side,slightly_fast
+358,Nhà,right,far,low,natural
+359,Nhà,right,standard,low,natural
+360,Nhà,right,standard,normal,slightly_slow
+361,Nhà,right,near,normal,natural
+362,Nhà,right,far,normal,slightly_fast
+363,Nhà,right,standard,normal,natural
+364,Nhà,right,standard,side,natural
+365,Nhà,left,far,low,slightly_slow
+366,Nhà,left,standard,low,natural
+367,Nhà,left,standard,normal,slightly_fast
+368,Nhà,left,near,normal,natural
+369,Nhà,left,far,normal,natural
+370,Nhà,left,standard,normal,slightly_slow
+371,Nhà,left,standard,side,natural
+372,Nhà,left,near,side,slightly_fast
+373,Nhà,left,far,low,natural
+374,Nhà,left,standard,low,natural
+375,Nhà,left,standard,normal,slightly_slow
+376,Nhà,left,near,normal,natural
+377,Nhà,left,far,normal,slightly_fast
+378,Nhà,left,standard,normal,natural
+379,Nhà,left,standard,side,natural
+380,Trường học,right,standard,normal,slightly_fast
+381,Trường học,right,near,normal,natural
+382,Trường học,right,far,normal,natural
+383,Trường học,right,standard,normal,slightly_slow
+384,Trường học,right,standard,side,natural
+385,Trường học,right,near,side,slightly_fast
+386,Trường học,right,far,low,natural
+387,Trường học,right,standard,low,natural
+388,Trường học,right,standard,normal,slightly_slow
+389,Trường học,right,near,normal,natural
+390,Trường học,right,far,normal,slightly_fast
+391,Trường học,right,standard,normal,natural
+392,Trường học,left,near,normal,natural
+393,Trường học,left,far,normal,natural
+394,Trường học,left,standard,normal,slightly_slow
+395,Trường học,left,standard,side,natural
+396,Trường học,left,near,side,slightly_fast
+397,Trường học,left,far,low,natural
+398,Trường học,left,standard,low,natural
+399,Trường học,left,standard,normal,slightly_slow
+400,Trường học,left,near,normal,natural
+401,Trường học,left,far,normal,slightly_fast
+402,Trường học,left,standard,normal,natural
+403,Trường học,left,standard,side,natural
+404,Bệnh viện,right,standard,normal,slightly_slow
+405,Bệnh viện,right,standard,side,natural
+406,Bệnh viện,right,near,side,slightly_fast
+407,Bệnh viện,right,far,low,natural
+408,Bệnh viện,right,standard,low,natural
+409,Bệnh viện,right,standard,normal,slightly_slow
+410,Bệnh viện,right,near,normal,natural
+411,Bệnh viện,right,far,normal,slightly_fast
+412,Bệnh viện,right,standard,normal,natural
+413,Bệnh viện,right,standard,side,natural
+414,Bệnh viện,right,near,side,slightly_slow
+415,Bệnh viện,right,far,low,natural
+416,Bệnh viện,right,standard,low,slightly_fast
+417,Bệnh viện,right,standard,normal,natural
+418,Bệnh viện,right,near,normal,natural
+419,Bệnh viện,right,far,normal,slightly_slow
+420,Bệnh viện,right,standard,normal,natural
+421,Bệnh viện,right,standard,side,slightly_fast
+422,Bệnh viện,right,near,side,natural
+423,Bệnh viện,right,far,low,natural
+424,Bệnh viện,right,standard,low,slightly_slow
+425,Bệnh viện,right,standard,normal,natural
+426,Bệnh viện,right,near,normal,slightly_fast
+427,Bệnh viện,right,far,normal,natural
+428,Bệnh viện,right,standard,normal,natural
+429,Bệnh viện,left,standard,side,natural
+430,Bệnh viện,left,near,side,slightly_fast
+431,Bệnh viện,left,far,low,natural
+432,Bệnh viện,left,standard,low,natural
+433,Bệnh viện,left,standard,normal,slightly_slow
+434,Bệnh viện,left,near,normal,natural
+435,Bệnh viện,left,far,normal,slightly_fast
+436,Bệnh viện,left,standard,normal,natural
+437,Bệnh viện,left,standard,side,natural
+438,Bệnh viện,left,near,side,slightly_slow
+439,Bệnh viện,left,far,low,natural
+440,Bệnh viện,left,standard,low,slightly_fast
+441,Bệnh viện,left,standard,normal,natural
+442,Bệnh viện,left,near,normal,natural
+443,Bệnh viện,left,far,normal,slightly_slow
+444,Bệnh viện,left,standard,normal,natural
+445,Bệnh viện,left,standard,side,slightly_fast
+446,Bệnh viện,left,near,side,natural
+447,Bệnh viện,left,far,low,natural
+448,Bệnh viện,left,standard,low,slightly_slow
+449,Bệnh viện,left,standard,normal,natural
+450,Bệnh viện,left,near,normal,slightly_fast
+451,Bệnh viện,left,far,normal,natural
+452,Bệnh viện,left,standard,normal,natural
+453,Giúp,right,far,low,natural
+454,Giúp,right,standard,low,natural
+455,Giúp,right,standard,normal,slightly_slow
+456,Giúp,right,near,normal,natural
+457,Giúp,right,far,normal,slightly_fast
+458,Giúp,right,standard,normal,natural
+459,Giúp,right,standard,side,natural
+460,Giúp,right,near,side,slightly_slow
+461,Giúp,right,far,low,natural
+462,Giúp,right,standard,low,slightly_fast
+463,Giúp,right,standard,normal,natural
+464,Giúp,right,near,normal,natural
+465,Giúp,right,far,normal,slightly_slow
+466,Giúp,right,standard,normal,natural
+467,Giúp,right,standard,side,slightly_fast
+468,Giúp,right,near,side,natural
+469,Giúp,right,far,low,natural
+470,Giúp,right,standard,low,slightly_slow
+471,Giúp,right,standard,normal,natural
+472,Giúp,right,near,normal,slightly_fast
+473,Giúp,right,far,normal,natural
+474,Giúp,right,standard,normal,natural
+475,Giúp,right,standard,side,slightly_slow
+476,Giúp,right,near,side,natural
+477,Giúp,right,far,low,slightly_fast
+478,Giúp,left,standard,low,natural
+479,Giúp,left,standard,normal,slightly_slow
+480,Giúp,left,near,normal,natural
+481,Giúp,left,far,normal,slightly_fast
+482,Giúp,left,standard,normal,natural
+483,Giúp,left,standard,side,natural
+484,Giúp,left,near,side,slightly_slow
+485,Giúp,left,far,low,natural
+486,Giúp,left,standard,low,slightly_fast
+487,Giúp,left,standard,normal,natural
+488,Giúp,left,near,normal,natural
+489,Giúp,left,far,normal,slightly_slow
+490,Giúp,left,standard,normal,natural
+491,Giúp,left,standard,side,slightly_fast
+492,Giúp,left,near,side,natural
+493,Giúp,left,far,low,natural
+494,Giúp,left,standard,low,slightly_slow
+495,Giúp,left,standard,normal,natural
+496,Giúp,left,near,normal,slightly_fast
+497,Giúp,left,far,normal,natural
+498,Giúp,left,standard,normal,natural
+499,Giúp,left,standard,side,slightly_slow
+500,Giúp,left,near,side,natural
+501,Giúp,left,far,low,slightly_fast
+502,Đồng ý,right,near,normal,natural
+503,Đồng ý,right,far,normal,slightly_fast
+504,Đồng ý,right,standard,normal,natural
+505,Đồng ý,right,standard,side,natural
+506,Đồng ý,right,near,side,slightly_slow
+507,Đồng ý,right,far,low,natural
+508,Đồng ý,right,standard,low,slightly_fast
+509,Đồng ý,right,standard,normal,natural
+510,Đồng ý,right,near,normal,natural
+511,Đồng ý,right,far,normal,slightly_slow
+512,Đồng ý,right,standard,normal,natural
+513,Đồng ý,right,standard,side,slightly_fast
+514,Đồng ý,right,near,side,natural
+515,Đồng ý,right,far,low,natural
+516,Đồng ý,right,standard,low,slightly_slow
+517,Đồng ý,right,standard,normal,natural
+518,Đồng ý,right,near,normal,slightly_fast
+519,Đồng ý,right,far,normal,natural
+520,Đồng ý,right,standard,normal,natural
+521,Đồng ý,right,standard,side,slightly_slow
+522,Đồng ý,right,near,side,natural
+523,Đồng ý,left,far,normal,slightly_fast
+524,Đồng ý,left,standard,normal,natural
+525,Đồng ý,left,standard,side,natural
+526,Đồng ý,left,near,side,slightly_slow
+527,Đồng ý,left,far,low,natural
+528,Đồng ý,left,standard,low,slightly_fast
+529,Đồng ý,left,standard,normal,natural
+530,Đồng ý,left,near,normal,natural
+531,Đồng ý,left,far,normal,slightly_slow
+532,Đồng ý,left,standard,normal,natural
+533,Đồng ý,left,standard,side,slightly_fast
+534,Đồng ý,left,near,side,natural
+535,Đồng ý,left,far,low,natural
+536,Đồng ý,left,standard,low,slightly_slow
+537,Đồng ý,left,standard,normal,natural
+538,Đồng ý,left,near,normal,slightly_fast
+539,Đồng ý,left,far,normal,natural
+540,Đồng ý,left,standard,normal,natural
+541,Đồng ý,left,standard,side,slightly_slow
+542,Đồng ý,left,near,side,natural
+543,Đồng ý,left,far,low,slightly_fast
+544,Nói,right,standard,side,natural
+545,Nói,right,near,side,slightly_slow
+546,Nói,right,far,low,natural
+547,Nói,right,standard,low,slightly_fast
+548,Nói,right,standard,normal,natural
+549,Nói,right,near,normal,natural
+550,Nói,right,far,normal,slightly_slow
+551,Nói,right,standard,normal,natural
+552,Nói,right,standard,side,slightly_fast
+553,Nói,right,near,side,natural
+554,Nói,right,far,low,natural
+555,Nói,right,standard,low,slightly_slow
+556,Nói,right,standard,normal,natural
+557,Nói,right,near,normal,slightly_fast
+558,Nói,right,far,normal,natural
+559,Nói,right,standard,normal,natural
+560,Nói,right,standard,side,slightly_slow
+561,Nói,right,near,side,natural
+562,Nói,right,far,low,slightly_fast
+563,Nói,right,standard,low,natural
+564,Nói,right,standard,normal,natural
+565,Nói,right,near,normal,slightly_slow
+566,Nói,right,far,normal,natural
+567,Nói,right,standard,normal,slightly_fast
+568,Nói,right,standard,side,natural
+569,Nói,right,near,side,natural
+570,Nói,right,far,low,slightly_slow
+571,Nói,right,standard,low,natural
+572,Nói,right,standard,normal,slightly_fast
+573,Nói,right,near,normal,natural
+574,Nói,right,far,normal,natural
+575,Nói,right,standard,normal,slightly_slow
+576,Nói,right,standard,side,natural
+577,Nói,right,near,side,slightly_fast
+578,Nói,left,near,side,slightly_slow
+579,Nói,left,far,low,natural
+580,Nói,left,standard,low,slightly_fast
+581,Nói,left,standard,normal,natural
+582,Nói,left,near,normal,natural
+583,Nói,left,far,normal,slightly_slow
+584,Nói,left,standard,normal,natural
+585,Nói,left,standard,side,slightly_fast
+586,Nói,left,near,side,natural
+587,Nói,left,far,low,natural
+588,Nói,left,standard,low,slightly_slow
+589,Nói,left,standard,normal,natural
+590,Nói,left,near,normal,slightly_fast
+591,Nói,left,far,normal,natural
+592,Nói,left,standard,normal,natural
+593,Nói,left,standard,side,slightly_slow
+594,Nói,left,near,side,natural
+595,Nói,left,far,low,slightly_fast
+596,Nói,left,standard,low,natural
+597,Nói,left,standard,normal,natural
+598,Nói,left,near,normal,slightly_slow
+599,Nói,left,far,normal,natural
+600,Nói,left,standard,normal,slightly_fast
+601,Nói,left,standard,side,natural
+602,Nói,left,near,side,natural
+603,Nói,left,far,low,slightly_slow
+604,Nói,left,standard,low,natural
+605,Nói,left,standard,normal,slightly_fast
+606,Nói,left,near,normal,natural
+607,Nói,left,far,normal,natural
+608,Nói,left,standard,normal,slightly_slow
+609,Nói,left,standard,side,natural
+610,Nói,left,near,side,slightly_fast
+611,Nói,left,far,low,natural
+612,Nghe,right,standard,low,slightly_fast
+613,Nghe,right,standard,normal,natural
+614,Nghe,right,near,normal,natural
+615,Nghe,right,far,normal,slightly_slow
+616,Nghe,right,standard,normal,natural
+617,Nghe,right,standard,side,slightly_fast
+618,Nghe,right,near,side,natural
+619,Nghe,right,far,low,natural
+620,Nghe,right,standard,low,slightly_slow
+621,Nghe,right,standard,normal,natural
+622,Nghe,right,near,normal,slightly_fast
+623,Nghe,left,standard,normal,natural
+624,Nghe,left,near,normal,natural
+625,Nghe,left,far,normal,slightly_slow
+626,Nghe,left,standard,normal,natural
+627,Nghe,left,standard,side,slightly_fast
+628,Nghe,left,near,side,natural
+629,Nghe,left,far,low,natural
+630,Nghe,left,standard,low,slightly_slow
+631,Nghe,left,standard,normal,natural
+632,Nghe,left,near,normal,slightly_fast
+633,Nghe,left,far,normal,natural
+634,Nghe,left,standard,normal,natural
+635,Nghe,left,standard,side,slightly_slow
+636,Nghe,left,near,side,natural
+637,Nghe,left,far,low,slightly_fast
+638,Mua,right,far,normal,slightly_slow
+639,Mua,right,standard,normal,natural
+640,Mua,right,standard,side,slightly_fast
+641,Mua,right,near,side,natural
+642,Mua,right,far,low,natural
+643,Mua,right,standard,low,slightly_slow
+644,Mua,right,standard,normal,natural
+645,Mua,right,near,normal,slightly_fast
+646,Mua,right,far,normal,natural
+647,Mua,right,standard,normal,natural
+648,Mua,right,standard,side,slightly_slow
+649,Mua,right,near,side,natural
+650,Mua,right,far,low,slightly_fast
+651,Mua,right,standard,low,natural
+652,Mua,right,standard,normal,natural
+653,Mua,right,near,normal,slightly_slow
+654,Mua,right,far,normal,natural
+655,Mua,right,standard,normal,slightly_fast
+656,Mua,right,standard,side,natural
+657,Mua,right,near,side,natural
+658,Mua,right,far,low,slightly_slow
+659,Mua,right,standard,low,natural
+660,Mua,right,standard,normal,slightly_fast
+661,Mua,right,near,normal,natural
+662,Mua,right,far,normal,natural
+663,Mua,right,standard,normal,slightly_slow
+664,Mua,right,standard,side,natural
+665,Mua,right,near,side,slightly_fast
+666,Mua,right,far,low,natural
+667,Mua,left,standard,normal,natural
+668,Mua,left,standard,side,slightly_fast
+669,Mua,left,near,side,natural
+670,Mua,left,far,low,natural
+671,Mua,left,standard,low,slightly_slow
+672,Mua,left,standard,normal,natural
+673,Mua,left,near,normal,slightly_fast
+674,Mua,left,far,normal,natural
+675,Mua,left,standard,normal,natural
+676,Mua,left,standard,side,slightly_slow
+677,Mua,left,near,side,natural
+678,Mua,left,far,low,slightly_fast
+679,Mua,left,standard,low,natural
+680,Mua,left,standard,normal,natural
+681,Mua,left,near,normal,slightly_slow
+682,Mua,left,far,normal,natural
+683,Mua,left,standard,normal,slightly_fast
+684,Mua,left,standard,side,natural
+685,Mua,left,near,side,natural
+686,Mua,left,far,low,slightly_slow
+687,Mua,left,standard,low,natural
+688,Mua,left,standard,normal,slightly_fast
+689,Mua,left,near,normal,natural
+690,Mua,left,far,normal,natural
+691,Mua,left,standard,normal,slightly_slow
+692,Mua,left,standard,side,natural
+693,Mua,left,near,side,slightly_fast
+694,Mua,left,far,low,natural
+695,Mua,left,standard,low,natural
+696,Đâu,right,near,side,natural
+697,Đâu,right,far,low,natural
+698,Đâu,right,standard,low,slightly_slow
+699,Đâu,right,standard,normal,natural
+700,Đâu,right,near,normal,slightly_fast
+701,Đâu,right,far,normal,natural
+702,Đâu,right,standard,normal,natural
+703,Đâu,right,standard,side,slightly_slow
+704,Đâu,right,near,side,natural
+705,Đâu,right,far,low,slightly_fast
+706,Đâu,right,standard,low,natural
+707,Đâu,right,standard,normal,natural
+708,Đâu,right,near,normal,slightly_slow
+709,Đâu,right,far,normal,natural
+710,Đâu,right,standard,normal,slightly_fast
+711,Đâu,right,standard,side,natural
+712,Đâu,right,near,side,natural
+713,Đâu,right,far,low,slightly_slow
+714,Đâu,right,standard,low,natural
+715,Đâu,right,standard,normal,slightly_fast
+716,Đâu,right,near,normal,natural
+717,Đâu,right,far,normal,natural
+718,Đâu,left,far,low,natural
+719,Đâu,left,standard,low,slightly_slow
+720,Đâu,left,standard,normal,natural
+721,Đâu,left,near,normal,slightly_fast
+722,Đâu,left,far,normal,natural
+723,Đâu,left,standard,normal,natural
+724,Đâu,left,standard,side,slightly_slow
+725,Đâu,left,near,side,natural
+726,Đâu,left,far,low,slightly_fast
+727,Đâu,left,standard,low,natural
+728,Đâu,left,standard,normal,natural
+729,Đâu,left,near,normal,slightly_slow
+730,Đâu,left,far,normal,natural
+731,Đâu,left,standard,normal,slightly_fast
+732,Đâu,left,standard,side,natural
+733,Đâu,left,near,side,natural
+734,Đâu,left,far,low,slightly_slow
+735,Đâu,left,standard,low,natural
+736,Đâu,left,standard,normal,slightly_fast
+737,Đâu,left,near,normal,natural
+738,Đâu,left,far,normal,natural
+739,Nhìn,right,standard,normal,natural
+740,Nhìn,right,near,normal,slightly_fast
+741,Nhìn,right,far,normal,natural
+742,Nhìn,right,standard,normal,natural
+743,Nhìn,right,standard,side,slightly_slow
+744,Nhìn,right,near,side,natural
+745,Nhìn,right,far,low,slightly_fast
+746,Nhìn,right,standard,low,natural
+747,Nhìn,right,standard,normal,natural
+748,Nhìn,right,near,normal,slightly_slow
+749,Nhìn,right,far,normal,natural
+750,Nhìn,right,standard,normal,slightly_fast
+751,Nhìn,right,standard,side,natural
+752,Nhìn,right,near,side,natural
+753,Nhìn,right,far,low,slightly_slow
+754,Nhìn,right,standard,low,natural
+755,Nhìn,right,standard,normal,slightly_fast
+756,Nhìn,left,near,normal,slightly_fast
+757,Nhìn,left,far,normal,natural
+758,Nhìn,left,standard,normal,natural
+759,Nhìn,left,standard,side,slightly_slow
+760,Nhìn,left,near,side,natural
+761,Nhìn,left,far,low,slightly_fast
+762,Nhìn,left,standard,low,natural
+763,Nhìn,left,standard,normal,natural
+764,Nhìn,left,near,normal,slightly_slow
+765,Nhìn,left,far,normal,natural
+766,Nhìn,left,standard,normal,slightly_fast
+767,Nhìn,left,standard,side,natural
+768,Nhìn,left,near,side,natural
+769,Nhìn,left,far,low,slightly_slow
+770,Nhìn,left,standard,low,natural
+771,Nhìn,left,standard,normal,slightly_fast
+772,Nhìn,left,near,normal,natural
+773,Cho,right,standard,normal,natural
+774,Cho,right,standard,side,slightly_slow
+775,Cho,right,near,side,natural
+776,Cho,right,far,low,slightly_fast
+777,Cho,right,standard,low,natural
+778,Cho,right,standard,normal,natural
+779,Cho,right,near,normal,slightly_slow
+780,Cho,right,far,normal,natural
+781,Cho,right,standard,normal,slightly_fast
+782,Cho,right,standard,side,natural
+783,Cho,right,near,side,natural
+784,Cho,right,far,low,slightly_slow
+785,Cho,right,standard,low,natural
+786,Cho,right,standard,normal,slightly_fast
+787,Cho,right,near,normal,natural
+788,Cho,right,far,normal,natural
+789,Cho,right,standard,normal,slightly_slow
+790,Cho,right,standard,side,natural
+791,Cho,right,near,side,slightly_fast
+792,Cho,right,far,low,natural
+793,Cho,right,standard,low,natural
+794,Cho,right,standard,normal,slightly_slow
+795,Cho,left,standard,side,slightly_slow
+796,Cho,left,near,side,natural
+797,Cho,left,far,low,slightly_fast
+798,Cho,left,standard,low,natural
+799,Cho,left,standard,normal,natural
+800,Cho,left,near,normal,slightly_slow
+801,Cho,left,far,normal,natural
+802,Cho,left,standard,normal,slightly_fast
+803,Cho,left,standard,side,natural
+804,Cho,left,near,side,natural
+805,Cho,left,far,low,slightly_slow
+806,Cho,left,standard,low,natural
+807,Cho,left,standard,normal,slightly_fast
+808,Cho,left,near,normal,natural
+809,Cho,left,far,normal,natural
+810,Cho,left,standard,normal,slightly_slow
+811,Cho,left,standard,side,natural
+812,Cho,left,near,side,slightly_fast
+813,Cho,left,far,low,natural
+814,Cho,left,standard,low,natural
+815,Cho,left,standard,normal,slightly_slow
+816,Cho,left,near,normal,natural
+817,Biết,right,far,low,slightly_fast
+818,Biết,right,standard,low,natural
+819,Biết,right,standard,normal,natural
+820,Biết,right,near,normal,slightly_slow
+821,Biết,right,far,normal,natural
+822,Biết,right,standard,normal,slightly_fast
+823,Biết,right,standard,side,natural
+824,Biết,right,near,side,natural
+825,Biết,right,far,low,slightly_slow
+826,Biết,right,standard,low,natural
+827,Biết,right,standard,normal,slightly_fast
+828,Biết,right,near,normal,natural
+829,Biết,right,far,normal,natural
+830,Biết,right,standard,normal,slightly_slow
+831,Biết,right,standard,side,natural
+832,Biết,left,standard,low,natural
+833,Biết,left,standard,normal,natural
+834,Biết,left,near,normal,slightly_slow
+835,Biết,left,far,normal,natural
+836,Biết,left,standard,normal,slightly_fast
+837,Biết,left,standard,side,natural
+838,Biết,left,near,side,natural
+839,Biết,left,far,low,slightly_slow
+840,Biết,left,standard,low,natural
+841,Biết,left,standard,normal,slightly_fast
+842,Biết,left,near,normal,natural
+843,Biết,left,far,normal,natural
+844,Biết,left,standard,normal,slightly_slow
+845,Biết,left,standard,side,natural
+846,Có thể,right,near,normal,slightly_slow
+847,Có thể,right,far,normal,natural
+848,Có thể,right,standard,normal,slightly_fast
+849,Có thể,right,standard,side,natural
+850,Có thể,right,near,side,natural
+851,Có thể,right,far,low,slightly_slow
+852,Có thể,right,standard,low,natural
+853,Có thể,right,standard,normal,slightly_fast
+854,Có thể,right,near,normal,natural
+855,Có thể,right,far,normal,natural
+856,Có thể,right,standard,normal,slightly_slow
+857,Có thể,right,standard,side,natural
+858,Có thể,right,near,side,slightly_fast
+859,Có thể,right,far,low,natural
+860,Có thể,right,standard,low,natural
+861,Có thể,right,standard,normal,slightly_slow
+862,Có thể,right,near,normal,natural
+863,Có thể,right,far,normal,slightly_fast
+864,Có thể,right,standard,normal,natural
+865,Có thể,right,standard,side,natural
+866,Có thể,right,near,side,slightly_slow
+867,Có thể,right,far,low,natural
+868,Có thể,right,standard,low,slightly_fast
+869,Có thể,right,standard,normal,natural
+870,Có thể,right,near,normal,natural
+871,Có thể,right,far,normal,slightly_slow
+872,Có thể,right,standard,normal,natural
+873,Có thể,right,standard,side,slightly_fast
+874,Có thể,right,near,side,natural
+875,Có thể,right,far,low,natural
+876,Có thể,right,standard,low,slightly_slow
+877,Có thể,right,standard,normal,natural
+878,Có thể,right,near,normal,slightly_fast
+879,Có thể,right,far,normal,natural
+880,Có thể,right,standard,normal,natural
+881,Có thể,right,standard,side,slightly_slow
+882,Có thể,right,near,side,natural
+883,Có thể,left,far,normal,natural
+884,Có thể,left,standard,normal,slightly_fast
+885,Có thể,left,standard,side,natural
+886,Có thể,left,near,side,natural
+887,Có thể,left,far,low,slightly_slow
+888,Có thể,left,standard,low,natural
+889,Có thể,left,standard,normal,slightly_fast
+890,Có thể,left,near,normal,natural
+891,Có thể,left,far,normal,natural
+892,Có thể,left,standard,normal,slightly_slow
+893,Có thể,left,standard,side,natural
+894,Có thể,left,near,side,slightly_fast
+895,Có thể,left,far,low,natural
+896,Có thể,left,standard,low,natural
+897,Có thể,left,standard,normal,slightly_slow
+898,Có thể,left,near,normal,natural
+899,Có thể,left,far,normal,slightly_fast
+900,Có thể,left,standard,normal,natural
+901,Có thể,left,standard,side,natural
+902,Có thể,left,near,side,slightly_slow
+903,Có thể,left,far,low,natural
+904,Có thể,left,standard,low,slightly_fast
+905,Có thể,left,standard,normal,natural
+906,Có thể,left,near,normal,natural
+907,Có thể,left,far,normal,slightly_slow
+908,Có thể,left,standard,normal,natural
+909,Có thể,left,standard,side,slightly_fast
+910,Có thể,left,near,side,natural
+911,Có thể,left,far,low,natural
+912,Có thể,left,standard,low,slightly_slow
+913,Có thể,left,standard,normal,natural
+914,Có thể,left,near,normal,slightly_fast
+915,Có thể,left,far,normal,natural
+916,Có thể,left,standard,normal,natural
+917,Có thể,left,standard,side,slightly_slow
+918,Có thể,left,near,side,natural

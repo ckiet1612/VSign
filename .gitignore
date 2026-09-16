@@ -1,0 +1,53 @@
+# Local configuration
+.env
+.env.local
+!.env.example
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.venv/
+venv/
+
+# JavaScript
+node_modules/
+dist/
+apps/web/*.zip
+coverage/
+*.tsbuildinfo
+
+# Editors and operating systems
+.DS_Store
+.idea/
+.vscode/
+
+# Private/raw datasets and generated manifests
+ml/data/raw/
+ml/data/private/
+ml/data/cache/
+ml/vendor/
+ml/data/manifests/generated/
+ml/data/collected/
+ml/data/processed/
+ml/data/development/**/raw/
+*.mp4
+*.mov
+*.avi
+*.mkv
+
+# Model artifacts and experiment output
+checkpoints/
+artifacts/
+runs/
+*.onnx
+*.pt
+*.pth
+*.ckpt
+*.engine
+
+# Keep intentionally small, distributable test fixtures
+!tests/fixtures/**

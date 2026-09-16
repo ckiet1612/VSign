@@ -1,0 +1,62 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://vsign.local/contracts/v1/inference.schema.json",
+  "title": "VSign inference WebSocket protocol v1",
+  "$defs": {
+    "frameDataUrl": {
+      "type": "string",
+      "pattern": "^data:image/(jpeg|webp);base64,[A-Za-z0-9+/]+={0,2}$",
+      "maxLength": 349600
+    },
+    "candidate": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["label", "confidence"],
+      "properties": {
+        "label": { "type": "string", "minLength": 1 },
+        "confidence": { "type": "number", "minimum": 0, "maximum": 1 }
+      }
+    },
+    "framesMessage": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type", "session_id", "sequence", "captured_at", "frames"],
+      "properties": {
+        "type": { "const": "frames" },
+        "session_id": { "type": "string", "format": "uuid" },
+        "sequence": { "type": "integer", "minimum": 0 },
+        "captured_at": { "type": "integer", "minimum": 0 },
+        "frames": {
+          "type": "array",
+          "minItems": 16,
+          "maxItems": 16,
+          "items": { "$ref": "#/$defs/frameDataUrl" }
+        }
+      }
+    },
+    "predictionMessage": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type", "sequence", "status", "label", "confidence", "top_k", "model_version"],
+      "properties": {
+        "type": { "const": "prediction" },
+        "sequence": { "type": "integer", "minimum": 0 },
+        "status": {
+          "enum": ["ok", "uncertain", "no_hands", "bad_framing", "busy", "error"]
+        },
+        "label": { "type": ["string", "null"] },
+        "confidence": { "type": ["number", "null"], "minimum": 0, "maximum": 1 },
+        "top_k": {
+          "type": "array",
+          "maxItems": 3,
+          "items": { "$ref": "#/$defs/candidate" }
+        },
+        "model_version": { "type": "string", "minLength": 1 }
+      }
+    }
+  },
+  "oneOf": [
+    { "$ref": "#/$defs/framesMessage" },
+    { "$ref": "#/$defs/predictionMessage" }
+  ]
+}

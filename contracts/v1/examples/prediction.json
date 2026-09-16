@@ -1,0 +1,13 @@
+{
+  "type": "prediction",
+  "sequence": 12,
+  "status": "ok",
+  "label": "cảm ơn",
+  "confidence": 0.91,
+  "top_k": [
+    { "label": "cảm ơn", "confidence": 0.91 },
+    { "label": "xin lỗi", "confidence": 0.05 },
+    { "label": "xin chào", "confidence": 0.02 }
+  ],
+  "model_version": "mock-common-20-v1"
+}

@@ -1,0 +1,38 @@
+services:
+  inference:
+    build:
+      context: .
+      dockerfile: services/inference/Dockerfile
+    environment:
+      INFERENCE_BACKEND: ${INFERENCE_BACKEND:-mock}
+      MODEL_VERSION: ${MODEL_VERSION:-mock-common-20-v1}
+      ONNX_MODEL_PATH: ${ONNX_MODEL_PATH:-}
+      LABEL_MAP_PATH: ${LABEL_MAP_PATH:-}
+      CONFIDENCE_THRESHOLD: ${CONFIDENCE_THRESHOLD:-0.70}
+      MARGIN_THRESHOLD: ${MARGIN_THRESHOLD:-0.15}
+      COLLECTION_ENABLED: ${COLLECTION_ENABLED:-false}
+      COLLECTION_DIR: /data/collection
+      COLLECTION_TARGET_PER_HAND: ${COLLECTION_TARGET_PER_HAND:-5}
+      ALLOWED_ORIGINS: ${ALLOWED_ORIGINS:-http://localhost:5173,http://localhost:8080}
+    volumes:
+      - ./ml/data/collected:/data/collection
+    ports:
+      - "8000:8000"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+
+  web:
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile
+      args:
+        VITE_INFERENCE_WS_URL: ${VITE_INFERENCE_WS_URL:-ws://localhost:8000/ws/inference}
+        VITE_INFERENCE_HTTP_URL: ${VITE_INFERENCE_HTTP_URL:-http://localhost:8000}
+    ports:
+      - "8080:80"
+    depends_on:
+      inference:
+        condition: service_healthy

@@ -1,0 +1,85 @@
+order,kind,expected_label,hand,distance,lighting,negative_action,execution
+1,positive,Đâu,right,standard,low,,natural
+2,positive,Nói,left,near,low,,slightly_slow
+3,negative,Không ký hiệu,right,standard,normal,adjust_hair_glasses,natural
+4,positive,Trường học,right,standard,normal,,slightly_slow
+5,positive,Ăn,right,near,side,,slightly_slow
+6,positive,Uống,left,far,low,,slightly_slow
+7,positive,Trường học,right,near,side,,natural
+8,positive,Ăn,right,far,normal,,slightly_fast
+9,positive,Trường học,right,far,low,,slightly_fast
+10,positive,Uống,right,near,normal,,natural
+11,positive,Nói,left,near,normal,,natural
+12,positive,Trường học,left,standard,normal,,slightly_slow
+13,positive,Trường học,left,near,low,,slightly_fast
+14,positive,Uống,left,standard,normal,,natural
+15,positive,Uống,right,near,low,,slightly_slow
+16,negative,Không ký hiệu,right,far,side,still,natural
+17,positive,Uống,left,near,side,,slightly_fast
+18,positive,Ăn,left,near,normal,,slightly_fast
+19,positive,Trường học,right,far,normal,,slightly_slow
+20,negative,Không ký hiệu,left,far,low,random_motion,natural
+21,negative,Không ký hiệu,right,far,low,overlap_hands,natural
+22,positive,Ăn,right,standard,side,,slightly_slow
+23,negative,Không ký hiệu,right,standard,low,turn_body,natural
+24,positive,Nói,left,standard,side,,slightly_fast
+25,positive,Trường học,left,standard,low,,slightly_fast
+26,positive,Trường học,left,near,normal,,slightly_slow
+27,positive,Ăn,right,near,low,,natural
+28,positive,Ăn,right,far,low,,natural
+29,negative,Không ký hiệu,right,near,side,overlap_hands,natural
+30,positive,Nói,right,standard,low,,slightly_slow
+31,positive,Trường học,right,standard,low,,slightly_fast
+32,negative,Không ký hiệu,left,standard,side,other_sign,natural
+33,negative,Không ký hiệu,left,standard,normal,hand_enter_exit,natural
+34,positive,Ăn,left,standard,normal,,slightly_fast
+35,negative,Không ký hiệu,left,near,low,random_motion,natural
+36,positive,Nói,right,far,normal,,natural
+37,positive,Trường học,left,near,side,,natural
+38,positive,Uống,right,near,side,,slightly_fast
+39,negative,Không ký hiệu,left,standard,normal,touch_face,natural
+40,positive,Nói,left,near,side,,slightly_fast
+41,positive,Uống,left,far,side,,slightly_fast
+42,positive,Nói,left,standard,normal,,natural
+43,negative,Không ký hiệu,right,near,low,turn_body,natural
+44,positive,Trường học,right,standard,side,,natural
+45,negative,Không ký hiệu,right,standard,low,overlap_hands,natural
+46,positive,Nói,right,standard,side,,slightly_fast
+47,positive,Nói,left,standard,low,,slightly_slow
+48,positive,Đâu,right,far,normal,,slightly_fast
+49,positive,Đâu,right,far,side,,slightly_slow
+50,positive,Nói,right,far,low,,slightly_slow
+51,positive,Ăn,right,standard,normal,,slightly_fast
+52,positive,Nói,right,far,side,,slightly_fast
+53,negative,Không ký hiệu,right,near,normal,adjust_hair_glasses,natural
+54,positive,Ăn,right,standard,low,,natural
+55,negative,Không ký hiệu,right,far,normal,turn_body,natural
+56,positive,Đâu,left,near,normal,,slightly_fast
+57,positive,Uống,right,far,normal,,natural
+58,positive,Trường học,right,far,side,,natural
+59,negative,Không ký hiệu,left,near,normal,hand_enter_exit,natural
+60,positive,Uống,left,standard,side,,slightly_fast
+61,positive,Uống,left,near,normal,,natural
+62,positive,Uống,right,standard,low,,slightly_slow
+63,positive,Ăn,left,near,side,,slightly_slow
+64,negative,Không ký hiệu,left,far,side,hand_enter_exit,natural
+65,positive,Uống,left,standard,low,,slightly_slow
+66,negative,Không ký hiệu,left,far,normal,touch_face,natural
+67,positive,Uống,right,standard,side,,slightly_fast
+68,negative,Không ký hiệu,left,near,low,touch_face,natural
+69,positive,Nói,right,standard,normal,,natural
+70,positive,Uống,right,far,side,,slightly_fast
+71,negative,Không ký hiệu,left,far,low,other_sign,natural
+72,positive,Đâu,right,far,low,,natural
+73,negative,Không ký hiệu,right,far,normal,adjust_hair_glasses,natural
+74,negative,Không ký hiệu,left,near,side,other_sign,natural
+75,positive,Ăn,right,far,side,,slightly_slow
+76,positive,Uống,left,near,low,,slightly_slow
+77,negative,Không ký hiệu,right,near,normal,still,natural
+78,negative,Không ký hiệu,right,standard,side,still,natural
+79,negative,Không ký hiệu,left,standard,low,random_motion,natural
+80,positive,Uống,right,standard,normal,,natural
+81,positive,Uống,left,far,normal,,natural
+82,positive,Ăn,left,near,low,,natural
+83,positive,Đâu,right,standard,side,,slightly_slow
+84,positive,Uống,right,far,low,,slightly_slow

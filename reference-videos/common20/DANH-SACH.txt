@@ -1,0 +1,30 @@
+VSign — 20 VIDEO MẪU NGÔN NGỮ KÝ HIỆU VIỆT NAM
+
+Mở video theo thứ tự, xem hết động tác rồi thực hiện trước camera.
+Mỗi từ có thể có biến thể theo vùng và người ký.
+
+01. Chào          01-chao.mp4
+02. Cảm ơn        02-cam-on.mp4
+03. Xin lỗi       03-xin-loi.mp4
+04. Tôi           04-toi.mp4
+05. Đi            05-di.mp4
+06. Uống          06-uong.mp4
+07. Ăn            07-an.mp4
+08. Nhà           08-nha.mp4
+09. Trường học    09-truong-hoc.mp4
+10. Bệnh viện     10-benh-vien.mp4
+11. Giúp          11-giup.mp4
+12. Đồng ý        12-dong-y.mp4
+13. Nói           13-noi.mp4
+14. Nghe          14-nghe.mp4
+15. Mua           15-mua.mp4
+16. Đâu           16-dau.mp4
+17. Nhìn          17-nhin.mp4
+18. Cho           18-cho.mp4
+19. Biết          19-biet.mp4
+20. Có thể        20-co-the.mp4
+
+Nguồn: star092304/ViSignLanguage-Video (Hugging Face)
+https://huggingface.co/datasets/star092304/ViSignLanguage-Video
+Giấy phép nguồn: CC BY 4.0
+Cách chọn: 1 clip train rõ và đầy đủ cho mỗi từ; ưu tiên thời lượng gần trung vị của lớp.

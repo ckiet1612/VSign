@@ -1,0 +1,91 @@
+order,kind,expected_label,hand,distance,lighting,negative_action
+1,positive,Tôi,left,near,normal,
+2,positive,Ăn,left,standard,low,
+3,positive,Nhìn,left,standard,side,
+4,negative,Không ký hiệu,right,near,normal,still
+5,positive,Ăn,right,far,side,
+6,positive,Chào,right,near,normal,
+7,negative,Không ký hiệu,right,standard,side,still
+8,positive,Chào,right,far,side,
+9,positive,Có thể,left,far,normal,
+10,positive,Đi,right,far,normal,
+11,positive,Đi,right,near,low,
+12,positive,Giúp,left,standard,side,
+13,positive,Nhìn,right,far,normal,
+14,positive,Bệnh viện,left,near,normal,
+15,positive,Trường học,left,standard,normal,
+16,positive,Đồng ý,left,near,side,
+17,positive,Nhà,left,far,normal,
+18,positive,Bệnh viện,right,standard,low,
+19,negative,Không ký hiệu,left,far,low,random_motion
+20,negative,Không ký hiệu,right,far,side,adjust_hair_glasses
+21,positive,Uống,right,standard,normal,
+22,negative,Không ký hiệu,right,standard,normal,turn_body
+23,positive,Cảm ơn,left,far,normal,
+24,negative,Không ký hiệu,left,near,normal,hand_enter_exit
+25,positive,Biết,right,far,side,
+26,negative,Không ký hiệu,left,standard,normal,hand_enter_exit
+27,positive,Ăn,right,near,normal,
+28,negative,Không ký hiệu,left,near,low,touch_face
+29,negative,Không ký hiệu,right,near,normal,adjust_hair_glasses
+30,positive,Bệnh viện,left,far,side,
+31,positive,Nhà,left,near,low,
+32,positive,Xin lỗi,right,near,side,
+33,positive,Nói,right,far,side,
+34,positive,Đâu,left,near,normal,
+35,negative,Không ký hiệu,left,near,side,other_sign
+36,positive,Mua,left,standard,normal,
+37,positive,Giúp,right,near,low,
+38,positive,Đi,left,standard,side,
+39,positive,Đâu,left,far,side,
+40,positive,Cảm ơn,right,standard,side,
+41,negative,Không ký hiệu,left,far,low,other_sign
+42,positive,Nghe,left,near,low,
+43,negative,Không ký hiệu,left,near,low,random_motion
+44,positive,Mua,right,far,low,
+45,negative,Không ký hiệu,left,standard,low,random_motion
+46,positive,Nói,right,near,normal,
+47,negative,Không ký hiệu,right,standard,normal,adjust_hair_glasses
+48,positive,Đồng ý,left,far,low,
+49,positive,Cảm ơn,left,near,low,
+50,negative,Không ký hiệu,right,far,normal,turn_body
+51,positive,Mua,right,near,side,
+52,negative,Không ký hiệu,left,far,normal,random_motion
+53,negative,Không ký hiệu,left,near,normal,touch_face
+54,positive,Trường học,right,near,side,
+55,positive,Nói,left,standard,low,
+56,positive,Biết,right,near,normal,
+57,positive,Xin lỗi,right,far,low,
+58,positive,Trường học,right,far,low,
+59,positive,Tôi,right,standard,low,
+60,negative,Không ký hiệu,left,standard,side,other_sign
+61,positive,Cho,left,near,side,
+62,negative,Không ký hiệu,right,near,side,overlap_hands
+63,negative,Không ký hiệu,left,far,normal,touch_face
+64,positive,Cho,left,far,low,
+65,positive,Xin lỗi,left,standard,normal,
+66,positive,Có thể,right,standard,side,
+67,positive,Nghe,right,standard,side,
+68,negative,Không ký hiệu,left,standard,normal,touch_face
+69,negative,Không ký hiệu,right,far,low,overlap_hands
+70,negative,Không ký hiệu,right,far,side,still
+71,positive,Uống,left,near,side,
+72,positive,Nhìn,right,near,low,
+73,positive,Biết,left,standard,low,
+74,negative,Không ký hiệu,left,standard,side,hand_enter_exit
+75,negative,Không ký hiệu,right,standard,low,overlap_hands
+76,positive,Đồng ý,right,standard,normal,
+77,negative,Không ký hiệu,right,near,low,turn_body
+78,positive,Uống,left,far,low,
+79,positive,Giúp,right,far,normal,
+80,negative,Không ký hiệu,right,far,normal,adjust_hair_glasses
+81,positive,Nghe,left,far,normal,
+82,positive,Cho,right,standard,normal,
+83,negative,Không ký hiệu,right,standard,low,turn_body
+84,positive,Nhà,right,standard,side,
+85,negative,Không ký hiệu,right,near,side,still
+86,positive,Tôi,left,far,side,
+87,positive,Có thể,left,near,low,
+88,positive,Chào,left,standard,low,
+89,positive,Đâu,right,standard,low,
+90,negative,Không ký hiệu,left,far,side,hand_enter_exit

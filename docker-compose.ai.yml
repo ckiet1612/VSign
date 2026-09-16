@@ -1,0 +1,24 @@
+services:
+  inference:
+    build:
+      context: .
+      dockerfile: services/inference/Dockerfile.pytorch
+    environment:
+      INFERENCE_BACKEND: pytorch
+      MODEL_VERSION: ${MODEL_VERSION:-multivsl1000-mvitv2s-official-class-id-v1}
+      PYTORCH_MODEL_PATH: /models/mvitv2_s_multivsl1000.pth
+      PYTORCH_DEVICE: cuda
+      LABEL_MAP_PATH: /models/multivsl1000_class_ids.json
+      LABELS_VERIFIED: ${LABELS_VERIFIED:-false}
+      CONFIDENCE_THRESHOLD: ${CONFIDENCE_THRESHOLD:-0.70}
+      MARGIN_THRESHOLD: ${MARGIN_THRESHOLD:-0.15}
+      ALLOWED_ORIGINS: ${ALLOWED_ORIGINS:-http://localhost:5173,http://localhost:8080}
+    volumes:
+      - ./ml/artifacts/source:/models:ro
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]

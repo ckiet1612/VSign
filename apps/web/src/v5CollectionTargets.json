@@ -1,0 +1,89 @@
+{
+  "targetPerLabel": 100,
+  "excludedPublicSplits": [
+    "test"
+  ],
+  "minimumDetectedHandFrames": 1,
+  "targets": {
+    "Chào": {
+      "right": 35,
+      "left": 34
+    },
+    "Cảm ơn": {
+      "right": 23,
+      "left": 22
+    },
+    "Xin lỗi": {
+      "right": 41,
+      "left": 41
+    },
+    "Tôi": {
+      "right": 27,
+      "left": 26
+    },
+    "Đi": {
+      "right": 25,
+      "left": 24
+    },
+    "Uống": {
+      "right": 39,
+      "left": 39
+    },
+    "Ăn": {
+      "right": 22,
+      "left": 22
+    },
+    "Nhà": {
+      "right": 21,
+      "left": 20
+    },
+    "Trường học": {
+      "right": 17,
+      "left": 17
+    },
+    "Bệnh viện": {
+      "right": 30,
+      "left": 29
+    },
+    "Giúp": {
+      "right": 30,
+      "left": 29
+    },
+    "Đồng ý": {
+      "right": 26,
+      "left": 26
+    },
+    "Nói": {
+      "right": 39,
+      "left": 39
+    },
+    "Nghe": {
+      "right": 20,
+      "left": 20
+    },
+    "Mua": {
+      "right": 34,
+      "left": 34
+    },
+    "Đâu": {
+      "right": 27,
+      "left": 27
+    },
+    "Nhìn": {
+      "right": 22,
+      "left": 22
+    },
+    "Cho": {
+      "right": 27,
+      "left": 27
+    },
+    "Biết": {
+      "right": 20,
+      "left": 19
+    },
+    "Có thể": {
+      "right": 42,
+      "left": 41
+    }
+  }
+}

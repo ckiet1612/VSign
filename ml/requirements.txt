@@ -1,0 +1,13 @@
+# Data preparation plus the legacy Multi-VSL runtime.
+av>=12.3.0
+gdown==5.2.0
+huggingface-hub[hf_xet]==1.8.0
+numpy==1.26.4
+mediapipe==0.10.21
+opencv-contrib-python==4.11.0.86
+onnx==1.16.2
+onnxruntime==1.19.2
+pillow==11.2.1
+pyyaml==6.0.2
+torch==2.0.0
+torchvision==0.15.1

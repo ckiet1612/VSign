@@ -1,0 +1,2 @@
+*.md whitespace=-trailing-space
+apps/web/public/mediapipe/wasm/*.js -whitespace

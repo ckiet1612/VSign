@@ -1,0 +1,25 @@
+# Baseline declaration only. Training remains blocked on license, glossary and data.
+experiment:
+  name: mvitv2_s_isolated_vsl_baseline
+  seed: 20250301
+model:
+  architecture: mvitv2_s
+  pretrained_source: kinetics_400
+input:
+  frames: 16
+  height: 224
+  width: 224
+  color_space: RGB
+  normalization:
+    mean: [0.485, 0.456, 0.406]
+    std: [0.229, 0.224, 0.225]
+augmentation:
+  horizontal_flip: false
+training:
+  early_stopping_metric: macro_f1
+  early_stopping_mode: max
+split:
+  strategy: signer_independent
+labels:
+  source: verified_gloss_map_required
+  class_ids: null
