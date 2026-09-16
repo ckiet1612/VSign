@@ -49,5 +49,11 @@ runs/
 *.ckpt
 *.engine
 
+# Runtime artifacts required by the browser demo
+!apps/web/public/models/vsign-landmark-keyframe-v3.onnx
+!apps/web/public/models/vsign-landmark-v4.onnx
+!apps/web/public/models/vsign-landmark-v5.onnx
+!apps/web/public/reference-videos/common20/*.mp4
+
 # Keep intentionally small, distributable test fixtures
 !tests/fixtures/**
