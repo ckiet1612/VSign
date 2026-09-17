@@ -9,36 +9,46 @@ Build a reproducible data-ingestion pipeline for the 30 isolated sales signs in
 license, label coverage and split safety before any video can become training
 input. Multi-VSL is explicitly outside the scope.
 
-The first deliverable is a source and coverage audit. Downloading large media,
-creating the final manifest and training are allowed only when the audit passes.
+The first deliverable is a source and coverage audit. Selective download,
+manifest generation, a local smoke run and a reproducible Kaggle GPU training
+job follow only when the audit passes.
 
 ## Current source status
 
-The two Hugging Face repositories previously selected for VSL-472 and QIPEDC
-cannot currently be resolved anonymously:
+The identifiers previously treated as Hugging Face repositories are public
+Kaggle datasets. The primary source is:
 
-- `nguyenanfms/vsl-vietnamese-sign-language-v2` returns HTTP 401 and is absent
-  from public Hugging Face search.
-- `aresusayhi/vsl-vietnamese-sign-languages` returns HTTP 401 and is absent from
-  public Hugging Face search.
+- `nguyenanfms/vsl-vietnamese-sign-language-v2`, Kaggle version 8;
+- title `VSL - Vietnamese Sign Language (Cropped)`;
+- CC BY 4.0;
+- 472 isolated glosses and 26,446 canonical processed clips;
+- processed RGB videos are already cropped to 224x224 and have train/test
+  directories.
 
-Public QIPEDC scraper repositories exist on GitHub, but the repositories do not
-declare a data license. Their existence is not permission to use the crawled
-videos for model training.
+The source covers 22 labels from the earlier vocabulary. To keep one consistent
+source and avoid relying on the small QIPEDC classes, the eight unsupported
+labels are replaced as follows:
 
-`KhangCN/Video_VSL` is publicly accessible on Hugging Face and declares
-Apache-2.0, but its visible label inventory covers only a subset of `sales-30`.
-It is a candidate supplement, not an automatic replacement for the approved
-vocabulary or the missing sources.
+| Previous label | VSL-472 label |
+| --- | --- |
+| Cửa hàng | Siêu thị |
+| Có…không? | Có |
+| Bao nhiêu? | Cần |
+| Hóa đơn | Mua bán |
+| Thẻ | Ngân hàng |
+| Giao hàng | Cung cấp |
+| Đổi | Thay đổi |
+| Trả | Từ chối |
 
-These observations are evidence captured on 2026-09-18. Every source revision
-and license must be re-queried when an audit is run.
+The resulting 30 labels all have exact directory matches in VSL-472. QIPEDC
+remains a possible later supplement, not an input to this training increment.
+Every source version and license must be re-queried when an audit is run.
 
 ## Architecture
 
 ### Source registry
 
-A version-controlled JSON registry describes each candidate source:
+A version-controlled JSON registry describes the pinned Kaggle source:
 
 - stable source ID and repository type;
 - repository identifier and pinned revision when known;
@@ -47,8 +57,9 @@ A version-controlled JSON registry describes each candidate source:
 - optional local media root;
 - signer and group metadata capabilities.
 
-Credentials never appear in the registry, generated manifest or logs. Hugging
-Face authentication remains in the user's standard local credential store.
+Credentials never appear in the registry, generated manifest or logs. Kaggle
+authentication remains in KaggleHub's standard local credential store or the
+Kaggle notebook environment. Public metadata audit works without credentials.
 
 ### Source audit
 
@@ -75,9 +86,11 @@ changed, a mapping is ambiguous, or any target label has no approved source.
 ### Selective download
 
 The download command consumes a passing audit artifact instead of accepting an
-arbitrary repository directly. It downloads only files required by approved
-target mappings and records SHA256 checksums. Existing matching files are
-reused; mismatches fail instead of being silently overwritten.
+arbitrary repository directly. It uses KaggleHub to download only canonical
+`processed/processed/frame_splited/{train,test}/{gloss}/*.mp4` files required
+by the 30 exact target mappings and records SHA256 checksums. It never downloads
+the 72 GB raw tree or augmented derivatives. Existing matching files are reused;
+mismatches fail instead of being silently overwritten.
 
 Archive extraction rejects absolute paths, parent traversal, symlinks and
 Unicode-normalized collisions. Raw videos remain under ignored
@@ -98,11 +111,12 @@ The generated manifest contains at least:
 - `split_strength`, which is `signer-independent`, `group-safe` or
   `development-only`.
 
-The pipeline preserves official signer-independent splits when available. When
-signer metadata exists but no official split exists, it assigns whole signers
-deterministically to train, validation and test. When signer metadata is absent,
-it may create only a group-safe development split; that split cannot satisfy the
-production release gate.
+The pipeline preserves the supplied VSL-472 test split. It deterministically
+carves validation groups from the supplied train split without moving any test
+clip. Core VSL400 data is described as split by signer, but merged online data
+does not expose complete signer identity. The generated artifact is therefore a
+development evaluation unless an audit can prove signer ownership for every
+included clip; it cannot by itself satisfy the production release gate.
 
 No signer or group may cross split boundaries. Duplicate checksums across
 splits are a hard failure.
@@ -119,25 +133,35 @@ source counts and blockers. Full `sales-30` training is blocked unless:
 - every target meets the configured minimum sample and diversity thresholds;
 - an independent evaluation set is reserved or explicitly reported as missing.
 
-The default threshold is a development guard, not a production claim: at least
-100 usable clips per label and at least three source groups. Production release
-still requires a separately frozen webcam evaluation with unseen signers.
+The baseline-training gate requires every label to have non-empty train,
+validation and test coverage and at least 15 canonical clips in total. Falling
+below 100 usable clips or three known source groups marks the run
+`development-only`; it does not prevent a baseline experiment. Production
+release still requires those stronger diversity thresholds plus a separately
+frozen webcam evaluation with unseen signers.
 
 ## Commands and outputs
 
-The intended workflow is:
+The intended local workflow is:
 
 ```text
 python -m ml.scripts.audit_sales30_sources
 python -m ml.scripts.download_sales30_sources
 python -m ml.scripts.build_sales30_manifest
 python -m ml.scripts.audit_sales30_manifest
+python -m ml.scripts.train_visignlanguage --config ml/configs/sales30_mvitv2_s.yaml --epochs 1 --max-train-batches 1 --max-val-batches 1 --no-pretrained
 ```
+
+The full run uses the same config and scripts inside a Kaggle GPU notebook with
+the public VSL-472 dataset attached. Training starts from Kinetics-400 weights,
+uses class-weighted cross entropy and selects the checkpoint by validation macro
+F1. The frozen source test split is evaluated once after model selection.
 
 Version-controlled inputs:
 
 ```text
 ml/configs/sales30_sources.json
+ml/configs/sales30_mvitv2_s.yaml
 contracts/v1/sales30.labels.json
 ```
 
@@ -149,6 +173,7 @@ ml/data/raw/sales30/source_audit.md
 ml/data/raw/sales30/media/
 ml/data/raw/sales30/manifest.csv
 ml/data/raw/sales30/readiness.json
+runs/sales30_mvitv2_s/
 ```
 
 ## Failure behavior
@@ -173,11 +198,13 @@ reuse, duplicate detection, deterministic signer splitting and strict readiness
 failures.
 
 One opt-in integration smoke test queries source metadata without downloading
-video. Large downloads and model training remain explicit operator actions.
+video. The local M1 run is deliberately limited to one or a few batches and is
+not reported as model quality. Full training requires a CUDA GPU notebook and
+must save the checkpoint, config, labels, metrics and source version together.
 
 ## Non-goals
 
-- Training or deploying the MViTv2-S `sales-30` model in this increment.
+- Deploying the MViTv2-S `sales-30` model in this increment.
 - Scraping QIPEDC without documented permission and license terms.
 - Relabeling a source by semantic similarity without manual review.
 - Treating group-safe metrics as signer-independent production evidence.
