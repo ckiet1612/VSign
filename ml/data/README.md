@@ -35,3 +35,28 @@ vậy split hiện tại chỉ được gọi là group-safe, không phải sign
 Các schema trong `templates/` và công cụ import Multi-VSL được giữ để tái lập
 baseline legacy; chúng không phải đầu vào train của model common-20 mới. Xem
 `docs/VISIGNLANGUAGE_VIDEO.md` để biết audit và attribution đầy đủ.
+
+## Sales-30 từ VSL-472 công khai
+
+Model sales-30 mới chỉ dùng dataset Kaggle công khai
+`nguyenanfms/vsl-vietnamese-sign-language-v2`, version `8`, license CC BY 4.0.
+Pipeline chỉ tải cây video canonical
+`processed/processed/frame_splited/{train,test}/{label}`; không dùng Multi-VSL,
+raw videos hay dữ liệu augmented.
+
+```bash
+.venv/bin/python -m ml.scripts.audit_sales30_sources
+.venv/bin/python -m ml.scripts.download_sales30_sources \
+  --audit ml/data/raw/sales30/source_audit.json \
+  --output-root ml/data/raw/sales30
+.venv/bin/python -m ml.scripts.build_sales30_manifest \
+  --output-root ml/data/raw/sales30
+.venv/bin/python -m ml.scripts.audit_sales30_manifest \
+  ml/data/raw/sales30/manifest.csv \
+  --data-root ml/data/raw/sales30/media
+```
+
+`download_index.json` ghim SHA256 cho từng clip. `manifest.csv` giữ nguyên source
+test và tách validation ổn định từ source train. Do nguồn không có signer ID đầy
+đủ, `readiness.json` luôn đánh dấu split là `development-only`; đây là baseline
+train, chưa phải bằng chứng production.
