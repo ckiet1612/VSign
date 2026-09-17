@@ -171,17 +171,17 @@ git commit -m "feat: audit public VSL472 source"
 - Produces: `build_sales30_manifest(media_root: Path, labels: Sequence[str], source_inventory: SourceInventory, seed: int) -> tuple[list[ManifestRow], ReadinessReport]`.
 - Produces: `audit_sales30_manifest(path: Path, data_root: Path) -> ManifestAudit`.
 
-- [ ] **Step 1: Write failing safe-download and split tests**
+- [x] **Step 1: Write failing safe-download and split tests**
 
 Cover download-path traversal rejection, reuse of an existing matching checksum, checksum mismatch failure, deterministic validation selection, preservation of source test, duplicate checksum across split failure, and non-empty train/validation/test for every label.
 
-- [ ] **Step 2: Run the focused tests and verify failure**
+- [x] **Step 2: Run the focused tests and verify failure**
 
 Run: `.venv/bin/pytest tests/test_sales30_data.py -q`
 
 Expected: FAIL because downloader/manifest functions are undefined.
 
-- [ ] **Step 3: Implement selective KaggleHub download**
+- [x] **Step 3: Implement selective KaggleHub download**
 
 Import KaggleHub lazily and call:
 
@@ -195,21 +195,21 @@ kagglehub.dataset_download(
 
 Move a fully downloaded file into `media/{source_split}/{label}/{filename}` only after SHA256 succeeds. Maintain `download_index.json` with remote path, bytes and digest. Do not silently retry permanent 401/403 errors.
 
-- [ ] **Step 4: Implement deterministic manifest generation**
+- [x] **Step 4: Implement deterministic manifest generation**
 
 For every label, sort source-train paths by `sha256(f"{seed}\0{label}\0{path}")`. Reserve `max(1, round(train_count * 0.1))` paths for validation and assign the rest to train. Preserve every source-test path as test. Write the existing trainer columns first: `path,label_id,label,split`, followed by provenance columns.
 
-- [ ] **Step 5: Implement readiness and manifest audit**
+- [x] **Step 5: Implement readiness and manifest audit**
 
 Fail on missing files, duplicate paths, duplicate checksums across splits, label-map mismatch, empty split, source-test reassignment, or fewer than 15 clips total for a label. Report unknown signers as `development-only` rather than fabricating signer IDs.
 
-- [ ] **Step 6: Run focused and existing data tests**
+- [x] **Step 6: Run focused and existing data tests**
 
 Run: `.venv/bin/pytest tests/test_sales30_data.py tests/test_data_tools.py tests/test_prepare_visignlanguage_video.py -q`
 
 Expected: PASS.
 
-- [ ] **Step 7: Attempt the selective download**
+- [x] **Step 7: Attempt the selective download**
 
 Run:
 
@@ -221,7 +221,7 @@ Run:
 
 If KaggleHub requires login, preserve the audit and stop with the exact command `python -m kagglehub.login`; never fall back to downloading all 82 GB.
 
-- [ ] **Step 8: Build and audit the real manifest when download succeeds**
+- [x] **Step 8: Build and audit the real manifest when download succeeds**
 
 Run:
 
@@ -232,7 +232,7 @@ Run:
 
 Expected: 30 labels, three non-empty splits per label, zero duplicate leakage, `development-only` readiness.
 
-- [ ] **Step 9: Commit the data-preparation increment**
+- [x] **Step 9: Commit the data-preparation increment**
 
 ```bash
 git add ml/sales30_data.py ml/scripts/download_sales30_sources.py ml/scripts/build_sales30_manifest.py ml/scripts/audit_sales30_manifest.py tests/test_sales30_data.py ml/data/README.md
@@ -252,31 +252,31 @@ git commit -m "feat: prepare selective sales30 dataset"
 - Produces: `validate_training_config(config: dict[str, Any], labels: Sequence[str]) -> None`.
 - Produces: checkpoint metadata keys `source`, `source_version`, `split_strength`, `git_commit`, and `development_only`.
 
-- [ ] **Step 1: Write failing config and checkpoint metadata tests**
+- [x] **Step 1: Write failing config and checkpoint metadata tests**
 
 Test that class count must equal 30, source version must be 8, the labels path must be `contracts/v1/sales30.labels.json`, and a development-only split is stored in checkpoints.
 
-- [ ] **Step 2: Run the focused tests and verify failure**
+- [x] **Step 2: Run the focused tests and verify failure**
 
 Run: `.venv/bin/pytest tests/test_sales30_training.py -q`
 
 Expected: FAIL because config validation and metadata helpers are missing.
 
-- [ ] **Step 3: Add the sales30 training config**
+- [x] **Step 3: Add the sales30 training config**
 
 Configure 16 RGB frames at 224x224, Kinetics-400 initialization, 30 classes, batch size 2, gradient accumulation 4, 12 epochs, AdamW learning rate `1e-4`, cosine minimum `1e-6`, weight decay `0.05`, no horizontal flip and early selection by macro F1.
 
-- [ ] **Step 4: Add validation and provenance metadata**
+- [x] **Step 4: Add validation and provenance metadata**
 
 Validate config before constructing datasets. Store the exact source ref/version, config, labels, git commit and split strength in every checkpoint and summary. Rename user-facing descriptions from Common-20 to generic VSign training/evaluation.
 
-- [ ] **Step 5: Run training unit tests**
+- [x] **Step 5: Run training unit tests**
 
 Run: `.venv/bin/pytest tests/test_sales30_training.py tests/test_visignlanguage_training.py -q`
 
 Expected: PASS.
 
-- [ ] **Step 6: Run a local one-batch smoke train when media exists**
+- [x] **Step 6: Run a local one-batch smoke train when media exists**
 
 Run:
 
@@ -290,7 +290,7 @@ Run:
 
 Expected: `last.pt`, `best.pt`, `labels.json` and `summary.json`; this run is labeled smoke/development-only.
 
-- [ ] **Step 7: Commit the trainer increment**
+- [x] **Step 7: Commit the trainer increment**
 
 ```bash
 git add ml/configs/sales30_mvitv2_s.yaml ml/scripts/train_visignlanguage.py ml/scripts/evaluate_visignlanguage.py tests/test_sales30_training.py
@@ -309,25 +309,25 @@ git commit -m "feat: configure sales30 MViTv2 training"
 - Produces: `find_attached_vsl472_root(input_root: Path) -> Path`.
 - Produces CLI that builds the manifest from the attached dataset, trains, evaluates test once and exports ONNX into `/kaggle/working/vsign-sales30-artifacts`.
 
-- [ ] **Step 1: Write failing attached-dataset discovery tests**
+- [x] **Step 1: Write failing attached-dataset discovery tests**
 
 Use synthetic directories to assert one valid canonical root is accepted, zero roots gives an actionable error, and multiple roots requires `--dataset-root`.
 
-- [ ] **Step 2: Run the focused tests and verify failure**
+- [x] **Step 2: Run the focused tests and verify failure**
 
 Run: `.venv/bin/pytest tests/test_sales30_kaggle_runner.py -q`
 
 Expected: FAIL because the runner does not exist.
 
-- [ ] **Step 3: Implement the Kaggle runner**
+- [x] **Step 3: Implement the Kaggle runner**
 
 The runner accepts `--dataset-root`, `--output-dir`, `--epochs`, `--batch-size` and `--num-workers`. It invokes Python functions directly, not shell strings, and refuses to start full training when CUDA is unavailable. It evaluates `best.pt` on test exactly once and exports `model.onnx`, `labels.json`, `test_metrics.json` and `artifact_manifest.json`.
 
-- [ ] **Step 4: Document the free Kaggle run**
+- [x] **Step 4: Document the free Kaggle run**
 
 Document: create a GPU notebook, attach dataset version 8, upload/clone this repository, run `pip install -r ml/requirements.txt`, execute the runner, and download the output artifact. State that the attached dataset is read-only and no Kaggle token is required inside the notebook.
 
-- [ ] **Step 5: Run the runner tests and CLI help**
+- [x] **Step 5: Run the runner tests and CLI help**
 
 Run: `.venv/bin/pytest tests/test_sales30_kaggle_runner.py -q`
 
@@ -335,7 +335,7 @@ Run: `.venv/bin/python -m ml.scripts.run_sales30_kaggle --help`
 
 Expected: tests pass and help lists all explicit paths/overrides.
 
-- [ ] **Step 6: Commit the Kaggle execution increment**
+- [x] **Step 6: Commit the Kaggle execution increment**
 
 ```bash
 git add ml/scripts/run_sales30_kaggle.py ml/notebooks/SALES30_KAGGLE.md tests/test_sales30_kaggle_runner.py README.md
@@ -351,13 +351,13 @@ git commit -m "feat: add Kaggle sales30 training job"
 - Consumes all commands and artifacts from Tasks 1-5.
 - Produces a verified local pipeline and, when a logged-in Kaggle session is available, a running/completed CUDA training job.
 
-- [ ] **Step 1: Run all Python tests**
+- [x] **Step 1: Run all Python tests**
 
 Run: `.venv/bin/pytest -q`
 
 Expected: all tests pass.
 
-- [ ] **Step 2: Run all web checks**
+- [x] **Step 2: Run all web checks**
 
 Run from `apps/web`:
 
@@ -369,11 +369,11 @@ npm run build
 
 Expected: tests, lint and production build pass.
 
-- [ ] **Step 3: Run source audit and manifest audit**
+- [x] **Step 3: Run source audit and manifest audit**
 
 Expected: source version/license/coverage pass; manifest passes when media is present. Report authentication as a blocker when selective download could not start.
 
-- [ ] **Step 4: Run the local smoke train**
+- [x] **Step 4: Run the local smoke train**
 
 Expected: one optimizer step and one validation batch complete without NaN; artifacts contain 30 labels and development-only provenance.
 
