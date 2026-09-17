@@ -117,6 +117,28 @@ không tạo tệp. Thư mục thu thập bị Git ignore.
 
 ### Model common-20 legacy và lần train sales-30
 
+Pipeline sales-30 mới dùng 30 nhãn trong
+`contracts/v1/sales30.labels.json` và nguồn VSL-472 công khai. Audit, tải chọn
+lọc và local smoke train:
+
+```bash
+.venv/bin/python -m ml.scripts.audit_sales30_sources
+.venv/bin/python -m ml.scripts.download_sales30_sources
+.venv/bin/python -m ml.scripts.build_sales30_manifest
+.venv/bin/python -m ml.scripts.audit_sales30_manifest \
+  ml/data/raw/sales30/manifest.csv \
+  --data-root ml/data/raw/sales30/media
+.venv/bin/python -m ml.scripts.train_visignlanguage \
+  --config ml/configs/sales30_mvitv2_s.yaml \
+  --output-dir runs/sales30_smoke \
+  --device cpu --epochs 1 --batch-size 1 --num-workers 0 \
+  --max-train-batches 1 --max-val-batches 1 --no-pretrained
+```
+
+Full 12-epoch run dùng Kaggle GPU miễn phí theo
+[`ml/notebooks/SALES30_KAGGLE.md`](ml/notebooks/SALES30_KAGGLE.md). Kết quả từ
+split hiện tại là `development-only`, chưa phải production gate.
+
 Các lệnh V4/V5 bên dưới chỉ tái tạo checkpoint `common-20` hiện tại. Chúng chưa
 phải pipeline train `sales-30`. Không chạy chúng với label map 30 lớp cho đến
 khi extractor, public manifests và evaluation gate đã được chuyển đồng bộ.
