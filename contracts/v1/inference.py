@@ -76,10 +76,11 @@ class MetadataResponse(BaseModel):
     confidence_threshold: float
     margin_threshold: float
     labels: List[str]
+    collection_labels: List[str]
     candidate_labels_unverified: bool
     mock: bool
     collection_enabled: bool = False
-    collection_target_per_hand: int = 5
+    collection_target_per_hand: int = 50
 
 
 class CollectionHand(str, Enum):

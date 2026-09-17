@@ -44,6 +44,7 @@ export interface InferenceMetadata {
   confidence_threshold: number;
   margin_threshold: number;
   labels: string[];
+  collection_labels: string[];
   candidate_labels_unverified: boolean;
   mock: boolean;
   collection_enabled: boolean;

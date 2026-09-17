@@ -46,7 +46,6 @@ import {
 } from "./lib/landmarkInference";
 import { combineV5LandmarkSequence } from "./lib/landmarkFeaturesV5";
 import { hasBaselineHandLandmarks } from "./lib/landmarkFeaturesV3";
-import { v5CollectionTargetsFor } from "./lib/v5CollectionPlan";
 import { REFERENCE_SIGNS } from "./referenceSigns";
 import {
   inferenceReducer,
@@ -85,6 +84,8 @@ const AUTOMATIC_PREDICTION_THRESHOLDS = {
   confidence: 0.66,
   margin: 0.24,
 } as const;
+
+const SALES_COLLECTION_TARGET_PER_HAND = 50;
 
 export default function App() {
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -528,10 +529,8 @@ export default function App() {
         };
       });
       setPendingSample(null);
-      const target = v5CollectionTargetsFor(
-        saved.expected_label,
-        metadata?.collection_target_per_hand ?? 12,
-      )[saved.hand];
+      const target =
+        metadata?.collection_target_per_hand ?? SALES_COLLECTION_TARGET_PER_HAND;
       const completedHand = saved.label_hand_count >= target;
       if (automaticCollectionEnabled && completedHand) {
         setCaptureInputMode("manual");
@@ -598,20 +597,18 @@ export default function App() {
     localModel.status === "ready" ||
     metadata?.candidate_labels_unverified === false;
   const collectionEnabled =
-    !config.publicDemo && metadata?.collection_enabled === true;
-  const recognitionLabels = localModel.labels.length
-    ? localModel.labels
-    : metadata?.labels.length
-    ? metadata.labels
-    : REFERENCE_SIGNS.map((item) => item.label);
-  const collectionLabels = [
-    ...recognitionLabels.filter((label) => label !== IDLE_LABEL),
-    IDLE_LABEL,
-  ];
-  const selectedCollectionTargets = v5CollectionTargetsFor(
-    selectedLabel,
-    metadata?.collection_target_per_hand ?? 12,
-  );
+    !config.publicDemo &&
+    metadata?.collection_enabled === true &&
+    (metadata.collection_labels?.length ?? 0) > 0;
+  const collectionLabels = metadata?.collection_labels?.length
+    ? [...metadata.collection_labels, IDLE_LABEL]
+    : [];
+  const collectionTargetPerHand =
+    metadata?.collection_target_per_hand ?? SALES_COLLECTION_TARGET_PER_HAND;
+  const selectedCollectionTargets = {
+    right: collectionTargetPerHand,
+    left: collectionTargetPerHand,
+  };
 
   return (
     <div className="app-shell">

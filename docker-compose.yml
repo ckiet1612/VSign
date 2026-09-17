@@ -11,8 +11,8 @@ services:
       CONFIDENCE_THRESHOLD: ${CONFIDENCE_THRESHOLD:-0.70}
       MARGIN_THRESHOLD: ${MARGIN_THRESHOLD:-0.15}
       COLLECTION_ENABLED: ${COLLECTION_ENABLED:-false}
-      COLLECTION_DIR: /data/collection
-      COLLECTION_TARGET_PER_HAND: ${COLLECTION_TARGET_PER_HAND:-5}
+      COLLECTION_DIR: /data/collection/sales30
+      COLLECTION_TARGET_PER_HAND: ${COLLECTION_TARGET_PER_HAND:-50}
       ALLOWED_ORIGINS: ${ALLOWED_ORIGINS:-http://localhost:5173,http://localhost:8080}
     volumes:
       - ./ml/data/collected:/data/collection

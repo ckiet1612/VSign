@@ -59,6 +59,39 @@ def test_health_and_metadata() -> None:
     assert body["frame_count"] == 16
     assert (body["frame_width"], body["frame_height"]) == (224, 224)
     assert len(body["labels"]) == 20
+    assert body["collection_labels"] == [
+        "Chào",
+        "Tôi",
+        "Muốn",
+        "Mua",
+        "Cho",
+        "Xem",
+        "Thử",
+        "Siêu thị",
+        "Có",
+        "Cần",
+        "Điện thoại",
+        "Laptop",
+        "Tivi",
+        "Tủ lạnh",
+        "Máy giặt",
+        "Nồi cơm điện",
+        "Gạo",
+        "Sữa",
+        "Cà phê",
+        "Mới",
+        "Cũ",
+        "Rẻ",
+        "Đắt",
+        "Sử dụng",
+        "Mua bán",
+        "Ngân hàng",
+        "Cung cấp",
+        "Thay đổi",
+        "Từ chối",
+        "Cảm ơn",
+    ]
+    assert len(set(body["collection_labels"])) == 30
 
 
 def test_valid_websocket_request_returns_schema_and_preserves_sequence() -> None:
@@ -248,7 +281,7 @@ def test_collection_saves_mp4_metadata_and_reports_counts(tmp_path: Path) -> Non
     assert stored["frame_count"] == 24
     assert "frames" not in stored
     assert summary.status_code == 200
-    assert summary.json()["counts"]["chào"] == {"right": 0, "left": 1}
+    assert summary.json()["counts"]["Chào"] == {"right": 0, "left": 1}
 
 
 def test_collection_accepts_reserved_negative_label(tmp_path: Path) -> None:
@@ -279,3 +312,40 @@ def test_collection_accepts_reserved_negative_label(tmp_path: Path) -> None:
     stored = json.loads(metadata_path.read_text(encoding="utf-8"))
     assert stored["negative_action"] == "overlap_hands"
     assert summary.json()["counts"]["Không ký hiệu"] == {"right": 1, "left": 0}
+
+
+def test_collection_uses_sales_vocabulary_instead_of_runtime_labels(
+    tmp_path: Path,
+) -> None:
+    settings = Settings(collection_enabled=True, collection_dir=tmp_path)
+    payload = valid_payload()
+    payload.update(
+        {
+            "duration_ms": 1600,
+            "expected_label": "Điện thoại",
+            "hand": "right",
+            "predicted_label": "Chào",
+            "predicted_confidence": 0.77,
+            "distance": "standard",
+            "lighting": "normal",
+            "negative_action": None,
+        }
+    )
+    payload.pop("type")
+    payload.pop("sequence")
+
+    with TestClient(create_app(settings)) as client:
+        sales_label = client.post("/collection/samples", json=payload)
+        runtime_label = client.post(
+            "/collection/samples",
+            json={**payload, "expected_label": "Xin lỗi"},
+        )
+        unknown_label = client.post(
+            "/collection/samples",
+            json={**payload, "expected_label": "Nhãn không hợp lệ"},
+        )
+
+    assert sales_label.status_code == 200
+    assert sales_label.json()["expected_label"] == "Điện thoại"
+    assert runtime_label.status_code == 422
+    assert unknown_label.status_code == 422

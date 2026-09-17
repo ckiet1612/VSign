@@ -58,7 +58,7 @@ const negativeActions: ReadonlyArray<{ value: NegativeAction; label: string }> =
   { value: "turn_body", label: "Quay người" },
   { value: "random_motion", label: "Cử động ngẫu nhiên" },
   { value: "overlap_hands", label: "Chồng hai tay tự nhiên" },
-  { value: "other_sign", label: "Ký hiệu ngoài 20 từ" },
+  { value: "other_sign", label: "Ký hiệu ngoài sales-30" },
 ];
 
 export function CollectionPanel({
@@ -215,8 +215,7 @@ export function CollectionPanel({
         <span style={{ width: `${completed}%` }} />
       </div>
       <p className="muted">
-        Mục tiêu local đã trừ số video public train/validation hiện có, để tổng
-        mỗi từ đạt 100 mà không dùng public test.
+        Mục tiêu local là 50 mẫu mỗi tay, tổng 100 mẫu cho mỗi từ sales-30.
       </p>
 
       {referenceVideo ? (

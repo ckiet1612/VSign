@@ -5,6 +5,8 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Optional, Tuple
 
+from contracts.v1.sales_vocabulary import SALES_30_LABELS
+
 
 def _float_env(name: str, default: float) -> float:
     value = os.getenv(name)
@@ -63,8 +65,9 @@ class Settings:
     max_frame_bytes: int = 256 * 1024
     max_message_bytes: int = 6 * 1024 * 1024
     collection_enabled: bool = False
-    collection_dir: Path = Path("ml/data/collected/webcam")
-    collection_target_per_hand: int = 5
+    collection_dir: Path = Path("ml/data/collected/sales30")
+    collection_labels: Tuple[str, ...] = SALES_30_LABELS
+    collection_target_per_hand: int = 50
 
     @classmethod
     def from_env(cls) -> "Settings":
@@ -114,7 +117,7 @@ class Settings:
             max_message_bytes=_int_env("MAX_MESSAGE_BYTES", 6 * 1024 * 1024),
             collection_enabled=_bool_env("COLLECTION_ENABLED", False),
             collection_dir=Path(
-                os.getenv("COLLECTION_DIR", "ml/data/collected/webcam")
+                os.getenv("COLLECTION_DIR", "ml/data/collected/sales30")
             ).expanduser(),
-            collection_target_per_hand=_int_env("COLLECTION_TARGET_PER_HAND", 5),
+            collection_target_per_hand=_int_env("COLLECTION_TARGET_PER_HAND", 50),
         )

@@ -128,6 +128,7 @@ def create_app(
             confidence_threshold=resolved_settings.confidence_threshold,
             margin_threshold=resolved_settings.margin_threshold,
             labels=list(resolved_backend.labels),
+            collection_labels=list(resolved_settings.collection_labels),
             candidate_labels_unverified=resolved_backend.candidate_labels_unverified,
             mock=resolved_backend.is_mock,
             collection_enabled=resolved_settings.collection_enabled,
@@ -142,10 +143,10 @@ def create_app(
                 target_per_hand=resolved_settings.collection_target_per_hand,
                 counts={},
             )
-        collection_labels = list(resolved_backend.labels) + [
+        collection_labels = list(resolved_settings.collection_labels) + [
             label
             for label in COLLECTION_EXTRA_LABELS
-            if label not in resolved_backend.labels
+            if label not in resolved_settings.collection_labels
         ]
         counts = await run_in_threadpool(
             sample_counts,
@@ -164,10 +165,16 @@ def create_app(
             raise HTTPException(status_code=403, detail="Thu dữ liệu đang bị tắt")
         allowed_label_keys = {
             _label_key(label)
-            for label in (*resolved_backend.labels, *COLLECTION_EXTRA_LABELS)
+            for label in (
+                *resolved_settings.collection_labels,
+                *COLLECTION_EXTRA_LABELS,
+            )
         }
         if _label_key(payload.expected_label) not in allowed_label_keys:
-            raise HTTPException(status_code=422, detail="Nhãn mong đợi không thuộc model hiện tại")
+            raise HTTPException(
+                status_code=422,
+                detail="Nhãn mong đợi không thuộc bộ thu thập sales-30",
+            )
         backend_label_keys = {_label_key(label) for label in resolved_backend.labels}
         if (
             payload.predicted_label is not None

@@ -2,7 +2,7 @@
 
 VSign là vertical slice chạy local để **nhận dạng từng ký hiệu VSL rời rạc** bằng camera trình duyệt. Người dùng giữ nút hoặc phím Space trong lúc thực hiện một ký hiệu; frontend lấy mẫu 16 frame tay + thân trên, suy luận ngay trong trình duyệt và hiển thị dự đoán/top 3 để người dùng xác nhận vào transcript.
 
-> Nguồn train chính là [ViSignLanguage-Video](https://huggingface.co/datasets/star092304/ViSignLanguage-Video) gồm 100 từ tiếng Việt. Checkpoint video common-20 đã được train trên Colab T4, đạt 98% accuracy/97,98% macro-F1 trên 100 video test. Runtime landmark cá nhân hóa được train từ 207 mẫu webcam, thêm group common-20 đa người và 80 lớp ngoài phạm vi làm negative; ONNX chạy trực tiếp trong browser, còn model video/server được giữ làm fallback.
+> Runtime nhận dạng hiện tại vẫn dùng checkpoint legacy `common-20`. Bộ mục tiêu mới `sales-30` được dùng riêng cho thu thập dữ liệu và lần huấn luyện kế tiếp; không thay label map của checkpoint cũ. Chi tiết tại [`docs/SALES_30.md`](docs/SALES_30.md).
 
 ## Increment hiện tại
 
@@ -20,9 +20,9 @@ VSign là vertical slice chạy local để **nhận dạng từng ký hiệu VS
 - Adapter PyTorch MViTv2-S và ONNX tách khỏi mock, giữ nguyên frontend/protocol khi đổi runtime.
 - Model thật trả top-3/confidence; UI phân biệt rõ mock, AI thật và label chưa xác minh.
 - Pipeline tải/xác minh SHA256, giải nén Unicode an toàn, tạo split theo nhóm filename và chọn common-20 từ ViSignLanguage-Video.
-- Chế độ **Thu dữ liệu AI** cho phép chọn nhãn/tay, xem video mẫu, quay một lượt rồi xác nhận trước khi lưu MP4 và metadata vào máy local.
+- Chế độ **Thu dữ liệu AI** dùng riêng 30 nhãn bán hàng `sales-30` cộng lớp negative, không phụ thuộc danh sách output của model `common-20` đang chạy.
 - Thu dữ liệu có phiên **Tự động**: đếm ngược, quay 2,1 giây, kiểm tra tối thiểu 8/16 frame tay, tự lưu và chuyển lượt; tự dừng khi đủ quota của tay đang chọn hoặc khi lưu lỗi.
-- Kế hoạch scale-up dùng đúng 100 video thật hợp lệ/từ tính trên public train/validation + local; public test bị loại. Trong 889 clip public train/validation, 14 clip không có frame tay bị loại khỏi quota. Hiện còn 918 lượt webcam và UI hiển thị quota riêng theo từng từ/tay.
+- Quota `sales-30` mặc định là 50 mẫu tay phải và 50 mẫu tay trái cho mỗi từ. Kế hoạch scale-up V5/common-20 cũ được giữ làm tài liệu legacy và không quyết định quota của bộ mới.
 - Mỗi mẫu thu có thể gắn khoảng cách, ánh sáng và loại hành động negative; pipeline frozen-camera báo cáo riêng theo từng điều kiện.
 - Chế độ **Tự động (beta)** chỉ khởi động sau nhiều frame có landmark bàn tay thật, lọc rung bằng cửa sổ trung vị, chuẩn hóa chuyển động theo thời gian để ổn định ở 15–30 FPS, giữ pre-roll/post-roll theo mili giây và chờ trạng thái nghỉ trước khi nhận từ tiếp theo. Pose cổ tay/khuỷu chỉ duy trì một ký hiệu đã bắt đầu khi tay bị che, không còn tự kích hoạt clip chỉ có cơ thể; người dùng vẫn xác nhận trước khi thêm từ.
 
@@ -103,18 +103,23 @@ curl http://localhost:8000/metadata
 ### Thu mẫu webcam để cải thiện AI
 
 `./scripts/run_onnx_local.sh` bật sẵn chế độ thu dữ liệu local. Trên web, chọn
-**Thu dữ liệu AI**, chọn từ và tay thực hiện, xem video mẫu, quay một lượt rồi
+**Thu dữ liệu AI**, chọn một nhãn `sales-30` và tay thực hiện, quay một lượt rồi
 bấm **Lưu mẫu vào máy**. Mỗi mẫu tạo một MP4 `224×224` và một JSON metadata tại:
 
 ```text
-ml/data/collected/webcam/<tu>/<right|left>/
+ml/data/collected/sales30/<tu>/<right|left>/
 ```
 
-Mục tiêu ban đầu là 5 mẫu tay phải và 5 mẫu tay trái cho mỗi từ, tổng cộng
-200 mẫu. Mẫu chỉ tồn tại trong bộ nhớ cho đến khi người dùng bấm lưu; nút
-**Bỏ mẫu** không tạo tệp. Thư mục thu thập bị Git ignore.
+Mục tiêu mặc định là 50 mẫu tay phải và 50 mẫu tay trái cho mỗi từ, tổng cộng
+3.000 mẫu positive. Lớp `Không ký hiệu` được thu riêng và không thuộc 30 nhãn.
+Mẫu chỉ tồn tại trong bộ nhớ cho đến khi người dùng bấm lưu; nút **Bỏ mẫu**
+không tạo tệp. Thư mục thu thập bị Git ignore.
 
-### Train lại model landmark V4 từ mẫu webcam
+### Model common-20 legacy và lần train sales-30
+
+Các lệnh V4/V5 bên dưới chỉ tái tạo checkpoint `common-20` hiện tại. Chúng chưa
+phải pipeline train `sales-30`. Không chạy chúng với label map 30 lớp cho đến
+khi extractor, public manifests và evaluation gate đã được chuyển đồng bộ.
 
 Máy Mac local thực hiện được toàn bộ bước này trên CPU; không cần Colab GPU.
 Lệnh đầu trích feature MediaPipe theo contract train V4.2; lệnh cuối train,
@@ -281,8 +286,8 @@ Root `.env.example` mô tả các biến được hỗ trợ:
 | `MAX_FRAME_BYTES` | `262144` | Giới hạn bytes sau decode cho mỗi frame |
 | `MAX_MESSAGE_BYTES` | `6291456` | Giới hạn toàn bộ WebSocket message |
 | `COLLECTION_ENABLED` | `false` | Cho phép API/UI lưu mẫu webcam có xác nhận |
-| `COLLECTION_DIR` | `ml/data/collected/webcam` | Thư mục local chứa MP4 và metadata |
-| `COLLECTION_TARGET_PER_HAND` | `5` | Mục tiêu số mẫu cho mỗi từ và mỗi tay |
+| `COLLECTION_DIR` | `ml/data/collected/sales30` | Thư mục local chứa MP4 và metadata của bộ mới |
+| `COLLECTION_TARGET_PER_HAND` | `50` | Mục tiêu số mẫu cho mỗi từ và mỗi tay |
 | `VITE_INFERENCE_WS_URL` | `ws://localhost:8000/ws/inference` | WebSocket URL lúc Vite build/start |
 | `VITE_INFERENCE_HTTP_URL` | `http://localhost:8000` | Metadata URL lúc Vite build/start |
 

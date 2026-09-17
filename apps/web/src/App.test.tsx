@@ -37,6 +37,7 @@ describe("App", () => {
           confidence_threshold: 0.7,
           margin_threshold: 0.15,
           labels: [],
+          collection_labels: [],
           candidate_labels_unverified: true,
           mock: true,
           collection_enabled: false,
@@ -79,6 +80,7 @@ describe("App", () => {
           confidence_threshold: 0.7,
           margin_threshold: 0.15,
           labels: [],
+          collection_labels: [],
           candidate_labels_unverified: true,
           mock: false,
           collection_enabled: false,
@@ -98,6 +100,38 @@ describe("App", () => {
 
   it("mở chế độ thu dữ liệu khi backend cho phép", async () => {
     const labels = ["Chào", "Cảm ơn", "Cho"];
+    const collectionLabels = [
+      "Chào",
+      "Tôi",
+      "Muốn",
+      "Mua",
+      "Cho",
+      "Xem",
+      "Thử",
+      "Siêu thị",
+      "Có",
+      "Cần",
+      "Điện thoại",
+      "Laptop",
+      "Tivi",
+      "Tủ lạnh",
+      "Máy giặt",
+      "Nồi cơm điện",
+      "Gạo",
+      "Sữa",
+      "Cà phê",
+      "Mới",
+      "Cũ",
+      "Rẻ",
+      "Đắt",
+      "Sử dụng",
+      "Mua bán",
+      "Ngân hàng",
+      "Cung cấp",
+      "Thay đổi",
+      "Từ chối",
+      "Cảm ơn",
+    ];
     vi.stubGlobal(
       "fetch",
       vi.fn().mockImplementation((input: string | URL | Request) => {
@@ -129,10 +163,11 @@ describe("App", () => {
             confidence_threshold: 0.7,
             margin_threshold: 0.15,
             labels,
+            collection_labels: collectionLabels,
             candidate_labels_unverified: false,
             mock: false,
             collection_enabled: true,
-            collection_target_per_hand: 5,
+            collection_target_per_hand: 50,
           }),
         });
       }),
@@ -152,10 +187,19 @@ describe("App", () => {
     expect(screen.getByRole("combobox", { name: "Từ cần thực hiện" })).toHaveValue(
       "Chào",
     );
-    expect(screen.getByText("2/35 · Tay phải")).toBeInTheDocument();
+    const labelSelect = screen.getByRole("combobox", { name: "Từ cần thực hiện" });
     expect(
-      screen.getByLabelText("Video mẫu cho từ Chào"),
-    ).toBeInTheDocument();
+      Array.from((labelSelect as HTMLSelectElement).options).map(
+        (option) => option.value,
+      ),
+    ).toEqual([...collectionLabels, "Không ký hiệu"]);
+    expect(screen.getByText("2/50 · Tay phải")).toBeInTheDocument();
+    await user.selectOptions(labelSelect, "Điện thoại");
+    expect(screen.getByText("0/50 · Tay phải")).toBeInTheDocument();
+    expect(screen.getByText("Chưa có video mẫu cho nhãn này.")).toBeInTheDocument();
+    expect(
+      screen.queryByLabelText("Video mẫu cho từ Điện thoại"),
+    ).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Thêm vào câu" })).not.toBeInTheDocument();
   });
 });

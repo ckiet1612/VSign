@@ -35,21 +35,21 @@
 - Consumes: `_load_sales_30_labels()` from `contracts/v1/sales_vocabulary.py`.
 - Produces: `SALES_30_LABELS: tuple[str, ...]` in this exact order: `Chào`, `Tôi`, `Muốn`, `Mua`, `Cho`, `Xem`, `Thử`, `Siêu thị`, `Có`, `Cần`, `Điện thoại`, `Laptop`, `Tivi`, `Tủ lạnh`, `Máy giặt`, `Nồi cơm điện`, `Gạo`, `Sữa`, `Cà phê`, `Mới`, `Cũ`, `Rẻ`, `Đắt`, `Sử dụng`, `Mua bán`, `Ngân hàng`, `Cung cấp`, `Thay đổi`, `Từ chối`, `Cảm ơn`.
 
-- [ ] **Step 1: Update the Python API expectation before the label map**
+- [x] **Step 1: Update the Python API expectation before the label map**
 
 Replace the eight old labels in `tests/test_inference_api.py` with the exact replacements while preserving order.
 
-- [ ] **Step 2: Run the focused backend test and observe the expected failure**
+- [x] **Step 2: Run the focused backend test and observe the expected failure**
 
 Run: `.venv/bin/pytest tests/test_inference_api.py -q`
 
 Expected: failure because API metadata still reads the old JSON labels.
 
-- [ ] **Step 3: Update the canonical label JSON and web expectation**
+- [x] **Step 3: Update the canonical label JSON and web expectation**
 
 Write the exact 30-label list above to `contracts/v1/sales30.labels.json`, update the same expected list in `apps/web/src/App.test.tsx`, and revise `docs/SALES_30.md` so its 20 example intents use only the new labels plus AI-supplied Vietnamese function words.
 
-- [ ] **Step 4: Run contract and web tests**
+- [x] **Step 4: Run contract and web tests**
 
 Run: `.venv/bin/pytest tests/test_inference_api.py -q`
 
@@ -57,7 +57,7 @@ Run: `npm test -- --run App.test.tsx` from `apps/web`.
 
 Expected: both pass and metadata exposes exactly 30 unique labels.
 
-- [ ] **Step 5: Commit the vocabulary increment**
+- [x] **Step 5: Commit the vocabulary increment**
 
 ```bash
 git add contracts/v1/sales30.labels.json contracts/v1/sales_vocabulary.py contracts/v1/inference.py contracts/v1/inference.ts contracts/README.md services/inference/app/config.py services/inference/app/main.py tests/test_inference_api.py apps/web/src/App.tsx apps/web/src/App.test.tsx apps/web/src/components/CollectionPanel.tsx README.md docs/SALES_30.md .env.example docker-compose.yml scripts/run_onnx_local.sh
