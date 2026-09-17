@@ -2,6 +2,7 @@
 av>=12.3.0
 gdown==5.2.0
 huggingface-hub[hf_xet]==1.8.0
+kagglehub==0.3.13
 numpy==1.26.4
 mediapipe==0.10.21
 opencv-contrib-python==4.11.0.86

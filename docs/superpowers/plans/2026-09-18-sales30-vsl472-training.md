@@ -80,7 +80,7 @@ git commit -m "feat: define public sales30 vocabulary"
 - Produces: `audit_source(config: Sales30SourceConfig, labels: Sequence[str], inventory: SourceInventory) -> SourceAudit`.
 - Produces CLI: `python -m ml.scripts.audit_sales30_sources --config ... --labels ... --output-dir ...`.
 
-- [ ] **Step 1: Write failing tests for config validation and exact coverage**
+- [x] **Step 1: Write failing tests for config validation and exact coverage**
 
 Add tests with an injected two-page fake Kaggle response:
 
@@ -103,17 +103,17 @@ def test_source_audit_requires_exact_nfc_label_coverage(tmp_path: Path) -> None:
 
 Also test version drift, license drift, exclusion of `raw/` and `processed_augmented/`, and pagination token forwarding.
 
-- [ ] **Step 2: Run the focused test and verify import failure**
+- [x] **Step 2: Run the focused test and verify import failure**
 
 Run: `.venv/bin/pytest tests/test_sales30_data.py -q`
 
 Expected: FAIL because `ml.sales30_data` does not exist.
 
-- [ ] **Step 3: Implement immutable config, file and audit dataclasses**
+- [x] **Step 3: Implement immutable config, file and audit dataclasses**
 
 Use frozen dataclasses `Sales30SourceConfig`, `KaggleFile`, `SourceInventory`, and `SourceAudit`. Validate dataset ref, version `8`, accepted license, canonical prefix and minimum total clips `15` at config load time.
 
-- [ ] **Step 4: Implement the anonymous Kaggle metadata client**
+- [x] **Step 4: Implement the anonymous Kaggle metadata client**
 
 Use `urllib.request` against:
 
@@ -124,11 +124,11 @@ https://www.kaggle.com/api/v1/datasets/list/{dataset_ref}?pageSize=200&pageToken
 
 Stop pagination only when `nextPageToken` is empty. Keep only `.mp4` paths under the configured canonical prefix. Do not log response headers or environment variables.
 
-- [ ] **Step 5: Add the CLI report writer**
+- [x] **Step 5: Add the CLI report writer**
 
 Write `source_audit.json` and `source_audit.md` atomically. Return exit code `1` when blockers exist and `0` only when all 30 labels meet the baseline gate.
 
-- [ ] **Step 6: Add KaggleHub dependency and run tests**
+- [x] **Step 6: Add KaggleHub dependency and run tests**
 
 Add `kagglehub==0.3.13` to `ml/requirements.txt`.
 
@@ -136,7 +136,7 @@ Run: `.venv/bin/pytest tests/test_sales30_data.py -q`
 
 Expected: PASS.
 
-- [ ] **Step 7: Run the live metadata audit**
+- [x] **Step 7: Run the live metadata audit**
 
 Run:
 
@@ -149,7 +149,7 @@ Run:
 
 Expected: version 8, CC BY 4.0, 30/30 exact labels, no source blocker, and development-only split warning.
 
-- [ ] **Step 8: Commit the source-audit increment**
+- [x] **Step 8: Commit the source-audit increment**
 
 ```bash
 git add ml/configs/sales30_sources.json ml/sales30_data.py ml/scripts/audit_sales30_sources.py ml/requirements.txt tests/test_sales30_data.py

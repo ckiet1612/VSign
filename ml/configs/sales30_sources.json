@@ -1,0 +1,7 @@
+{
+  "dataset_ref": "nguyenanfms/vsl-vietnamese-sign-language-v2",
+  "version": 8,
+  "license": "Attribution 4.0 International (CC BY 4.0)",
+  "canonical_prefix": "processed/processed/frame_splited/",
+  "minimum_total_clips": 15
+}
