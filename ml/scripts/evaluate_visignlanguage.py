@@ -13,10 +13,12 @@ from ml.visignlanguage import ViSignLanguageDataset, build_model, load_checkpoin
 
 
 def build_parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(description="Đánh giá checkpoint VSign Common-20")
+    parser = argparse.ArgumentParser(description="Đánh giá checkpoint VSign")
     parser.add_argument("--checkpoint", type=Path, required=True)
     parser.add_argument("--split", choices=("validation", "test"), default="test")
-    parser.add_argument("--device", choices=("auto", "cpu", "cuda"), default="auto")
+    parser.add_argument(
+        "--device", choices=("auto", "cpu", "cuda", "mps"), default="auto"
+    )
     parser.add_argument("--batch-size", type=int, default=2)
     parser.add_argument("--num-workers", type=int, default=2)
     parser.add_argument("--max-batches", type=int)
@@ -67,6 +69,11 @@ def main(argv: Sequence[str] | None = None) -> int:
         "video_count": len(dataset),
         "device": str(device),
         "metrics": metrics,
+        "source": checkpoint.get("source"),
+        "source_version": checkpoint.get("source_version"),
+        "split_strength": checkpoint.get("split_strength"),
+        "git_commit": checkpoint.get("git_commit"),
+        "development_only": checkpoint.get("development_only"),
     }
     payload = json.dumps(result, ensure_ascii=False, indent=2) + "\n"
     print(payload, end="")

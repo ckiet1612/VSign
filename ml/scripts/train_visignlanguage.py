@@ -1,9 +1,11 @@
 from __future__ import annotations
 
 import argparse
+import csv
 import json
 import math
 import random
+import subprocess
 import time
 from pathlib import Path
 from typing import Any, Dict, Sequence
@@ -15,6 +17,13 @@ from torch.optim import AdamW
 from torch.optim.lr_scheduler import CosineAnnealingLR
 from torch.utils.data import DataLoader
 
+from ml.sales30_data import (
+    SALES30_DATASET_REF,
+    SALES30_LICENSE,
+    SALES30_VERSION,
+    audit_sales30_manifest,
+    sha256_file,
+)
 from ml.visignlanguage import (
     ViSignLanguageDataset,
     build_model,
@@ -27,11 +36,248 @@ from ml.visignlanguage import (
 
 
 def resolve_device(requested: str) -> torch.device:
+    if requested == "mps":
+        raise RuntimeError(
+            "MViTv2-S sales-30 không chạy full training trên MPS; "
+            "hãy dùng CPU smoke hoặc CUDA full training"
+        )
     if requested == "auto":
         return torch.device("cuda" if torch.cuda.is_available() else "cpu")
     if requested == "cuda" and not torch.cuda.is_available():
         raise RuntimeError("Đã chọn CUDA nhưng môi trường không có GPU")
     return torch.device(requested)
+
+
+def validate_training_config(config: Dict[str, Any], labels: Sequence[str]) -> None:
+    model = config.get("model")
+    source = config.get("source")
+    label_config = config.get("labels")
+    split = config.get("split")
+    if not all(isinstance(section, dict) for section in (model, source, label_config, split)):
+        raise ValueError("Config sales-30 thiếu model/source/labels/split")
+    assert isinstance(model, dict)
+    assert isinstance(source, dict)
+    assert isinstance(label_config, dict)
+    assert isinstance(split, dict)
+    if int(model.get("num_classes") or 0) != len(labels):
+        raise ValueError("model.num_classes phải khớp label map")
+    is_sales30 = (
+        label_config.get("source") == "contracts/v1/sales30.labels.json"
+        or str(config.get("experiment", {}).get("name", "")).startswith("sales30")
+    )
+    if not is_sales30:
+        return
+    if len(labels) != 30:
+        raise ValueError(f"sales-30 cần đúng 30 labels, nhận {len(labels)}")
+    if source.get("repository") != SALES30_DATASET_REF:
+        raise ValueError(f"sales-30 chỉ chấp nhận nguồn VSL-472 {SALES30_DATASET_REF}")
+    if int(source.get("version") or 0) != SALES30_VERSION:
+        raise ValueError("source.version phải là version 8 đã audit")
+    if source.get("license") != SALES30_LICENSE:
+        raise ValueError(f"source.license phải là {SALES30_LICENSE}")
+    if label_config.get("source") != "contracts/v1/sales30.labels.json":
+        raise ValueError("labels.source phải là contracts/v1/sales30.labels.json")
+    if split.get("strength") != "development-only":
+        raise ValueError("split.strength phải là development-only")
+    data = config.get("data")
+    if not isinstance(data, dict):
+        raise ValueError("Config sales-30 thiếu data")
+    for key in ("manifest", "download_index", "source_audit", "readiness"):
+        if not data.get(key):
+            raise ValueError(f"data.{key} là provenance bắt buộc cho sales-30")
+
+
+def validate_training_data_bundle(
+    config: Dict[str, Any], labels: Sequence[str]
+) -> None:
+    label_config = config.get("labels")
+    if not isinstance(label_config, dict) or label_config.get("source") != (
+        "contracts/v1/sales30.labels.json"
+    ):
+        return
+    data = config.get("data")
+    if not isinstance(data, dict):
+        raise ValueError("data provenance sales-30 không hợp lệ")
+
+    def load_json_object(key: str) -> Dict[str, Any]:
+        path = Path(str(data.get(key) or ""))
+        if not path.is_file():
+            raise ValueError(f"Thiếu {key}: {path}")
+        try:
+            payload = json.loads(path.read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError) as error:
+            raise ValueError(f"{key} không phải JSON hợp lệ: {path}") from error
+        if not isinstance(payload, dict):
+            raise ValueError(f"{key} phải là JSON object: {path}")
+        return payload
+
+    source_audit = load_json_object("source_audit")
+    expected_identity = {
+        "dataset_ref": SALES30_DATASET_REF,
+        "version": SALES30_VERSION,
+        "license": SALES30_LICENSE,
+    }
+    for key, expected in expected_identity.items():
+        if source_audit.get(key) != expected:
+            raise ValueError(f"source_audit.{key} không đúng nguồn VSL-472 đã duyệt")
+    if source_audit.get("blockers") != []:
+        raise ValueError("source_audit còn blocker")
+    if source_audit.get("ready_for_baseline_training") is not True:
+        raise ValueError("source_audit chưa sẵn sàng cho baseline training")
+    if source_audit.get("split_strength") != "development-only":
+        raise ValueError("source_audit.split_strength phải là development-only")
+
+    download_index = load_json_object("download_index")
+    for key, expected in expected_identity.items():
+        if download_index.get(key) != expected:
+            raise ValueError(f"download_index.{key} không đúng source_audit")
+
+    def remote_sizes(
+        raw_files: Any, *, path_key: str, bundle_name: str
+    ) -> Dict[str, int]:
+        if not isinstance(raw_files, list):
+            raise ValueError(f"{bundle_name} thiếu danh sách files hợp lệ")
+        parsed: Dict[str, int] = {}
+        for raw_file in raw_files:
+            if not isinstance(raw_file, dict):
+                raise ValueError(f"{bundle_name} có file entry không hợp lệ")
+            remote_path = raw_file.get(path_key)
+            total_bytes = raw_file.get("total_bytes")
+            if (
+                not isinstance(remote_path, str)
+                or not remote_path
+                or not isinstance(total_bytes, int)
+                or total_bytes <= 0
+            ):
+                raise ValueError(f"{bundle_name} có path/size không hợp lệ")
+            if remote_path in parsed:
+                raise ValueError(f"{bundle_name} trùng remote path: {remote_path}")
+            parsed[remote_path] = total_bytes
+        return parsed
+
+    selected_sizes = remote_sizes(
+        source_audit.get("selected_files"),
+        path_key="name",
+        bundle_name="source_audit.selected_files",
+    )
+    indexed_sizes = remote_sizes(
+        download_index.get("files"),
+        path_key="remote_path",
+        bundle_name="download_index.files",
+    )
+    if selected_sizes != indexed_sizes:
+        raise ValueError(
+            "download_index files không khớp source_audit selected paths/sizes"
+        )
+    index_entries: Dict[str, Dict[str, Any]] = {}
+    for raw_entry in download_index["files"]:
+        remote_path = str(raw_entry["remote_path"])
+        local_path = raw_entry.get("local_path")
+        digest = raw_entry.get("sha256")
+        if not isinstance(local_path, str) or not local_path:
+            raise ValueError(f"download_index local_path không hợp lệ: {remote_path}")
+        if (
+            not isinstance(digest, str)
+            or len(digest) != 64
+            or any(character not in "0123456789abcdef" for character in digest)
+        ):
+            raise ValueError(f"download_index sha256 không hợp lệ: {remote_path}")
+        index_entries[remote_path] = raw_entry
+
+    readiness = load_json_object("readiness")
+    if readiness.get("blockers") != []:
+        raise ValueError("readiness còn blocker")
+    if readiness.get("ready_for_baseline_training") is not True:
+        raise ValueError("readiness chưa sẵn sàng cho baseline training")
+    if readiness.get("split_strength") != "development-only":
+        raise ValueError("readiness.split_strength phải là development-only")
+
+    manifest_path = Path(str(data.get("manifest") or ""))
+    data_root = Path(str(data.get("root") or ""))
+    if not manifest_path.is_file():
+        raise ValueError(f"Thiếu manifest: {manifest_path}")
+    manifest_audit = audit_sales30_manifest(manifest_path, data_root, labels)
+    if manifest_audit.errors:
+        raise ValueError(
+            "manifest audit thất bại: " + "; ".join(manifest_audit.errors)
+        )
+    with manifest_path.open(encoding="utf-8", newline="") as handle:
+        manifest_rows = list(csv.DictReader(handle))
+    manifest_entries = {
+        str(row.get("remote_path") or ""): row for row in manifest_rows
+    }
+    if set(manifest_entries) != set(index_entries):
+        raise ValueError(
+            "manifest và download_index phải có cùng remote paths"
+        )
+    for remote_path, row in manifest_entries.items():
+        index_entry = index_entries[remote_path]
+        if row.get("path") != index_entry["local_path"]:
+            raise ValueError(
+                f"manifest path không khớp download_index: {remote_path}"
+            )
+        if row.get("sha256") != index_entry["sha256"]:
+            raise ValueError(
+                f"manifest sha256 không khớp download_index: {remote_path}"
+            )
+        media_path = data_root / str(row["path"])
+        if media_path.stat().st_size != index_entry["total_bytes"]:
+            raise ValueError(
+                f"media bytes không khớp download_index: {remote_path}"
+            )
+    if readiness.get("counts") != manifest_audit.counts:
+        raise ValueError("readiness.counts không khớp manifest audit counts")
+
+
+def _current_git_commit() -> str:
+    try:
+        result = subprocess.run(
+            ["git", "rev-parse", "HEAD"],
+            check=True,
+            capture_output=True,
+            text=True,
+        )
+    except (OSError, subprocess.CalledProcessError):
+        return "unknown"
+    return result.stdout.strip() or "unknown"
+
+
+def build_checkpoint_metadata(
+    config: Dict[str, Any], *, git_commit: str | None = None
+) -> Dict[str, Any]:
+    source = config["source"]
+    split_config = config["split"]
+    split_strength = str(
+        split_config.get("strength")
+        or (
+            "signer-independent"
+            if split_config.get("signer_independent") is True
+            else "development-only"
+        )
+    )
+    return {
+        "source": str(source["repository"]),
+        "source_version": source.get("version", source.get("revision", "unknown")),
+        "split_strength": split_strength,
+        "git_commit": git_commit or _current_git_commit(),
+        "development_only": split_strength == "development-only",
+    }
+
+
+def build_data_provenance(config: Dict[str, Any]) -> Dict[str, str]:
+    data = config.get("data")
+    if not isinstance(data, dict):
+        return {}
+    provenance: Dict[str, str] = {}
+    for key in ("manifest", "download_index", "source_audit", "readiness"):
+        raw_path = data.get(key)
+        if not raw_path:
+            continue
+        path = Path(str(raw_path))
+        if not path.is_file():
+            raise FileNotFoundError(f"Thiếu data provenance {key}: {path}")
+        provenance[f"{key}_sha256"] = sha256_file(path)
+    return provenance
 
 
 def seed_everything(seed: int) -> None:
@@ -128,10 +374,12 @@ def run_epoch(
 
 
 def build_parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(description="Train MViTv2-S cho VSign Common-20")
+    parser = argparse.ArgumentParser(description="Train MViTv2-S cho VSign")
     parser.add_argument("--config", type=Path, default=Path("ml/configs/visignlanguage_video_mvitv2_s.yaml"))
     parser.add_argument("--output-dir", type=Path, default=Path("runs/visignlanguage_common20"))
-    parser.add_argument("--device", choices=("auto", "cpu", "cuda"), default="auto")
+    parser.add_argument(
+        "--device", choices=("auto", "cpu", "cuda", "mps"), default="auto"
+    )
     parser.add_argument("--epochs", type=int)
     parser.add_argument("--batch-size", type=int)
     parser.add_argument("--num-workers", type=int)
@@ -156,6 +404,10 @@ def main(argv: Sequence[str] | None = None) -> int:
     data_root = Path(config["data"]["root"])
     label_path = Path(config["labels"]["source"])
     labels = load_labels(label_path)
+    validate_training_config(config, labels)
+    validate_training_data_bundle(config, labels)
+    checkpoint_metadata = build_checkpoint_metadata(config)
+    checkpoint_metadata.update(build_data_provenance(config))
     input_config = config["input"]
 
     train_dataset = ViSignLanguageDataset(
@@ -251,6 +503,7 @@ def main(argv: Sequence[str] | None = None) -> int:
             "metrics": record,
             "config": config,
             "input_shape": [1, 3, int(input_config["frames"]), int(input_config["height"]), int(input_config["width"])],
+            **checkpoint_metadata,
         }
         torch.save(checkpoint, args.output_dir / "last.pt")
         if validation_metrics["macro_f1"] > best_f1:
@@ -262,6 +515,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         "elapsed_seconds": time.time() - started,
         "history": history,
         "best_checkpoint": str(args.output_dir / "best.pt"),
+        **checkpoint_metadata,
     }
     (args.output_dir / "summary.json").write_text(
         json.dumps(summary, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"
