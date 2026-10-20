@@ -1,20 +1,51 @@
 services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-vsign}
+      POSTGRES_USER: ${POSTGRES_USER:-vsign}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-vsign-local-password}
+    volumes:
+      - vsign-postgres:/var/lib/postgresql/data
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-vsign} -d ${POSTGRES_DB:-vsign}"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
   inference:
     build:
       context: .
       dockerfile: services/inference/Dockerfile
     environment:
-      INFERENCE_BACKEND: ${INFERENCE_BACKEND:-mock}
-      MODEL_VERSION: ${MODEL_VERSION:-mock-common-20-v1}
-      ONNX_MODEL_PATH: ${ONNX_MODEL_PATH:-}
-      LABEL_MAP_PATH: ${LABEL_MAP_PATH:-}
+      INFERENCE_BACKEND: ${INFERENCE_BACKEND:-onnx}
+      MODEL_VERSION: ${MODEL_VERSION:-sales30-mvitv2s-seated-v3-epoch5}
+      ONNX_MODEL_PATH: ${ONNX_MODEL_PATH:-/models/model.onnx}
+      LABEL_MAP_PATH: ${LABEL_MAP_PATH:-/models/labels.json}
+      LABELS_VERIFIED: ${LABELS_VERIFIED:-true}
       CONFIDENCE_THRESHOLD: ${CONFIDENCE_THRESHOLD:-0.70}
       MARGIN_THRESHOLD: ${MARGIN_THRESHOLD:-0.15}
       COLLECTION_ENABLED: ${COLLECTION_ENABLED:-false}
       COLLECTION_DIR: /data/collection/sales30
       COLLECTION_TARGET_PER_HAND: ${COLLECTION_TARGET_PER_HAND:-50}
-      ALLOWED_ORIGINS: ${ALLOWED_ORIGINS:-http://localhost:5173,http://localhost:8080}
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      OPENAI_MODEL: ${OPENAI_MODEL:-}
+      ALLOWED_ORIGINS: ${ALLOWED_ORIGINS:-http://localhost:5173,http://127.0.0.1:5173,http://localhost:5174,http://127.0.0.1:5174,http://localhost:5175,http://127.0.0.1:5175,http://localhost:8080}
+      APP_ENV: ${APP_ENV:-production}
+      WORKSPACE_ID: ${WORKSPACE_ID:-local}
+      WORKSPACE_NAME: ${WORKSPACE_NAME:-VSign workspace}
+      DATABASE_URL: ${DATABASE_URL:-postgresql+psycopg://vsign:vsign-local-password@postgres:5432/vsign}
+      DATABASE_AUTO_CREATE: "false"
+      AUTH_REQUIRED: ${AUTH_REQUIRED:-true}
+      AUTH_COOKIE_SECURE: ${AUTH_COOKIE_SECURE:-false}
+      AUTH_SESSION_TTL_SECONDS: ${AUTH_SESSION_TTL_SECONDS:-28800}
+      BOOTSTRAP_ADMIN_EMAIL: ${BOOTSTRAP_ADMIN_EMAIL:-}
+      BOOTSTRAP_ADMIN_PASSWORD: ${BOOTSTRAP_ADMIN_PASSWORD:-}
+      BOOTSTRAP_ADMIN_NAME: ${BOOTSTRAP_ADMIN_NAME:-Workspace Admin}
     volumes:
+      - ./ml/artifacts/sales30_seated_v3:/models:ro
       - ./ml/data/collected:/data/collection
     ports:
       - "8000:8000"
@@ -23,6 +54,9 @@ services:
       interval: 10s
       timeout: 3s
       retries: 5
+    depends_on:
+      postgres:
+        condition: service_healthy
 
   web:
     build:
@@ -31,8 +65,13 @@ services:
       args:
         VITE_INFERENCE_WS_URL: ${VITE_INFERENCE_WS_URL:-ws://localhost:8000/ws/inference}
         VITE_INFERENCE_HTTP_URL: ${VITE_INFERENCE_HTTP_URL:-http://localhost:8000}
+        VITE_PLATFORM_HTTP_URL: ${VITE_PLATFORM_HTTP_URL:-http://localhost:8000}
+        VITE_PLATFORM_AUTH_REQUIRED: ${VITE_PLATFORM_AUTH_REQUIRED:-true}
     ports:
       - "8080:80"
     depends_on:
       inference:
         condition: service_healthy
+
+volumes:
+  vsign-postgres:

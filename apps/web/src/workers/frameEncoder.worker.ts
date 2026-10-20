@@ -1,11 +1,15 @@
 import type { NormalizedCropRegion } from "../lib/adaptiveFraming";
+import { drawCapturedFrame } from "../lib/bodyFraming";
 
-interface EncoderRequest {
-  frames: Array<{
-    bitmap: ImageBitmap;
-    crop: NormalizedCropRegion | null;
-  }>;
+interface EncoderFrame {
+  bitmap: ImageBitmap;
+  crop: NormalizedCropRegion | null;
 }
+
+/** A batch (`frames`) or one streamed frame (`id` + `frame`) encoded while the user signs. */
+type EncoderRequest =
+  | { frames: EncoderFrame[] }
+  | { id: number; frame: EncoderFrame };
 
 interface EncoderScope {
   onmessage: ((event: MessageEvent<EncoderRequest>) => void) | null;
@@ -25,7 +29,48 @@ function blobToDataUrl(blob: Blob): Promise<string> {
   });
 }
 
+async function encodeOne(
+  canvas: OffscreenCanvas,
+  context: OffscreenCanvasRenderingContext2D,
+  frame: EncoderFrame,
+): Promise<string> {
+  drawCapturedFrame(context, frame, OUTPUT_SIZE);
+  let blob = await canvas.convertToBlob({ type: "image/webp", quality: OUTPUT_QUALITY });
+  if (blob.type !== "image/webp") {
+    blob = await canvas.convertToBlob({ type: "image/jpeg", quality: OUTPUT_QUALITY });
+  }
+  return blobToDataUrl(blob);
+}
+
+let streamCanvas: OffscreenCanvas | null = null;
+let streamContext: OffscreenCanvasRenderingContext2D | null = null;
+// Streamed frames share one canvas, so encode them strictly in arrival order.
+let streamQueue: Promise<void> = Promise.resolve();
+
+function encodeStreamed(id: number, frame: EncoderFrame): void {
+  streamQueue = streamQueue.then(async () => {
+    try {
+      streamCanvas ??= new OffscreenCanvas(OUTPUT_SIZE, OUTPUT_SIZE);
+      streamContext ??= streamCanvas.getContext("2d", { alpha: false });
+      if (!streamContext) throw new Error("Không tạo được OffscreenCanvas.");
+      encoderScope.postMessage({ id, ok: true, frame: await encodeOne(streamCanvas, streamContext, frame) });
+    } catch (error) {
+      encoderScope.postMessage({
+        id,
+        ok: false,
+        message: error instanceof Error ? error.message : "Không thể encode frame.",
+      });
+    } finally {
+      frame.bitmap.close();
+    }
+  });
+}
+
 encoderScope.onmessage = async (event) => {
+  if ("id" in event.data) {
+    encodeStreamed(event.data.id, event.data.frame);
+    return;
+  }
   const frames = event.data.frames;
   const canvas = new OffscreenCanvas(OUTPUT_SIZE, OUTPUT_SIZE);
   const context = canvas.getContext("2d", { alpha: false });
@@ -37,29 +82,8 @@ encoderScope.onmessage = async (event) => {
   try {
     const encoded: string[] = [];
     for (const frame of frames) {
-      const { bitmap, crop } = frame;
-      const side = Math.min(bitmap.width, bitmap.height);
-      const sourceX = crop ? crop.x * bitmap.width : (bitmap.width - side) / 2;
-      const sourceY = crop ? crop.y * bitmap.height : (bitmap.height - side) / 2;
-      const sourceWidth = crop ? crop.width * bitmap.width : side;
-      const sourceHeight = crop ? crop.height * bitmap.height : side;
-      context.drawImage(
-        bitmap,
-        sourceX,
-        sourceY,
-        sourceWidth,
-        sourceHeight,
-        0,
-        0,
-        OUTPUT_SIZE,
-        OUTPUT_SIZE,
-      );
-      let blob = await canvas.convertToBlob({ type: "image/webp", quality: OUTPUT_QUALITY });
-      if (blob.type !== "image/webp") {
-        blob = await canvas.convertToBlob({ type: "image/jpeg", quality: OUTPUT_QUALITY });
-      }
-      encoded.push(await blobToDataUrl(blob));
-      bitmap.close();
+      encoded.push(await encodeOne(canvas, context, frame));
+      frame.bitmap.close();
     }
     encoderScope.postMessage({ ok: true, frames: encoded });
   } catch (error) {

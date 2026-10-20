@@ -56,7 +56,12 @@ export function inferenceReducer(
         guidance: null,
       };
     case "capture_cancelled":
-      return { ...state, phase: "ready", guidance: action.message };
+      return {
+        phase: "ready",
+        pendingSequence: null,
+        prediction: null,
+        guidance: action.message,
+      };
     case "request_started":
       return {
         ...state,

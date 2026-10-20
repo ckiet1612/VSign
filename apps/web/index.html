@@ -2,15 +2,37 @@
 <html lang="vi">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <meta name="theme-color" content="#ffffff" />
     <meta
       name="description"
       content="VSign — thử nghiệm nhận dạng từng ký hiệu Ngôn ngữ ký hiệu Việt Nam."
     />
     <title>VSign — Nhận dạng ký hiệu VSL rời rạc</title>
+    <style>
+      /* Boot frame: the shell's grey frame, white panel and top-bar line, painted before any script, font or app
+         stylesheet so a reload keeps the layout and its lines in place and only the content loads in.
+         Geometry mirrors .app-shell / .app-panel / .workspace-topbar (8px inset, 40px status strip, 52px bar). */
+      .boot-frame { position: fixed; inset: 0; background: #f9f9fa; pointer-events: none; }
+      .boot-frame::before, .boot-frame::after { content: ""; position: absolute; box-sizing: border-box; }
+      .boot-frame::before {
+        top: 8px; right: 8px; bottom: 40px; left: var(--boot-sidebar, 212px);
+        border: 1px solid rgb(0 0 0 / 10%); border-radius: 16px; background: #fff; box-shadow: 0 1px 2px rgb(0 0 0 / 4%);
+      }
+      .boot-frame::after { top: 60px; right: 9px; left: calc(var(--boot-sidebar, 212px) + 1px); height: 1px; background: rgb(0 0 0 / 10%); }
+      @media (max-width: 1020px) { .boot-frame::before, .boot-frame::after { display: none; } }
+    </style>
+    <script>
+      // Same width the sidebar will open with (useSidebarLayout), so the panel edge does not move when the app mounts.
+      try {
+        var layout = JSON.parse(localStorage.getItem("vsign.sidebar") || "null") || {};
+        var width = layout.collapsed ? 68 : Math.round(Math.min(360, Math.max(212, typeof layout.width === "number" ? layout.width : 212)));
+        document.documentElement.style.setProperty("--boot-sidebar", width + "px");
+      } catch (error) { /* Default width. */ }
+    </script>
   </head>
   <body>
-    <div id="root"></div>
+    <div id="root"><div class="boot-frame" aria-hidden="true"></div></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

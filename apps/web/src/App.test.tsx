@@ -3,6 +3,11 @@ import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import App from "./App";
 
+vi.mock("./hooks/useWorkspacePlatform", async () => {
+  const { localWorkspacePlatform } = await import("./test/workspacePlatformFixture");
+  return { useWorkspacePlatform: localWorkspacePlatform };
+});
+
 class MockWebSocket {
   readyState = 0;
   onopen: (() => void) | null = null;
@@ -21,12 +26,13 @@ class MockWebSocket {
 
 describe("App", () => {
   beforeEach(() => {
+    window.history.replaceState({}, "", "/");
     vi.stubGlobal("WebSocket", MockWebSocket);
     vi.stubGlobal(
       "fetch",
-      vi.fn().mockResolvedValue({
+      vi.fn().mockImplementation(async (input: string | URL | Request) => ({
         ok: true,
-        json: async () => ({
+        json: async () => String(input).endsWith("/health") ? ({ status: "ok", backend: "mock", model_version: "mock-common-20-v1", protocol_version: "1.0" }) : ({
           backend: "mock",
           model_version: "mock-common-20-v1",
           protocol_version: "1.0",
@@ -42,26 +48,79 @@ describe("App", () => {
           mock: true,
           collection_enabled: false,
           collection_target_per_hand: 5,
+          sentence_ai_enabled: false,
         }),
-      }),
+      })),
     );
   });
 
-  it("hiển thị cảnh báo mock và accessible names cho control chính", () => {
+  it("đặt nội dung câu trước dự đoán và đưa thu dữ liệu vào công cụ phụ", async () => {
+    render(<App />);
+    const transcript = screen.getByRole("region", { name: "Câu của bạn" });
+    const result = screen.getByRole("region", { name: "Kết quả nhận dạng", hidden: true });
+    expect(transcript).not.toContainElement(result);
+    expect(transcript.nextElementSibling).toBe(result);
+    expect(screen.getByRole("button", { name: "Thu dữ liệu AI", hidden: true })).not.toBeVisible();
+    await userEvent.click(screen.getByText("Công cụ", { exact: true }));
+    expect(screen.getByRole("button", { name: "Thu dữ liệu AI" })).toBeVisible();
+  });
+
+  it("điều hướng sidebar sang trang model mà không đổi workflow nhận dạng", async () => {
+    render(<App />);
+    await userEvent.click(screen.getByRole("button", { name: "Mô hình nhận dạng" }));
+    expect(screen.getByRole("heading", { name: "Mô hình nhận dạng" })).toBeInTheDocument();
+    expect(screen.queryByText("Protocol 1.0", { exact: true })).not.toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: /Đăng nhập VSign/ })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Bật camera" })).not.toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: "Nhận dạng" }));
+    expect(screen.getByRole("heading", { name: "Nhận dạng ký hiệu" })).toBeInTheDocument();
+    window.history.replaceState({}, "", "/");
+  });
+
+  it("hiển thị cảnh báo mock và accessible names cho control chính", async () => {
     render(<App />);
     expect(
-      screen.getByText("Mô phỏng – chưa dùng mô hình AI thật."),
+      await screen.findByText("Mô phỏng – chưa dùng mô hình AI thật."),
     ).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Bật camera" })).toBeInTheDocument();
     expect(
-      screen.getByRole("button", {
+      screen.queryByRole("button", {
         name: "Giữ để ký, cũng có thể giữ phím Space",
       }),
-    ).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Thêm vào câu" })).toBeDisabled();
-    expect(screen.getByRole("button", { name: "Hoàn tác từ cuối" })).toBeDisabled();
-    expect(screen.getByRole("button", { name: "Xóa toàn bộ câu" })).toBeDisabled();
-    expect(screen.getByRole("button", { name: "Sao chép câu" })).toBeDisabled();
+    ).not.toBeInTheDocument();
+    expect(document.querySelector(".add-button")).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Hoàn tác từ cuối", hidden: true })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Xóa toàn bộ câu", hidden: true })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Sao chép câu", hidden: true })).toBeDisabled();
+  });
+
+  it("không mở công cụ kỹ thuật cho doanh nghiệp và vẫn cảnh báo mô phỏng", async () => {
+    render(<App />);
+    expect(screen.queryByLabelText("Model máy chủ")).not.toBeInTheDocument();
+    expect(await screen.findByText("Mô phỏng – chưa dùng mô hình AI thật.")).toBeVisible();
+    expect(screen.queryByText("Cấu hình AI", { exact: true })).not.toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: "Dev / Test", hidden: true })).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Nhận dạng" })).toHaveAttribute("aria-pressed", "true");
+  });
+
+  it("bỏ cụm logo và mô tả lặp khỏi khu vực làm việc", () => {
+    render(<App />);
+    expect(screen.queryByRole("link", { name: /VSign/ })).not.toBeInTheDocument();
+    expect(screen.queryByText("Ngôn ngữ ký hiệu Việt Nam")).not.toBeInTheDocument();
+    expect(screen.queryByText("Kết quả từng từ · Xác nhận trước khi thêm vào câu")).not.toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Nhận dạng ký hiệu" })).toBeInTheDocument();
+  });
+
+  it("giữ tên vùng làm việc cho trình đọc màn hình khi giảm tầng tiêu đề", () => {
+    render(<App />);
+    const workspace = screen.getByRole("main", { name: "Nhận dạng ký hiệu" });
+    expect(workspace).toContainElement(screen.getByRole("heading", { name: "Nhận dạng ký hiệu" }));
+  });
+
+  it("giữ tiêu đề workspace hiển thị và tooltip cho điều hướng dạng icon", () => {
+    render(<App />);
+    expect(screen.getByRole("heading", { name: "Nhận dạng ký hiệu" })).not.toHaveClass("sr-only");
+    expect(screen.getByRole("button", { name: "Nhận dạng" })).toHaveAttribute("title", "Nhận dạng");
   });
 
   it("phân biệt baseline legacy với model nguồn mới", async () => {
@@ -136,11 +195,13 @@ describe("App", () => {
       "fetch",
       vi.fn().mockImplementation((input: string | URL | Request) => {
         const url = String(input);
-        if (url.endsWith("/collection/summary")) {
+        if (url.includes("/collection/summary")) {
           return Promise.resolve({
             ok: true,
             json: async () => ({
               enabled: true,
+              batch: "personal-100",
+              target_per_label: 100,
               target_per_hand: 5,
               counts: {
                 Chào: { right: 2, left: 1 },
@@ -175,6 +236,7 @@ describe("App", () => {
     const user = userEvent.setup();
 
     render(<App />);
+    await userEvent.click(screen.getByText("Công cụ", { exact: true }));
     const collectionButton = await screen.findByRole("button", {
       name: "Thu dữ liệu AI",
     });
@@ -182,7 +244,7 @@ describe("App", () => {
     await user.click(collectionButton);
 
     expect(
-      screen.getByRole("heading", { name: "Chọn mẫu cần quay" }),
+      screen.getByRole("heading", { name: "Thu 100 mẫu mỗi từ" }),
     ).toBeInTheDocument();
     expect(screen.getByRole("combobox", { name: "Từ cần thực hiện" })).toHaveValue(
       "Chào",
@@ -193,12 +255,33 @@ describe("App", () => {
         (option) => option.value,
       ),
     ).toEqual([...collectionLabels, "Không ký hiệu"]);
-    expect(screen.getByText("2/50 · Tay phải")).toBeInTheDocument();
+    expect(screen.getByText("3/100")).toBeInTheDocument();
+    const firstVideo = screen.getByLabelText("Video mẫu cho từ Chào");
+    expect(firstVideo.querySelector("source")).toHaveAttribute(
+      "src",
+      expect.stringContaining("reference-videos/sales30/01-chao.mp4"),
+    );
     await user.selectOptions(labelSelect, "Điện thoại");
-    expect(screen.getByText("0/50 · Tay phải")).toBeInTheDocument();
-    expect(screen.getByText("Chưa có video mẫu cho nhãn này.")).toBeInTheDocument();
+    expect(screen.getByText("0/100")).toBeInTheDocument();
+    const phoneVideo = screen.getByLabelText("Video mẫu cho từ Điện thoại");
+    expect(phoneVideo.querySelector("source")).toHaveAttribute(
+      "src",
+      expect.stringContaining("reference-videos/sales30/11-dien-thoai.mp4"),
+    );
+    expect(phoneVideo).toHaveAttribute("controls");
+    expect(phoneVideo).toHaveAttribute("loop");
+    expect(phoneVideo).toHaveAttribute("playsinline");
+    expect(firstVideo).not.toBeInTheDocument();
+    expect(screen.queryByText("Chưa có video mẫu cho nhãn này.")).not.toBeInTheDocument();
+    await user.selectOptions(labelSelect, "Cảm ơn");
+    expect(screen.getByLabelText("Video mẫu cho từ Cảm ơn").querySelector("source"))
+      .toHaveAttribute("src", expect.stringContaining("reference-videos/sales30/30-cam-on.mp4"));
+    await user.selectOptions(labelSelect, "Không ký hiệu");
     expect(
-      screen.queryByLabelText("Video mẫu cho từ Điện thoại"),
+      screen.getByText(/Không làm một từ nào: đứng yên/),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByLabelText(/Video mẫu cho từ/),
     ).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Thêm vào câu" })).not.toBeInTheDocument();
   });

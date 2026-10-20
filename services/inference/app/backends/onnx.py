@@ -124,13 +124,20 @@ class ONNXInferenceBackend:
             )
         shifted = output - np.max(output)
         probabilities = np.exp(shifted) / np.exp(shifted).sum()
-        indices = np.argsort(probabilities)[::-1][:3]
+        indices = np.argsort(probabilities)[::-1]
+        winner = int(indices[0])
         top_k = [
             BackendCandidate(self.labels[int(index)], float(probabilities[index]))
             for index in indices
-        ]
-        margin = top_k[0].confidence - top_k[1].confidence if len(top_k) > 1 else top_k[0].confidence
-        if top_k[0].confidence < self.confidence_threshold or margin < self.margin_threshold:
+            if self.labels[int(index)] != "Không ký hiệu"
+        ][:3]
+        margin = (
+            float(probabilities[winner] - probabilities[int(indices[1])])
+            if len(indices) > 1 else float(probabilities[winner])
+        )
+        if (self.labels[winner] == "Không ký hiệu"
+                or probabilities[winner] < self.confidence_threshold
+                or margin < self.margin_threshold):
             return BackendPrediction(PredictionStatus.UNCERTAIN, None, None, top_k)
         return BackendPrediction(
             PredictionStatus.OK, top_k[0].label, top_k[0].confidence, top_k

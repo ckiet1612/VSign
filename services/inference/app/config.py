@@ -1,7 +1,8 @@
 from __future__ import annotations
 
 import os
-from dataclasses import dataclass
+import re
+from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Optional, Tuple
 
@@ -46,6 +47,36 @@ def _bool_env(name: str, default: bool) -> bool:
     raise RuntimeError(f"{name} phải là true hoặc false")
 
 
+def _workspace_id_env() -> str:
+    value = os.getenv("WORKSPACE_ID", "local").strip() or "local"
+    if re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9._-]{0,63}", value) is None:
+        raise RuntimeError("WORKSPACE_ID chỉ được chứa chữ, số, dấu chấm, gạch dưới hoặc gạch ngang")
+    return value
+
+
+def _workspace_name_env() -> str:
+    value = os.getenv("WORKSPACE_NAME", "VSign workspace").strip() or "VSign workspace"
+    if len(value) > 120:
+        raise RuntimeError("WORKSPACE_NAME không được vượt quá 120 ký tự")
+    return value
+
+
+def _integration_key_env() -> Optional[str]:
+    value=os.getenv("INTEGRATION_ENCRYPTION_KEY", "").strip()
+    if value:
+        return value
+    path=os.getenv("INTEGRATION_ENCRYPTION_KEY_FILE", "").strip()
+    if not path:
+        return None
+    try:
+        target=Path(path).expanduser()
+        if target.is_symlink() or not target.is_file() or target.stat().st_size>128:
+            return None
+        return target.read_text(encoding="ascii").strip() or None
+    except (OSError,UnicodeError):
+        return None
+
+
 @dataclass(frozen=True)
 class Settings:
     inference_backend: str = "mock"
@@ -53,6 +84,11 @@ class Settings:
     onnx_model_path: Optional[Path] = None
     pytorch_model_path: Optional[Path] = None
     pytorch_device: str = "auto"
+    coreml_model_path: Optional[Path] = None
+    model_manifest_path: Optional[Path] = None
+    coreml_compute_units: str = "ALL"
+    input_framing: str = "center-square"
+    decision_policy_path: Optional[Path] = None
     label_map_path: Optional[Path] = None
     labels_verified: bool = False
     confidence_threshold: float = 0.70
@@ -60,6 +96,10 @@ class Settings:
     allowed_origins: Tuple[str, ...] = (
         "http://localhost:5173",
         "http://127.0.0.1:5173",
+        "http://localhost:5174",
+        "http://127.0.0.1:5174",
+        "http://localhost:5175",
+        "http://127.0.0.1:5175",
         "http://localhost:8080",
     )
     max_frame_bytes: int = 256 * 1024
@@ -68,17 +108,63 @@ class Settings:
     collection_dir: Path = Path("ml/data/collected/sales30")
     collection_labels: Tuple[str, ...] = SALES_30_LABELS
     collection_target_per_hand: int = 50
+    openai_api_key: Optional[str] = field(default=None, repr=False)
+    openai_model: Optional[str] = None
+    sentence_rules: str = "expanded"
+    app_environment: str = "production"
+    workspace_id: str = "local"
+    workspace_name: str = "VSign workspace"
+    database_url: str = "sqlite:///:memory:"
+    database_auto_create: bool = True
+    auth_required: bool = False
+    local_admin_enabled: bool = False
+    local_admin_role: str = "admin"
+    auth_cookie_secure: bool = False
+    auth_session_ttl_seconds: int = 8 * 60 * 60
+    bootstrap_admin_email: Optional[str] = None
+    bootstrap_admin_password: Optional[str] = field(default=None, repr=False)
+    bootstrap_admin_name: str = "Workspace Admin"
+    dev_test_enabled: bool = False
+    dev_test_dir: Path = Path("ml/data/dev-tests/manual")
+    model_registry_roots: Tuple[Path, ...] = (Path("ml/artifacts"),)
+    model_evaluation_roots: Tuple[Path, ...] = (Path("ml/evaluations"),)
+    model_deployment_worker: bool = False
+    model_deployment_target: str = "production-local"
+    model_deployment_runtime_url: str = "http://127.0.0.1:8002"
+    integration_encryption_key: Optional[str] = field(default=None, repr=False)
+
+    def __post_init__(self) -> None:
+        if self.local_admin_role not in {"admin", "system_admin"}:
+            raise RuntimeError("LOCAL_ADMIN_ROLE chỉ hỗ trợ admin hoặc system_admin")
+        if self.local_admin_enabled and (self.app_environment != "development" or self.auth_required):
+            raise RuntimeError("LOCAL_ADMIN_ENABLED chỉ dùng với APP_ENV=development và AUTH_REQUIRED=false")
 
     @classmethod
     def from_env(cls) -> "Settings":
+        environment = os.getenv("APP_ENV", "production").strip().lower()
+        if environment not in {"development", "production"}:
+            raise RuntimeError("APP_ENV must be development or production")
+        auth_required = _bool_env("AUTH_REQUIRED", False)
+        sentence_rules = os.getenv("SENTENCE_RULES", "expanded").strip().lower() or "expanded"
+        if sentence_rules not in {"expanded", "legacy"}:
+            raise RuntimeError("SENTENCE_RULES chỉ hỗ trợ expanded hoặc legacy")
         backend = os.getenv("INFERENCE_BACKEND", "mock").strip().lower()
-        if backend not in {"mock", "onnx", "pytorch"}:
+        if backend not in {"mock", "onnx", "pytorch", "coreml"}:
             raise RuntimeError(
-                "INFERENCE_BACKEND chỉ hỗ trợ 'mock', 'onnx' hoặc 'pytorch'"
+                "INFERENCE_BACKEND chỉ hỗ trợ 'mock', 'onnx', 'pytorch' hoặc 'coreml'"
             )
 
         model_path = os.getenv("ONNX_MODEL_PATH", "").strip()
         pytorch_model_path = os.getenv("PYTORCH_MODEL_PATH", "").strip()
+        coreml_model_path = os.getenv("COREML_MODEL_PATH", "").strip()
+        model_manifest_path = os.getenv("MODEL_MANIFEST_PATH", "").strip()
+        coreml_compute_units = os.getenv("COREML_COMPUTE_UNITS", "ALL").strip().upper()
+        if backend == "coreml" and coreml_compute_units not in {"ALL", "CPU_ONLY", "CPU_AND_GPU", "CPU_AND_NE"}:
+            raise RuntimeError("COREML_COMPUTE_UNITS chỉ hỗ trợ ALL, CPU_ONLY, CPU_AND_GPU hoặc CPU_AND_NE")
+        decision_policy_path = os.getenv("DECISION_POLICY_PATH", "").strip()
+        input_framing = os.getenv("INPUT_FRAMING", "center-square").strip().lower() or "center-square"
+        if input_framing not in {"center-square", "trim-bodycrop-v1"}:
+            raise RuntimeError("INPUT_FRAMING chỉ hỗ trợ center-square hoặc trim-bodycrop-v1")
         pytorch_device = os.getenv("PYTORCH_DEVICE", "auto").strip().lower()
         if pytorch_device not in {"auto", "cpu", "cuda"}:
             raise RuntimeError("PYTORCH_DEVICE chỉ hỗ trợ auto, cpu hoặc cuda")
@@ -87,7 +173,7 @@ class Settings:
             origin.strip()
             for origin in os.getenv(
                 "ALLOWED_ORIGINS",
-                "http://localhost:5173,http://127.0.0.1:5173,http://localhost:8080",
+                "http://localhost:5173,http://127.0.0.1:5173,http://localhost:5174,http://127.0.0.1:5174,http://localhost:5175,http://127.0.0.1:5175,http://localhost:8080",
             ).split(",")
             if origin.strip()
         )
@@ -98,6 +184,7 @@ class Settings:
             "mock": "mock-common-20-v1",
             "onnx": "onnx-v1",
             "pytorch": "multivsl-mvitv2-s-1000-official",
+            "coreml": "coreml-v1",
         }
         default_version = default_versions[backend]
         return cls(
@@ -108,6 +195,11 @@ class Settings:
                 Path(pytorch_model_path).expanduser() if pytorch_model_path else None
             ),
             pytorch_device=pytorch_device,
+            coreml_model_path=Path(coreml_model_path).expanduser() if coreml_model_path else None,
+            model_manifest_path=Path(model_manifest_path).expanduser() if model_manifest_path else None,
+            coreml_compute_units=coreml_compute_units,
+            input_framing=input_framing,
+            decision_policy_path=Path(decision_policy_path).expanduser() if decision_policy_path else None,
             label_map_path=Path(label_path).expanduser() if label_path else None,
             labels_verified=_bool_env("LABELS_VERIFIED", False),
             confidence_threshold=_float_env("CONFIDENCE_THRESHOLD", 0.70),
@@ -120,4 +212,30 @@ class Settings:
                 os.getenv("COLLECTION_DIR", "ml/data/collected/sales30")
             ).expanduser(),
             collection_target_per_hand=_int_env("COLLECTION_TARGET_PER_HAND", 50),
+            openai_api_key=os.getenv("OPENAI_API_KEY", "").strip() or None,
+            openai_model=os.getenv("OPENAI_MODEL", "").strip() or None,
+            sentence_rules=sentence_rules,
+            app_environment=environment,
+            workspace_id=_workspace_id_env(),
+            workspace_name=_workspace_name_env(),
+            database_url=os.getenv("DATABASE_URL", "sqlite:///./data/vsign-platform.db").strip()
+            or "sqlite:///./data/vsign-platform.db",
+            database_auto_create=_bool_env("DATABASE_AUTO_CREATE", environment == "development"),
+            auth_required=auth_required,
+            local_admin_enabled=_bool_env("LOCAL_ADMIN_ENABLED", environment == "development" and not auth_required),
+            local_admin_role=os.getenv("LOCAL_ADMIN_ROLE", "admin").strip(),
+            auth_cookie_secure=_bool_env("AUTH_COOKIE_SECURE", environment == "production"),
+            auth_session_ttl_seconds=_int_env("AUTH_SESSION_TTL_SECONDS", 8 * 60 * 60),
+            bootstrap_admin_email=os.getenv("BOOTSTRAP_ADMIN_EMAIL", "").strip().casefold() or None,
+            bootstrap_admin_password=os.getenv("BOOTSTRAP_ADMIN_PASSWORD", "").strip() or None,
+            bootstrap_admin_name=os.getenv("BOOTSTRAP_ADMIN_NAME", "Workspace Admin").strip()
+            or "Workspace Admin",
+            dev_test_enabled=_bool_env("DEV_TEST_ENABLED", False),
+            dev_test_dir=Path(os.getenv("DEV_TEST_DIR", "ml/data/dev-tests/manual")).expanduser(),
+            model_registry_roots=tuple(Path(p.strip()).expanduser() for p in os.getenv("MODEL_REGISTRY_ROOTS", "ml/artifacts").split(",") if p.strip()),
+            model_evaluation_roots=tuple(Path(p.strip()).expanduser() for p in os.getenv("MODEL_EVALUATION_ROOTS", "ml/evaluations").split(",") if p.strip()),
+            model_deployment_worker=_bool_env("MODEL_DEPLOYMENT_WORKER", False),
+            model_deployment_target=os.getenv("MODEL_DEPLOYMENT_TARGET", "production-local").strip(),
+            model_deployment_runtime_url=os.getenv("MODEL_DEPLOYMENT_RUNTIME_URL", "http://127.0.0.1:8002").strip(),
+            integration_encryption_key=_integration_key_env(),
         )

@@ -1,0 +1,13 @@
+# Isolated Mac runtime; never install into the existing .venv.
+coremltools==9.0
+torch==2.0.0
+torchvision==0.15.1
+av==15.1.0
+fastapi==0.115.12
+numpy==1.26.4
+pillow==11.2.1
+pydantic==2.11.5
+uvicorn[standard]==0.34.3
+SQLAlchemy==2.0.54
+alembic==1.16.5
+argon2-cffi==25.1.0

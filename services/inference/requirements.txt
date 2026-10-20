@@ -1,6 +1,12 @@
 av>=12.3.0,<19
 fastapi==0.115.12
+SQLAlchemy>=2.0,<2.1
+alembic>=1.15,<1.17
+argon2-cffi>=23.1,<26
+cryptography>=44,<47
+psycopg[binary]>=3.2,<4
 numpy==1.26.4
+onnxruntime==1.19.2
 pillow==11.2.1
 pydantic==2.11.5
 uvicorn[standard]==0.34.3

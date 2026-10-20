@@ -18,13 +18,38 @@ export type AutomaticCapturePhase =
   | "waiting"
   | "capturing"
   | "postroll"
-  | "cooldown";
+  | "encoding"
+  | "cooldown"
+  | "rearming";
+
+export interface SegmentWindow {
+  startAt: number;
+  endAt: number;
+}
+
+/**
+ * A segment cut as soon as the hands have been still for SPECULATE_AFTER_MS. If the
+ * sign then ends on that same rest, the final segment is exactly this one.
+ */
+export interface ProvisionalSegment {
+  id: number;
+  sequence: number[][];
+  baselineSequence: number[][];
+  sourceWindow: SegmentWindow;
+}
 
 export interface AutomaticSegmentUpdate {
   phase: AutomaticCapturePhase;
   sequence: number[][] | null;
   baselineSequence?: number[][] | null;
+  sourceWindow?: SegmentWindow | null;
   motion: number;
+  /** Emitted once per rest; run inference on it right away. */
+  provisional?: ProvisionalSegment;
+  /** The hands moved again: discard this provisional segment's result. */
+  provisionalCancelled?: number;
+  /** The final `sequence` is this provisional segment, already sent. */
+  confirmedProvisional?: number;
 }
 
 interface TimedLandmarkFrame {
@@ -35,7 +60,7 @@ interface TimedLandmarkFrame {
 
 // Time-based buffers keep the same behavior when MediaPipe fluctuates between
 // roughly 15 and 30 FPS.
-const PRE_ROLL_MS = 650;
+export const PRE_ROLL_MS = 650;
 const POST_ROLL_MS = 240;
 const START_MOTION_THRESHOLD = 0.009;
 const END_MOTION_THRESHOLD = 0.0045;
@@ -44,6 +69,8 @@ const START_CANDIDATE_GAP_MS = 180;
 const READY_QUIET_MS = 260;
 const MINIMUM_GESTURE_MS = 650;
 const QUIET_TO_FINISH_MS = 420;
+// Start inference this long into a rest instead of waiting for the full quiet + post-roll.
+export const SPECULATE_AFTER_MS = 150;
 const MISSING_SIGNAL_TO_FINISH_MS = 420;
 const MAXIMUM_GESTURE_MS = 3_000;
 const COOLDOWN_MS = 700;
@@ -187,18 +214,26 @@ export class AutomaticSignSegmenter {
   private missingStartedAt: number | null = null;
   private postRollUntil = 0;
   private cooldownUntil = 0;
-  private armed = true;
   private readyQuietStartedAt: number | null = null;
   private startCandidateAt: number | null = null;
   private startCandidateLastAt: number | null = null;
   private startCandidateFrames = 0;
+  private provisional: ProvisionalSegment | null = null;
+  private provisionalCount = 0;
+  private speculate = false;
+
+  /** Only the server RGB path speculates; landmark models keep their full segments. */
+  setSpeculation(enabled: boolean): void {
+    this.speculate = enabled;
+    if (!enabled) this.provisional = null;
+  }
 
   get phase(): AutomaticCapturePhase {
     return this.currentPhase;
   }
 
-  reset(enabled: boolean): void {
-    this.currentPhase = enabled ? "waiting" : "off";
+  reset(enabled: boolean, requireQuiet = false): void {
+    this.currentPhase = enabled ? requireQuiet ? "rearming" : "waiting" : "off";
     this.previous = null;
     this.motionWindow = [];
     this.preRoll = [];
@@ -208,8 +243,8 @@ export class AutomaticSignSegmenter {
     this.missingStartedAt = null;
     this.postRollUntil = 0;
     this.cooldownUntil = 0;
-    this.armed = true;
     this.readyQuietStartedAt = null;
+    this.provisional = null;
     this.resetStartCandidate();
   }
 
@@ -235,18 +270,10 @@ export class AutomaticSignSegmenter {
       return { phase: "off", sequence: null, motion };
     }
 
-    if (this.currentPhase === "cooldown") {
-      if (timestamp < this.cooldownUntil) {
-        return { phase: "cooldown", sequence: null, motion };
-      }
-      this.currentPhase = "waiting";
-      this.preRoll = [];
-      this.armed = false;
-      this.readyQuietStartedAt = null;
-      this.resetStartCandidate();
-    }
-
-    if (this.currentPhase === "waiting") {
+    if (
+      this.currentPhase === "waiting" || this.currentPhase === "cooldown" ||
+      this.currentPhase === "rearming"
+    ) {
       this.preRoll.push(current);
       const oldestAllowed = timestamp - PRE_ROLL_MS;
       while (
@@ -256,18 +283,23 @@ export class AutomaticSignSegmenter {
         this.preRoll.shift();
       }
 
-      if (!this.armed) {
-        if (!handsVisible || motion <= END_MOTION_THRESHOLD) {
-          this.readyQuietStartedAt ??= timestamp;
-          if (timestamp - this.readyQuietStartedAt >= READY_QUIET_MS) {
-            this.armed = true;
-          }
-        } else {
-          this.readyQuietStartedAt = null;
-        }
-        return { phase: "waiting", sequence: null, motion };
-      }
+    }
 
+    if (this.currentPhase === "cooldown" || this.currentPhase === "rearming") {
+      if (!handsVisible || motion <= END_MOTION_THRESHOLD) {
+        this.readyQuietStartedAt ??= timestamp;
+      } else {
+        this.readyQuietStartedAt = null;
+      }
+      const quietReady = this.readyQuietStartedAt !== null &&
+        timestamp - this.readyQuietStartedAt >= READY_QUIET_MS;
+      // Observe the rest during the safety cooldown, not in another wait afterwards.
+      this.currentPhase = timestamp < this.cooldownUntil ? "cooldown"
+        : quietReady ? "waiting" : "rearming";
+      return { phase: this.currentPhase, sequence: null, motion };
+    }
+
+    if (this.currentPhase === "waiting") {
       if (handsVisible && motion >= START_MOTION_THRESHOLD) {
         this.startCandidateAt ??= timestamp;
         this.startCandidateLastAt = timestamp;
@@ -308,12 +340,12 @@ export class AutomaticSignSegmenter {
         this.postRollUntil = 0;
         this.quietStartedAt = null;
         this.missingStartedAt = null;
-        return { phase: "capturing", sequence: null, motion };
+        return { phase: "capturing", sequence: null, motion, provisionalCancelled: this.dropProvisional() };
       }
       if (timestamp < this.postRollUntil) {
         return { phase: "postroll", sequence: null, motion };
       }
-      return this.finish(timestamp, motion);
+      return this.finish(timestamp, motion, true);
     }
 
     if (!gestureSignalVisible) {
@@ -321,10 +353,12 @@ export class AutomaticSignSegmenter {
     } else {
       this.missingStartedAt = null;
     }
+    let provisionalCancelled: number | undefined;
     if (motion <= END_MOTION_THRESHOLD) {
       this.quietStartedAt ??= timestamp;
     } else {
       this.quietStartedAt = null;
+      provisionalCancelled = this.dropProvisional();
     }
 
     const elapsed = timestamp - this.startedAt;
@@ -342,7 +376,19 @@ export class AutomaticSignSegmenter {
       (quietFor >= QUIET_TO_FINISH_MS ||
         missingFor >= MISSING_SIGNAL_TO_FINISH_MS);
     if (!shouldFinish) {
-      return { phase: "capturing", sequence: null, motion };
+      let provisional: ProvisionalSegment | undefined;
+      if (
+        this.speculate && !this.provisional && elapsed >= MINIMUM_GESTURE_MS &&
+        quietFor >= SPECULATE_AFTER_MS
+      ) {
+        const segment = this.segment(this.recording);
+        if (segment) {
+          this.provisionalCount += 1;
+          this.provisional = { id: this.provisionalCount, ...segment };
+          provisional = this.provisional;
+        }
+      }
+      return { phase: "capturing", sequence: null, motion, provisional, provisionalCancelled };
     }
 
     this.currentPhase = "postroll";
@@ -356,8 +402,14 @@ export class AutomaticSignSegmenter {
     this.startCandidateFrames = 0;
   }
 
-  private finish(timestamp: number, motion: number): AutomaticSegmentUpdate {
-    const usableFrames = trimMissingEdges(this.recording);
+  private dropProvisional(): number | undefined {
+    const id = this.provisional?.id;
+    this.provisional = null;
+    return id;
+  }
+
+  private segment(frames: readonly TimedLandmarkFrame[]): Omit<ProvisionalSegment, "id"> | null {
+    const usableFrames = trimMissingEdges(frames);
     const detectedFrames = usableFrames.filter((item) =>
       hasHandLandmarks(item.features),
     ).length;
@@ -380,15 +432,37 @@ export class AutomaticSignSegmenter {
     const baselineSequence = sampleIndices
       ? sampleIndices.map((index) => usableFrames[index].baselineFeatures)
       : null;
+    if (!sequence || !baselineSequence || !frames.length) return null;
+    return {
+      sequence,
+      baselineSequence,
+      sourceWindow: { startAt: frames[0].timestamp, endAt: frames[frames.length - 1].timestamp },
+    };
+  }
+
+  private finish(timestamp: number, motion: number, endedOnRest = false): AutomaticSegmentUpdate {
+    // A rest that was already speculated on ends the sign exactly where the provisional
+    // segment was cut; anything else (e.g. the length cap) cuts the full recording.
+    const confirmed = endedOnRest ? this.provisional : null;
+    const provisionalCancelled = confirmed ? undefined : this.dropProvisional();
+    this.provisional = null;
+    const segment = confirmed ?? this.segment(this.recording);
+    const sequence = segment?.sequence ?? null;
+    const baselineSequence = segment?.baselineSequence ?? null;
+    const sourceWindow = segment?.sourceWindow ?? null;
+    this.preRoll = this.recording.filter((item) => item.timestamp >= timestamp - PRE_ROLL_MS);
     this.recording = [];
-    this.currentPhase = "cooldown";
-    this.cooldownUntil = timestamp + COOLDOWN_MS;
+    // A completed quiet/post-roll boundary already establishes the rest between signs.
+    this.currentPhase = endedOnRest && sequence ? "waiting" : "cooldown";
+    this.cooldownUntil = this.currentPhase === "cooldown" ? timestamp + COOLDOWN_MS : 0;
+    this.readyQuietStartedAt = endedOnRest ? this.quietStartedAt : null;
     this.quietStartedAt = null;
     this.missingStartedAt = null;
     this.postRollUntil = 0;
-    this.armed = false;
-    this.readyQuietStartedAt = null;
     this.resetStartCandidate();
-    return { phase: "cooldown", sequence, baselineSequence, motion };
+    return {
+      phase: this.currentPhase, sequence, baselineSequence, sourceWindow, motion,
+      confirmedProvisional: confirmed?.id, provisionalCancelled,
+    };
   }
 }

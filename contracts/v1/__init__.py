@@ -14,6 +14,22 @@ from contracts.v1.inference import (
     PredictionCandidate,
     PredictionMessage,
     PredictionStatus,
+    SentenceComposeRequest,
+    SentenceComposeResponse,
+)
+from contracts.v1.workspace import (
+    AuthLoginRequest,
+    AuthLogoutResponse,
+    AuthSessionResponse,
+    AuthenticatedUser,
+    WORKSPACE_API_VERSION,
+    WorkspaceAuditEvent,
+    WorkspaceAuditPageResponse,
+    WorkspaceCapabilities,
+    WorkspaceCapabilitiesResponse,
+    WorkspaceContextResponse,
+    WorkspaceMemberResponse,
+    WorkspaceMembersResponse,
 )
 
 __all__ = [
@@ -32,4 +48,18 @@ __all__ = [
     "PredictionCandidate",
     "PredictionMessage",
     "PredictionStatus",
+    "SentenceComposeRequest",
+    "SentenceComposeResponse",
+    "WORKSPACE_API_VERSION",
+    "AuthLoginRequest",
+    "AuthLogoutResponse",
+    "AuthSessionResponse",
+    "AuthenticatedUser",
+    "WorkspaceAuditEvent",
+    "WorkspaceAuditPageResponse",
+    "WorkspaceCapabilities",
+    "WorkspaceCapabilitiesResponse",
+    "WorkspaceContextResponse",
+    "WorkspaceMemberResponse",
+    "WorkspaceMembersResponse",
 ]

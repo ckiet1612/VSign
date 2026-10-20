@@ -1,0 +1,143 @@
+/* Shared page language for every workspace tab, matching the system dashboard (system-dashboard.css):
+   large-title hero, borderless rounded cards on Background 2, 40px pill controls and a black active segment. */
+:root {
+  --page-card: var(--background-2);
+  --page-card-radius: var(--radius-24);
+  --page-control-radius: var(--radius-12);
+  --page-control-height: 40px;
+  /* Emphasized ease-out shared by tab, panel and page motion. */
+  --page-ease: cubic-bezier(0.2, 0.8, 0.2, 1);
+  /* Mage chevron-down for native selects, inset from the right edge. */
+  --select-chevron: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='none' stroke='%23000' stroke-opacity='.6' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='m4 8.417l6.587 6.587a2.013 2.013 0 0 0 2.826 0L20 8.417'/%3E%3C/svg%3E");
+}
+
+/* Switching tab swaps the title text in place, as in Linear: the title never fades or lifts, so the old and the new
+   title are never both visible. Everything else (header actions, cards, data replacing its skeleton) lifts in.
+   It starts partly visible: from zero there was a blank frame between a skeleton leaving and the data arriving.
+   Loading states are skeletons shaped like the data, so data lifts in place instead of growing the page.
+   The global reduced-motion rule turns all of this off. */
+@keyframes page-reveal { from { opacity: 0; } }
+@keyframes content-enter { from { opacity: 0.2; transform: translateY(6px); } }
+.workspace-page > :not(.workspace-page-header, .dash-hero), .workspace-page-actions, .dash-hero-side, .skeleton-reveal {
+  animation: content-enter 260ms var(--page-ease) backwards;
+}
+/* A code-split page's fallback is replaced by the real page: its content enters a little late, so a fast chunk
+   shows one lift instead of two. */
+.workspace-page.is-fallback > :not(.workspace-page-header, .dash-hero) { animation-delay: 120ms; }
+/* The camera views have no page wrapper: the title stays, camera and side column lift in a short cascade.
+   Only mounting replays this, so switching recognize/collect inside the view does not re-animate. */
+.workspace:is(.mode-recognize, .mode-collect) > :not(.workspace-intro, .workspace-data) { animation: content-enter 260ms var(--page-ease) backwards; }
+.workspace:is(.mode-recognize, .mode-collect) > .panel { animation-delay: 40ms; }
+.workspace:is(.mode-recognize, .mode-collect) > .side-column { animation-delay: 80ms; }
+
+/* Hero: large title on the left; section tabs and refresh on the right. */
+.workspace-page-header {
+  container-type: inline-size;
+  display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between;
+  gap: var(--space-16) var(--space-24); margin: 0 0 var(--space-24);
+}
+.workspace-page-header h1 {
+  flex: 1 1 auto; min-width: min(100%, 240px);
+  margin: 0; color: var(--ink); font-size: clamp(var(--text-32), 5cqi, var(--text-48)); line-height: 1.08;
+  font-weight: 500; letter-spacing: -0.02em; overflow-wrap: anywhere;
+}
+.workspace-page-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; align-items: center; gap: var(--space-8); min-width: 0; margin-left: auto; }
+.workspace-page-actions .page-tabs { flex: 0 1 auto; min-width: 0; margin: 0; }
+
+/* Bare icon button: no outline shape, a soft circle only on hover. */
+.page-icon-button {
+  display: grid; place-items: center; flex: 0 0 var(--page-control-height);
+  width: var(--page-control-height); height: var(--page-control-height); min-width: 0; min-height: 0; padding: 0;
+  border: 0; border-radius: 50%; background: transparent; color: var(--text-secondary); cursor: pointer;
+  transition: background 160ms var(--page-ease), color 160ms var(--page-ease);
+}
+.page-icon-button:hover:not(:disabled) { background: var(--black-4); color: var(--ink); }
+.page-icon-button:disabled { opacity: .45; cursor: wait; }
+.page-icon-button[data-busy] svg { animation: page-spin 900ms linear infinite; }
+.page-icon-button:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+@keyframes page-spin { to { transform: rotate(360deg); } }
+
+/* Segmented tabs: one black pill glides between segments (positioned by useTabMotion). */
+.page-tabs {
+  position: relative; isolation: isolate;
+  display: flex; flex-wrap: wrap; gap: 2px; width: fit-content; max-width: 100%; margin: 0 0 var(--space-20); padding: 3px;
+  border: 1px solid var(--line); border-radius: var(--page-control-radius); background: var(--background-1);
+}
+.page-tabs::before {
+  content: ""; position: absolute; top: 0; left: 0; z-index: 0; pointer-events: none;
+  width: var(--indicator-w, 0); height: var(--indicator-h, 0); border-radius: 9px; background: var(--black-100);
+  transform: translate(var(--indicator-x, 0), var(--indicator-y, 0)); opacity: 0;
+}
+.page-tabs[data-indicator]::before { opacity: 1; }
+.page-tabs[data-indicator="live"]::before {
+  transition: transform 300ms var(--page-ease), width 300ms var(--page-ease), height 300ms var(--page-ease);
+}
+.page-tabs [role="tab"] {
+  position: relative; z-index: 1; flex: 0 0 auto;
+  min-height: 34px; margin: 0; padding: 7px var(--space-12); border: 0; border-radius: 9px; background: transparent;
+  color: var(--text-secondary); font: inherit; font-size: var(--text-14); font-weight: var(--font-regular); line-height: 18px;
+  white-space: nowrap; cursor: pointer; transition: background 160ms var(--page-ease), color 200ms var(--page-ease);
+}
+.page-tabs [role="tab"]:hover:not(:disabled, [aria-selected="true"]) { background: var(--black-4); color: var(--ink); }
+.page-tabs [role="tab"][aria-selected="true"] { background: var(--black-100); color: var(--white-100); }
+.page-tabs[data-indicator] [role="tab"][aria-selected="true"] { background: transparent; }
+.page-tabs [role="tab"]:active:not(:disabled) { transform: scale(0.97); }
+.page-tabs [role="tab"]:disabled { opacity: .4; cursor: not-allowed; }
+.page-tabs [role="tab"]:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+
+/* Cards */
+.page-card {
+  box-sizing: border-box; min-width: 0; margin: 0 0 var(--space-12); padding: var(--space-20);
+  border: 0; border-radius: var(--page-card-radius); background: var(--page-card); color: var(--ink);
+}
+.page-card-head { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: var(--space-8) var(--space-12); min-height: 32px; margin-bottom: var(--space-12); }
+.page-card-title { display: inline-flex; align-items: center; gap: var(--space-8); min-width: 0; }
+.page-card-title svg { flex-shrink: 0; color: var(--ink); }
+.page-card-title h2 { margin: 0; color: var(--text-secondary); font-size: var(--text-14); line-height: 20px; font-weight: var(--font-regular); letter-spacing: 0; overflow-wrap: anywhere; }
+
+/* Status pills with a leading dot. */
+.page-status {
+  display: inline-flex; align-items: center; gap: 6px; flex-shrink: 0; width: fit-content; padding: 4px 10px;
+  border-radius: 999px; background: var(--background-1); color: var(--text-secondary); font-size: var(--text-12); line-height: 16px;
+  font-weight: var(--font-regular); white-space: nowrap;
+}
+.page-status::before { content: ""; flex: 0 0 6px; width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+.page-status.is-success { color: var(--ink); }
+.page-status.is-success::before { background: var(--secondary-green); }
+.page-status.is-running { background: var(--secondary-green); color: var(--black-100); }
+.page-status.is-failure { background: var(--danger-soft); color: var(--red); }
+.page-status.is-warning { background: var(--caution-soft); color: var(--caution); }
+
+@media (max-width: 600px) {
+  .workspace-page-header h1 { font-size: var(--text-32); }
+  .page-card { padding: var(--space-16); border-radius: var(--radius-20); }
+  .workspace-page-actions { width: 100%; justify-content: space-between; margin-left: 0; }
+  .page-tabs { max-width: calc(100% - 48px); overflow-x: auto; flex-wrap: nowrap; scrollbar-width: none; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .page-tabs [role="tab"], .page-tabs::before, .page-icon-button { transition: none !important; }
+}
+
+/* Skeleton loaders: neutral blocks in the shape of the content they stand in for.
+   They breathe with an opacity pulse (compositor-only, no repaint); reduced motion keeps them static. */
+.skeleton {
+  display: block; flex-shrink: 0; max-width: 100%; border-radius: var(--radius-8); background: rgb(0 0 0 / 7%);
+  animation: skeleton-pulse 1.4s ease-in-out infinite;
+}
+@keyframes skeleton-pulse { 50% { opacity: 0.45; } }
+.skeleton-line { display: flex; align-items: center; min-width: 0; }
+.skeleton-field { display: grid; gap: var(--space-8); min-width: 0; }
+.skeleton-person { display: flex; align-items: center; gap: var(--space-12); min-width: 220px; }
+.skeleton-person > span:not(.skeleton) { display: grid; flex: 1 1 auto; min-width: 0; }
+.skeleton-region { min-width: 0; }
+/* Skeletons only show up when loading is actually slow: a fast response swaps the data in before any bone is visible,
+   and a slightly slower one catches the bones still faint, so the swap never flashes a full skeleton for a few frames.
+   (Higher specificity than the `.workspace-page > *` reveal on purpose.) */
+.workspace-page .skeleton-region, .skeleton-region { animation: skeleton-delay 180ms ease-out 140ms backwards; }
+.skeleton:not(.skeleton-region *) { animation: skeleton-delay 180ms ease-out 140ms backwards, skeleton-pulse 1.4s ease-in-out 320ms infinite; }
+@keyframes skeleton-delay { from { opacity: 0; } }
+
+/* Results of the previous search, filter or page stay in place while the new query loads (useWorkspace* "previewing").
+   They dim only after a beat, so a fast response swaps in without any visible state; controls stay at full strength. */
+:is(.team-table, .team-empty, .integrations-table, .integrations-empty, .activity-row) { transition: opacity 160ms ease-out; }
+[data-previewing] :is(.team-table, .team-empty, .integrations-table, .integrations-empty, .activity-row) { opacity: .55; transition-delay: 150ms; }

@@ -11,6 +11,9 @@ export default defineConfig({
       "@contracts": fileURLToPath(
         new URL("../../contracts/v1/inference.ts", import.meta.url),
       ),
+      "@workspace-contracts": fileURLToPath(
+        new URL("../../contracts/v1/workspace.ts", import.meta.url),
+      ),
       "@src": path.resolve(fileURLToPath(new URL(".", import.meta.url)), "src"),
     },
   },

@@ -32,3 +32,11 @@ describe("isPredictionMessage", () => {
     expect(isPredictionMessage(response)).toBe(false);
   });
 });
+
+describe("isPredictionMessage adjustments", () => {
+  it("nhận adjusted hợp lệ và từ chối giá trị lạ", () => {
+    expect(isPredictionMessage({ ...validPrediction, adjusted: ["calibrated", "context"] })).toBe(true);
+    expect(isPredictionMessage({ ...validPrediction, adjusted: ["guess"] })).toBe(false);
+    expect(isPredictionMessage({ ...validPrediction, adjusted: "context" })).toBe(false);
+  });
+});

@@ -73,4 +73,18 @@ describe("inferenceReducer", () => {
     expect(cancelled.phase).toBe("ready");
     expect(cancelled.guidance).toBe("Đã hủy lượt thu.");
   });
+
+  it("hủy cả request đang chờ và bỏ prediction đến sau khi đổi ngữ cảnh", () => {
+    const processing = inferenceReducer(initialInferenceState, {
+      type: "request_started", sequence: 12,
+    });
+    const cancelled = inferenceReducer(processing, {
+      type: "capture_cancelled", message: "Camera đã tắt.",
+    });
+    expect(cancelled.pendingSequence).toBeNull();
+    expect(cancelled.prediction).toBeNull();
+    expect(inferenceReducer(cancelled, {
+      type: "prediction_received", prediction: prediction(12, "ok"),
+    })).toBe(cancelled);
+  });
 });

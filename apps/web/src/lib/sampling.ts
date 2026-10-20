@@ -8,6 +8,17 @@ export interface CaptureValidation {
   message: string | null;
 }
 
+export type CaptureSamplingStrategy = "uniform" | "motion-weighted";
+
+function roundHalfToEven(value: number): number {
+  const lower = Math.floor(value);
+  const fraction = value - lower;
+  if (Math.abs(fraction - 0.5) <= 1e-9) {
+    return lower % 2 === 0 ? lower : lower + 1;
+  }
+  return Math.round(value);
+}
+
 export function validateCaptureDuration(durationMs: number): CaptureValidation {
   if (!Number.isFinite(durationMs) || durationMs < MIN_CAPTURE_MS) {
     return {
@@ -33,7 +44,7 @@ export function uniformSampleIndices(length: number, count: number): number[] {
   }
   if (count === 1) return [Math.floor((length - 1) / 2)];
   return Array.from({ length: count }, (_, index) =>
-    Math.round((index * (length - 1)) / (count - 1)),
+    roundHalfToEven((index * (length - 1)) / (count - 1)),
   );
 }
 
@@ -110,4 +121,15 @@ export function motionWeightedSample<T>(
   return motionWeightedSampleIndices(items.length, count, motionScores).map(
     (index) => items[index],
   );
+}
+
+export function captureSampleIndices(
+  length: number,
+  count: number,
+  motionScores: readonly number[],
+  strategy: CaptureSamplingStrategy,
+): number[] {
+  return strategy === "uniform"
+    ? uniformSampleIndices(length, count)
+    : motionWeightedSampleIndices(length, count, motionScores);
 }

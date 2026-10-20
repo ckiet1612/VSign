@@ -145,6 +145,39 @@ mở khi hai tay che nhau. Sau cooldown, bộ thu phải thấy một nhịp ngh
 nhận từ tiếp theo. Chuỗi được lấy mẫu thích ứng theo chuyển động. Nếu `Không ký hiệu` đứng đầu,
 hoặc confidence/margin thấp, kết quả là `uncertain` và không thể thêm vào câu.
 
+### Chạy model ngay khi tay vừa dừng (chỉ áp dụng cho route server RGB)
+
+Khi tay đứng yên được 150 ms (`SPECULATE_AFTER_MS`), bộ tách lượt cắt ra một đoạn
+tạm, theo đúng cách nó sẽ cắt khi kết thúc lượt. Đoạn tạm được gửi lên server ngay.
+
+- Nếu tay cử động lại, đoạn tạm bị huỷ. Request đã gửi vẫn chạy cho xong, nhưng
+  kết quả bị bỏ qua.
+- Nếu lượt ký kết thúc trên chính khoảng nghỉ đó (420 ms đứng yên + 240 ms
+  post-roll), đoạn cuối cùng là đúng đoạn tạm. Kết quả đã nhận được giữ sẵn và
+  được thêm vào câu ngay, không gửi request mới.
+- Kết quả của đoạn tạm được giữ cho đến khi xác nhận. Trạng thái "đang xử lý",
+  việc thêm từ vào câu và các sự kiện câu chỉ chạy sau khi xác nhận.
+- Đoạn tạm không tính vào giới hạn 2 lượt chờ, để không tạm dừng thu giữa chừng
+  lượt đang ký.
+- Lượt bị cắt vì chạm mốc 3 s vẫn đi theo đường cũ.
+- Route landmark trong trình duyệt không dùng đoạn tạm.
+
+Từ lúc dừng tay đến lúc có kết quả, thời gian giảm từ khoảng 1,05 s xuống khoảng
+0,66 s, vì model chạy trong lúc chờ xác nhận. Khoảng nghỉ cần giữa hai từ không đổi.
+
+Clip giờ chỉ kèm khoảng 150 ms đứng yên ở cuối, thay vì khoảng 660 ms như trước.
+Đã thử nối thêm 510 ms khung đứng yên vào clip thật, mỗi nhóm 100 clip, và so quyết
+định của model trên clip ngắn (mới) với clip dài (cũ):
+
+| Nhóm | Quyết định giống nhau | Nhận đúng (mới / cũ) |
+|---|---|---|
+| Personal | 100/100 | 97 / 97 |
+| Đứng | 100/100 | 98 / 98 |
+| Ngồi (Như) | 88/100 | 85 / 79 |
+
+Ô "Chờ sau khi ký" trong bảng thời gian xử lý cho biết thời gian còn phải chờ
+sau khi lượt được xác nhận.
+
 ## Cổng chất lượng còn thiếu
 
 1. Thu thêm negative camera thật: chỉnh tóc/kính, quay người, đưa tay vào/rút

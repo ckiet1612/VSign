@@ -1,0 +1,56 @@
+.evaluations-page { min-width: 0; width: 100%; color: var(--ink); }
+.evaluations-detail-header { display: flex; gap: 16px; align-items: center; justify-content: space-between; margin-bottom: var(--space-16); }
+.evaluations-page h2 { font-size: var(--text-18); line-height: 1.3; font-weight: 500; margin: 0; overflow-wrap: anywhere; }
+.evaluations-page h3 { display: flex; align-items: center; gap: var(--space-8); margin: var(--space-24) 0 var(--space-12); color: var(--text-secondary); font-size: var(--text-14); line-height: 20px; font-weight: var(--font-regular); }
+.evaluations-page h3 svg { flex-shrink: 0; color: var(--ink); }
+.evaluations-muted { color: var(--text-secondary); font-size: var(--text-12); line-height: 1.6; }
+:where(.evaluations-page) button { display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 40px; padding: 8px 16px; border: 1px solid var(--line); border-radius: var(--radius-12); background: var(--background-1); color: var(--ink); font: inherit; font-size: var(--text-14); cursor: pointer; white-space: normal; }
+.evaluations-page button:disabled { opacity: .55; cursor: not-allowed; }
+.evaluations-page button:focus-visible, .evaluations-page select:focus-visible, .evaluations-table:focus-visible, .evaluations-evidence summary:focus-visible { outline: 2px solid var(--focus); outline-offset: 3px; }
+.evaluations-page button:not(:disabled, .evaluations-primary):hover { background: var(--soft); }
+.evaluations-page .evaluations-primary { background: var(--black-100); border-color: var(--black-100); color: var(--white-100); }
+.evaluations-page .evaluations-primary:not(:disabled):hover { background: var(--accent-hover); }
+.evaluations-create { display: flex; flex-wrap: wrap; align-items: end; gap: 16px; }
+.evaluations-create label { display: grid; gap: 8px; flex: 0 1 320px; min-width: 0; color: var(--text-secondary); font-size: var(--text-14); }
+.evaluations-create select { appearance:none; background-image:var(--select-chevron); background-repeat:no-repeat; background-position:right 14px center; background-size:16px; text-overflow:ellipsis; width: 100%; min-width: 0; height: 40px; padding: 0 40px 0 12px; background-color: var(--background-1); border: 1px solid var(--line); border-radius: var(--radius-12); color: var(--ink); font: inherit; text-overflow: ellipsis; }
+.evaluations-layout { display: grid; grid-template-columns: minmax(200px,260px) minmax(0,1fr); gap: var(--space-12); align-items: start; }
+.evaluations-runs { margin: 0; padding: var(--space-16); display: grid; gap: 2px; }
+.evaluations-runs .page-card-head { margin: 0 var(--space-4) var(--space-8); }
+.evaluations-page .evaluations-runs button { width: 100%; display: grid; justify-content: stretch; justify-items: start; text-align: left; border: 0; border-radius: var(--radius-16); background: transparent; padding: 12px; gap: 6px; overflow-wrap: anywhere; }
+.evaluations-page .evaluations-runs button strong { font-weight: 500; }
+.evaluations-page .evaluations-runs button[aria-current] { background: var(--background-1); }
+.evaluations-runs time { color: var(--muted); font-size: 11px; }
+.evaluations-pass { color: var(--success); }
+.evaluations-fail { color: var(--red); }
+.evaluations-detail { margin: 0; }
+.evaluations-detail-header .evaluations-status { flex-shrink: 0; }
+.evaluations-facts { margin: 0 0 20px; display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 2px; font-size: var(--text-14); }
+.evaluations-facts > div { min-width: 0; padding: 12px 16px; border-radius: var(--radius-12); background: var(--background-1); }
+.evaluations-facts dt, .evaluations-evidence dt { color: var(--muted); font-size: var(--text-12); margin-bottom: 4px; }
+.evaluations-facts dd, .evaluations-evidence dd { margin: 0; font-weight: 500; overflow-wrap: anywhere; }
+.evaluations-warning { color: var(--caution); background: var(--caution-soft); padding: 12px 16px; border-radius: var(--radius-12); font-size: var(--text-14); line-height: 1.6; overflow-wrap: anywhere; }
+.evaluations-empty { display: grid; justify-items: center; gap: var(--space-12); padding: var(--space-48) var(--space-24); color: var(--muted); text-align: center; }
+.evaluations-empty svg { width: 48px; height: 48px; padding: 12px; border-radius: var(--radius-16); background: var(--secondary-green); color: var(--black-100); }
+.evaluations-table { max-width: 100%; overflow-x: auto; }
+.evaluations-table table { border-collapse: collapse; width: 100%; font-size: var(--text-14); }
+.evaluations-table th, .evaluations-table td { border-bottom: 1px solid var(--line); padding: 12px 10px; text-align: right; vertical-align: top; }
+.evaluations-table th:first-child { text-align: left; max-width: 220px; padding-left: 0; overflow-wrap: anywhere; }
+.evaluations-table thead th { color: var(--muted); font-size: var(--text-12); font-weight: var(--font-regular); }
+.evaluations-table tbody th { font-weight: 500; }
+.evaluations-table tbody tr:last-child > * { border-bottom: 0; }
+.evaluations-gate ul { list-style: none; padding: 0; margin: 0; display: grid; gap: 2px; }
+.evaluations-gate li { display: grid; grid-template-columns: 82px minmax(0,1fr); gap: 12px; padding: 12px 16px; border-radius: var(--radius-12); background: var(--background-1); font-size: var(--text-14); }
+.evaluations-gate li > span { display: flex; align-items: flex-start; gap: 5px; font-weight: 500; }
+.evaluations-gate li svg { flex-shrink: 0; margin-top: 2px; }
+.evaluations-gate li strong { font-weight: 500; }
+.evaluations-gate li p { color: var(--text-secondary); line-height: 1.6; margin: 4px 0 0; font-size: var(--text-12); }
+.evaluations-detail progress { width: 100%; height: 8px; accent-color: var(--black-100); margin-bottom: 20px; }
+.evaluations-evidence { margin-top: 24px; font-size: var(--text-12); }
+.evaluations-evidence summary { width: fit-content; padding: 4px 10px; border-radius: 999px; background: var(--background-1); color: var(--text-secondary); cursor: pointer; }
+.evaluations-evidence dl { margin: var(--space-12) 0 0; }
+.evaluations-evidence dd { margin-bottom: 12px; font-weight: var(--font-regular); }
+@media (max-width: 1000px) { .evaluations-layout { grid-template-columns: minmax(170px,210px) minmax(0,1fr); } }
+@media (max-width: 700px) { .evaluations-create label { flex: 1 1 100%; } .evaluations-create button { width: 100%; } .evaluations-layout { grid-template-columns: minmax(0,1fr); } .evaluations-runs { max-height: 300px; overflow-y: auto; } .evaluations-facts { grid-template-columns: minmax(0,1fr); } .evaluations-table th, .evaluations-table td { padding: 10px 7px; font-size: 12px; } .evaluations-gate li { grid-template-columns: 75px minmax(0,1fr); gap: 8px; } }
+/* Skeleton: run entries share the run button box; fields keep the form's flex basis. */
+.evaluations-create .skeleton-eval-field { flex: 0 1 320px; }
+.skeleton-eval-run { display: grid; justify-items: start; gap: 6px; padding: 12px; }

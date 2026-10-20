@@ -11,8 +11,8 @@ describe("Space hold shortcut", () => {
     ).toBe(false);
   });
 
-  it("không chiếm Space trong control nhập liệu", () => {
-    const input = document.createElement("input");
+  it.each(["input", "textarea", "select", "button", "a", "summary"])("không chiếm Space trong control %s", (tag) => {
+    const input = document.createElement(tag);
     expect(
       shouldStartSpaceCapture({ code: "Space", repeat: false, target: input }),
     ).toBe(false);

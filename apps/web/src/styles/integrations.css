@@ -1,0 +1,55 @@
+.integrations-page { width:100%; margin-inline:0; min-width:0; color:var(--ink); }
+.integrations-page * { box-sizing:border-box; min-width:0; letter-spacing:0; }
+.integrations-toolbar,.integrations-form-heading,.integrations-webhook-title { display:flex; align-items:center; justify-content:space-between; gap:16px; }
+.integrations-page h2 { font-size:var(--text-16); line-height:1.4; font-weight:500; margin:0; overflow-wrap:anywhere; }
+:where(.integrations-page) button { display:inline-flex; align-items:center; justify-content:center; gap:6px; min-height:40px; padding:8px 14px; border:1px solid var(--line); background:var(--background-1); border-radius:var(--radius-12); color:inherit; font:inherit; font-size:var(--text-14); cursor:pointer; }
+.integrations-page button svg { flex-shrink:0; }
+:where(.integrations-page) button[aria-label] { min-width:40px; }
+.integrations-page button:hover:not(:disabled, .integrations-primary, [role=tab]) { background:var(--soft); }
+.integrations-page button:disabled { opacity:.5; cursor:not-allowed; }
+.integrations-page button:focus-visible,.integrations-page input:focus-visible,.integrations-page select:focus-visible,.integrations-table:focus-visible { outline:2px solid var(--focus); outline-offset:3px; }
+.integrations-page .integrations-primary { background:var(--black-100); color:var(--white-100); border-color:transparent; }
+.integrations-page .integrations-primary:hover:not(:disabled) { background:var(--accent-hover); }
+.integrations-toolbar { margin-block:0 12px; flex-wrap:wrap; }
+.integrations-muted { color:var(--text-secondary); font-size:var(--text-12); line-height:1.6; margin:8px 0; }
+.integrations-warning { color:var(--red); background:var(--danger-soft); padding:12px 16px; border-radius:var(--radius-12); font-size:var(--text-14); overflow-wrap:anywhere; }
+.integrations-empty { padding:36px 0; color:var(--muted); text-align:center; }
+.integrations-empty.page-card { display:grid; justify-items:center; gap:12px; padding:var(--space-40) var(--space-24); }
+.integrations-empty svg { width:48px; height:48px; padding:12px; border-radius:var(--radius-16); background:var(--secondary-green); color:var(--black-100); }
+.integrations-form-heading { margin-bottom:4px; }
+.integrations-fields { display:grid; grid-template-columns:minmax(160px,2fr) minmax(140px,1fr) minmax(120px,1fr); gap:16px; margin-block:16px; }
+.integrations-page label { display:flex; flex-direction:column; gap:8px; color:var(--text-secondary); font-size:var(--text-14); }
+.integrations-page input:not([type=checkbox]),.integrations-page select { width:100%; min-height:40px; padding:8px 12px; border:1px solid var(--line); border-radius:var(--radius-12); background-color:var(--background-1); color:var(--ink); font:inherit; }
+.integrations-page select { appearance:none; padding-right:40px; background-image:var(--select-chevron); background-repeat:no-repeat; background-position:right 14px center; background-size:16px; text-overflow:ellipsis; }
+.integrations-toolbar label { flex:0 1 240px; }
+.integrations-page fieldset { margin:12px 0 18px; padding:0; border:0; }
+.integrations-page legend { font-size:var(--text-14); margin-bottom:12px; color:var(--text-secondary); }
+.integrations-checkboxes { display:flex; flex-wrap:wrap; gap:8px; }
+.integrations-checkboxes label { flex-direction:row; align-items:center; min-height:36px; padding:6px 12px; border-radius:999px; background:var(--background-1); color:var(--ink); }
+.integrations-webhook-title label { flex-direction:row; align-items:center; min-height:28px; }
+.integrations-page input[type=checkbox] { width:17px; height:17px; accent-color:var(--ink); }
+.integrations-url-field { grid-column:span 2; }
+.integrations-secret code { display:block; overflow-wrap:anywhere; user-select:all; margin-block:12px; padding:12px 16px; border-radius:var(--radius-12); background:var(--background-1); font-size:var(--text-14); }
+.integrations-confirm,.integrations-retry { display:flex; flex-wrap:wrap; align-items:center; gap:12px; }
+.integrations-retry { margin-block:0 12px; padding:12px 16px; border-radius:var(--radius-16); background:var(--caution-soft); color:var(--caution); }
+.integrations-retry > span { flex:1 1 200px; }
+.integrations-confirm h2 { flex:1 1 100%; }
+.integrations-table { position:relative; width:100%; max-width:100%; overflow-x:auto; }
+.integrations-table.page-card { padding-block:var(--space-8); }
+.integrations-table table { width:100%; border-collapse:collapse; font-size:var(--text-14); text-align:left; }
+.integrations-table th,.integrations-table td { padding:13px 12px; vertical-align:middle; border-bottom:1px solid var(--line); min-width:105px; max-width:280px; overflow-wrap:anywhere; }
+.integrations-table tbody tr:last-child > * { border-bottom:0; }
+.integrations-table th:first-child,.integrations-table td:first-child { padding-left:0; }
+.integrations-table thead th { color:var(--muted); font-size:var(--text-12); font-weight:var(--font-regular); white-space:nowrap; }
+.integrations-table tbody th { font-weight:500; }
+.integrations-table small { display:block; color:var(--muted); margin-top:5px; font-size:12px; font-weight:400; }
+.integrations-line { display:block; margin-bottom:3px; }
+.integrations-webhooks { display:grid; gap:12px; margin-block:12px; grid-template-columns:repeat(auto-fit,minmax(min(100%,340px),1fr)); }
+.integrations-webhooks .integrations-webhook { margin:0; }
+.integrations-webhook-title { align-items:flex-start; }
+.integrations-webhook-title label { flex-shrink:0; color:var(--text-secondary); }
+.integrations-webhook-url { font-size:var(--text-14); overflow-wrap:anywhere; margin-block:12px; padding:10px 14px; border-radius:var(--radius-12); background:var(--background-1); }
+.integrations-subscriptions { display:flex; flex-wrap:wrap; gap:6px; font-size:12px; color:var(--text-secondary); margin-bottom:18px; }
+.integrations-subscriptions span { padding:4px 10px; border-radius:999px; background:var(--background-1); }
+.integrations-actions { display:flex; gap:8px; flex-wrap:wrap; }
+@media(max-width:700px) { .integrations-page { padding:20px 16px; } .integrations-fields { grid-template-columns:1fr; } .integrations-url-field { grid-column:auto; } .integrations-toolbar>.integrations-muted { flex-basis:100%; } }

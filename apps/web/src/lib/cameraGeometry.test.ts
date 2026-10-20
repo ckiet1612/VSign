@@ -1,5 +1,7 @@
 import { describe, expect, it } from "vitest";
-import { containedVideoRect, mirroredDisplayPoint } from "./cameraGeometry";
+import * as cameraGeometry from "./cameraGeometry";
+
+const { containedVideoRect, mirroredDisplayPoint } = cameraGeometry;
 
 describe("camera geometry", () => {
   it("giữ toàn bộ khung 16:9 trong vùng xem cao hơn", () => {
@@ -24,6 +26,28 @@ describe("camera geometry", () => {
     expect(mirroredDisplayPoint({ x: -0.2, y: 1.4 }, rect)).toEqual({
       x: 100,
       y: 50,
+    });
+  });
+
+  it("tính đúng center-square hiển thị cho camera dọc", () => {
+    const centeredSquareRect = (
+      cameraGeometry as typeof cameraGeometry & {
+        centeredSquareRect?: (rect: {
+          x: number;
+          y: number;
+          width: number;
+          height: number;
+        }) => { x: number; y: number; width: number; height: number };
+      }
+    ).centeredSquareRect;
+    const videoRect = containedVideoRect(960, 540, 720, 1280);
+
+    expect(centeredSquareRect).toBeTypeOf("function");
+    expect(centeredSquareRect!(videoRect)).toEqual({
+      x: 328.125,
+      y: 118.125,
+      width: 303.75,
+      height: 303.75,
     });
   });
 });

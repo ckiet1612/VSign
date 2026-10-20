@@ -1,5 +1,12 @@
 import "@testing-library/jest-dom/vitest";
 import { cleanup } from "@testing-library/react";
 import { afterEach } from "vitest";
+import { clearViewCache } from "../lib/viewCache";
 
-afterEach(() => cleanup());
+afterEach(() => {
+  cleanup();
+  clearViewCache();
+  // A remembered workspace capture default would otherwise leak into the next test.
+  Object.keys(window.localStorage).filter(key => key.startsWith("vsign.captureDefault:"))
+    .forEach(key => window.localStorage.removeItem(key));
+});

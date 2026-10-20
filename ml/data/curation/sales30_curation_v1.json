@@ -1,0 +1,18 @@
+{
+  "version": "sales30-curation-v1",
+  "decided_at": "2026-10-19",
+  "decided_by": "project owner",
+  "rules": [
+    {
+      "label": "Mua",
+      "drop_sources": ["standing", "seated"],
+      "reason": "Chỉ dùng biến thể Mua của bộ Personal; Mua của nguồn đứng/ngồi là cách ký khác."
+    },
+    {
+      "label": "Nồi cơm điện",
+      "drop_sources": ["seated"],
+      "signer": "Nhu",
+      "reason": "Như ký sai Nồi cơm điện; không dùng làm validation."
+    }
+  ]
+}

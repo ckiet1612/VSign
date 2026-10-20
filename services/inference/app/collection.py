@@ -16,6 +16,17 @@ from app.backends.base import DecodedFrame
 from app.models import CollectionHand, CollectionHandCounts
 
 
+PERSONAL_COLLECTION_TARGET = 100
+
+
+class CollectionConflict(ValueError):
+    pass
+
+
+def collection_root(root: Path, batch: str | None) -> Path:
+    return root / "batches" / batch if batch else root
+
+
 def label_slug(label: str) -> str:
     normalized = unicodedata.normalize("NFD", label).replace("đ", "d").replace("Đ", "D")
     ascii_label = "".join(character for character in normalized if not unicodedata.combining(character))
@@ -25,13 +36,17 @@ def label_slug(label: str) -> str:
     return slug
 
 
-def sample_counts(root: Path, labels: Sequence[str]) -> Dict[str, CollectionHandCounts]:
+def sample_counts(
+    root: Path, labels: Sequence[str], *, committed_only: bool = False,
+) -> Dict[str, CollectionHandCounts]:
     counts: Dict[str, CollectionHandCounts] = {}
     for label in labels:
         label_dir = root / label_slug(label)
         counts[label] = CollectionHandCounts(
-            right=sum(1 for _ in (label_dir / "right").glob("*.mp4")),
-            left=sum(1 for _ in (label_dir / "left").glob("*.mp4")),
+            right=sum(1 for video in (label_dir / "right").glob("*.mp4")
+                      if not committed_only or video.with_suffix(".json").is_file()),
+            left=sum(1 for video in (label_dir / "left").glob("*.mp4")
+                     if not committed_only or video.with_suffix(".json").is_file()),
         )
     return counts
 
@@ -73,14 +88,35 @@ def save_collection_sample(
     lighting: str,
     negative_action: str | None,
     model_version: str,
+    sample_key: UUID | None = None,
+    request_fingerprint: str | None = None,
+    target_per_label: int | None = None,
 ) -> tuple[str, str, int]:
     hand_value = hand.value
     destination = root / label_slug(expected_label) / hand_value
     destination.mkdir(parents=True, exist_ok=True)
     timestamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
-    sample_id = f"{timestamp}-{uuid4().hex[:10]}"
+    sample_id = str(sample_key) if sample_key else f"{timestamp}-{uuid4().hex[:10]}"
     video_path = destination / f"{sample_id}.mp4"
     metadata_path = destination / f"{sample_id}.json"
+    if sample_key:
+        # A reply may be lost after both files were saved; reuse the capture ID.
+        existing = list(root.glob(f"*/*/{sample_id}.json"))
+        if existing:
+            metadata = json.loads(existing[0].read_text(encoding="utf-8"))
+            if metadata.get("request_fingerprint") != request_fingerprint:
+                raise CollectionConflict("Mã lượt thu đã được dùng cho một mẫu khác")
+            existing_video = existing[0].with_suffix(".mp4")
+            if not existing_video.is_file():
+                raise CollectionConflict("Mẫu đã lưu thiếu video; cần kiểm tra dữ liệu")
+            return sample_id, existing_video.relative_to(root).as_posix(), sum(
+                1 for video in existing_video.parent.glob("*.mp4")
+                if video.with_suffix(".json").is_file()
+            )
+    if target_per_label is not None:
+        counts = sample_counts(root, [expected_label], committed_only=True)[expected_label]
+        if counts.right + counts.left >= target_per_label:
+            raise CollectionConflict("Từ này đã đủ 100 mẫu trong đợt thu mới")
     temporary_video = destination / f".{sample_id}.video.tmp"
     temporary_metadata = destination / f".{sample_id}.metadata.tmp"
     try:
@@ -105,6 +141,8 @@ def save_collection_sample(
             "model_version": model_version,
             "saved_at": datetime.now(timezone.utc).isoformat(),
         }
+        if sample_key:
+            metadata["request_fingerprint"] = request_fingerprint
         temporary_metadata.write_text(
             json.dumps(metadata, ensure_ascii=False, indent=2) + "\n",
             encoding="utf-8",
@@ -118,5 +156,6 @@ def save_collection_sample(
         metadata_path.unlink(missing_ok=True)
         raise
     relative_path = video_path.relative_to(root).as_posix()
-    count = sum(1 for _ in destination.glob("*.mp4"))
+    count = sum(1 for video in destination.glob("*.mp4")
+                if not sample_key or video.with_suffix(".json").is_file())
     return sample_id, relative_path, count

@@ -1,0 +1,43 @@
+VSign - 30 VIDEO MẪU SALES30
+
+Mở video theo thứ tự, xem hết động tác rồi thực hiện trước camera.
+Bắt chước cả tư thế bắt đầu, hướng lòng bàn tay, chuyển động và tư thế kết thúc.
+Mỗi từ có thể có biến thể theo vùng và người ký.
+
+01. Chào            01-chao.mp4
+02. Tôi             02-toi.mp4
+03. Muốn            03-muon.mp4
+04. Mua             04-mua.mp4
+05. Cho             05-cho.mp4
+06. Xem             06-xem.mp4
+07. Thử             07-thu.mp4
+08. Siêu thị        08-sieu-thi.mp4
+09. Có              09-co.mp4
+10. Cần             10-can.mp4
+11. Điện thoại      11-dien-thoai.mp4
+12. Laptop          12-laptop.mp4
+13. Tivi            13-tivi.mp4
+14. Tủ lạnh         14-tu-lanh.mp4
+15. Máy giặt        15-may-giat.mp4
+16. Nồi cơm điện    16-noi-com-dien.mp4
+17. Gạo             17-gao.mp4
+18. Sữa             18-sua.mp4
+19. Cà phê          19-ca-phe.mp4
+20. Mới             20-moi.mp4
+21. Cũ              21-cu.mp4
+22. Rẻ              22-re.mp4
+23. Đắt             23-dat.mp4
+24. Sử dụng         24-su-dung.mp4
+25. Mua bán         25-mua-ban.mp4
+26. Ngân hàng       26-ngan-hang.mp4
+27. Cung cấp        27-cung-cap.mp4
+28. Thay đổi        28-thay-doi.mp4
+29. Từ chối         29-tu-choi.mp4
+30. Cảm ơn          30-cam-on.mp4
+
+Nguồn: nguyenanfms/vsl-vietnamese-sign-language-v2 (Kaggle)
+https://www.kaggle.com/datasets/nguyenanfms/vsl-vietnamese-sign-language-v2
+Phiên bản dữ liệu: 8
+Giấy phép nguồn: CC BY 4.0
+Cách chọn: 1 clip train cho mỗi từ, ưu tiên thời lượng gần trung vị của lớp.
+Định dạng: H.264 / yuv420p / MP4.

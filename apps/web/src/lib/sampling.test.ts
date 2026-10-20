@@ -1,11 +1,14 @@
 import { describe, expect, it } from "vitest";
-import {
+import * as sampling from "./sampling";
+
+const {
   MAX_CAPTURE_MS,
   MIN_CAPTURE_MS,
   motionWeightedSampleIndices,
   uniformSample,
+  uniformSampleIndices,
   validateCaptureDuration,
-} from "./sampling";
+} = sampling;
 
 describe("uniformSample", () => {
   it("luôn trả đúng 16 frame và giữ hai đầu clip", () => {
@@ -19,6 +22,33 @@ describe("uniformSample", () => {
 
   it("lặp đều frame khi nguồn ít hơn 16", () => {
     expect(uniformSample(["a", "b", "c"], 16)).toHaveLength(16);
+  });
+
+  it("khớp np.rint của pipeline train tại điểm chính giữa .5", () => {
+    expect(uniformSampleIndices(6, 3)).toEqual([0, 2, 5]);
+  });
+});
+
+describe("captureSampleIndices", () => {
+  it("bỏ qua motion peak khi pipeline RGB yêu cầu lấy mẫu đều", () => {
+    const captureSampleIndices = (
+      sampling as typeof sampling & {
+        captureSampleIndices?: (
+          length: number,
+          count: number,
+          motionScores: readonly number[],
+          strategy: "uniform" | "motion-weighted",
+        ) => number[];
+      }
+    ).captureSampleIndices;
+    const motion = new Array<number>(20).fill(0.01);
+    motion[7] = 1;
+
+    expect(captureSampleIndices).toBeTypeOf("function");
+    expect(captureSampleIndices!(20, 5, motion, "uniform")).toEqual([
+      0, 5, 10, 14, 19,
+    ]);
+    expect(captureSampleIndices!(20, 5, motion, "motion-weighted")).toContain(7);
   });
 });
 

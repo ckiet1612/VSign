@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from enum import Enum
-from typing import Dict, List, Literal, Optional
+from typing import Annotated, Dict, List, Literal, Optional
 from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
@@ -11,6 +11,10 @@ FRAME_COUNT = 16
 FRAME_SIZE = 224
 PROTOCOL_VERSION = "1.0"
 SUPPORTED_MIME_TYPES = ("image/jpeg", "image/webp")
+# How clients must frame RGB clips: the legacy center square, or the signing span
+# cropped around the signer (see ml/body_framing.py).
+InputFraming = Literal["center-square", "trim-bodycrop-v1"]
+INPUT_FRAMINGS = ("center-square", "trim-bodycrop-v1")
 
 
 class PredictionStatus(str, Enum):
@@ -30,6 +34,10 @@ class FramesMessage(BaseModel):
     sequence: int = Field(strict=True, ge=0)
     captured_at: int = Field(strict=True, ge=0)
     frames: List[str] = Field(min_length=FRAME_COUNT, max_length=FRAME_COUNT)
+    # Words already in the sentence; the runtime may use them to rank this sign.
+    context_words: List[Annotated[str, Field(min_length=1, max_length=80)]] = Field(
+        default_factory=list, max_length=8
+    )
 
 
 class PredictionCandidate(BaseModel):
@@ -49,6 +57,8 @@ class PredictionMessage(BaseModel):
     confidence: Optional[float] = Field(default=None, ge=0, le=1)
     top_k: List[PredictionCandidate] = Field(default_factory=list, max_length=3)
     model_version: str = Field(min_length=1)
+    # Decision steps that changed the plain fixed-threshold result.
+    adjusted: List[Literal["calibrated", "context"]] = Field(default_factory=list, max_length=2)
 
     @model_validator(mode="after")
     def validate_success_shape(self) -> "PredictionMessage":
@@ -81,6 +91,24 @@ class MetadataResponse(BaseModel):
     mock: bool
     collection_enabled: bool = False
     collection_target_per_hand: int = 50
+    sentence_ai_enabled: bool = False
+    input_framing: InputFraming = "center-square"
+
+
+class SentenceComposeRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    words: List[Annotated[str, Field(min_length=1, max_length=80)]] = Field(
+        min_length=1,
+        max_length=30,
+    )
+
+
+class SentenceComposeResponse(BaseModel):
+    sentence: str = Field(min_length=1, max_length=300)
+    provider: Literal["openai", "local"]
+    model: Optional[str] = None
+    warnings: List[str] = Field(default_factory=list)
 
 
 class CollectionHand(str, Enum):
@@ -92,6 +120,8 @@ class CollectionSampleRequest(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     session_id: UUID
+    batch: Optional[Literal["personal-100"]] = None
+    sample_key: Optional[UUID] = None
     captured_at: int = Field(strict=True, ge=0)
     duration_ms: int = Field(strict=True, ge=650, le=3150)
     expected_label: str = Field(min_length=1, max_length=80)
@@ -116,6 +146,12 @@ class CollectionSampleRequest(BaseModel):
         ]
     ] = None
 
+    @model_validator(mode="after")
+    def require_batch_capture_key(self) -> "CollectionSampleRequest":
+        if self.batch is not None and self.sample_key is None:
+            raise ValueError("Đợt thu mới cần mã lượt thu để tránh lưu trùng")
+        return self
+
 
 class CollectionHandCounts(BaseModel):
     right: int = Field(ge=0)
@@ -126,6 +162,8 @@ class CollectionSummaryResponse(BaseModel):
     enabled: bool
     target_per_hand: int = Field(ge=1)
     counts: Dict[str, CollectionHandCounts]
+    batch: Optional[Literal["personal-100"]] = None
+    target_per_label: Optional[int] = Field(default=None, ge=1)
 
 
 class CollectionSampleResponse(BaseModel):
@@ -135,3 +173,4 @@ class CollectionSampleResponse(BaseModel):
     hand: CollectionHand
     relative_video_path: str = Field(min_length=1)
     label_hand_count: int = Field(ge=1)
+    label_count: Optional[int] = Field(default=None, ge=1)

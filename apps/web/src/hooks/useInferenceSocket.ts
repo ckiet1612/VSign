@@ -17,11 +17,13 @@ export function useInferenceSocket(
   onPrediction: (message: PredictionMessage) => void,
 ): InferenceSocket {
   const [status, setStatus] = useState<ConnectionStatus>("connecting");
+  const [statusUrl, setStatusUrl] = useState(url);
   const socketRef = useRef<WebSocket | null>(null);
   const predictionRef = useRef(onPrediction);
   predictionRef.current = onPrediction;
 
   useEffect(() => {
+    setStatusUrl(url);
     if (!url) {
       setStatus("disconnected");
       return;
@@ -42,6 +44,7 @@ export function useInferenceSocket(
         if (!disposed) setStatus("connected");
       };
       socket.onmessage = (event: MessageEvent<string>) => {
+        if (disposed || socketRef.current !== socket) return;
         try {
           const parsed: unknown = JSON.parse(event.data);
           if (isPredictionMessage(parsed)) predictionRef.current(parsed);
@@ -79,5 +82,5 @@ export function useInferenceSocket(
     socket.send(JSON.stringify(message));
   }, []);
 
-  return { status, sendFrames };
+  return { status: statusUrl === url ? status : "connecting", sendFrames };
 }

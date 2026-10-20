@@ -1,0 +1,49 @@
+.activity-page { min-width: 0; letter-spacing: 0; }
+.activity-filters { display: flex; flex-wrap: wrap; align-items: end; gap: var(--space-12) var(--space-16); }
+.activity-filters label { flex: 0 1 220px; min-width: 0; display: grid; gap: var(--space-8); color: var(--text-secondary); font-size: var(--text-14); }
+.activity-filters input, .activity-filters select {
+  box-sizing: border-box;
+  width: 100%; min-width: 0; max-width: 100%; height: 40px;
+  padding: 0 var(--space-12);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-12);
+  background-color: var(--background-1); color: var(--ink);
+  font-size: var(--text-14); letter-spacing: 0;
+}
+.activity-filters select { appearance: none; padding-right: 40px; background-image: var(--select-chevron); background-repeat: no-repeat; background-position: right 14px center; background-size: 16px; text-overflow: ellipsis; }
+.activity-filters :is(input, select):focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+.activity-status { margin: 0; padding: var(--space-20) 0; color: var(--text-secondary); text-align: center; overflow-wrap: anywhere; }
+.activity-error { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-12); margin-bottom: var(--space-8); padding: var(--space-12) var(--space-16); border-radius: var(--radius-16); background: var(--danger-soft); color: var(--red); }
+.activity-error p { flex: 1 1 220px; min-width: 0; margin: 0; overflow-wrap: anywhere; }
+.activity-error button, .activity-pagination button { min-height: 40px; border: 0; border-radius: var(--radius-12); cursor: pointer; }
+.activity-log { padding-block: var(--space-8); }
+.activity-row { min-width: 0; padding: var(--space-16) 0; border-bottom: 1px solid var(--line); overflow-wrap: anywhere; }
+.activity-row:last-of-type { border-bottom: 0; }
+.activity-row-heading { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: var(--space-8) var(--space-16); }
+.activity-row-heading > div { flex: 1 1 180px; min-width: 0; }
+.activity-row h3 { margin: 0; font-size: var(--text-14); line-height: 20px; font-weight: 500; letter-spacing: 0; }
+.activity-row code { font-size: var(--text-12); color: var(--text-secondary); }
+.activity-row-context { display: flex; flex-wrap: wrap; gap: var(--space-4) var(--space-16); margin-top: var(--space-4); color: var(--muted); font-size: var(--text-12); }
+.activity-row summary { width: fit-content; max-width: 100%; margin-top: var(--space-8); padding: 4px 10px; border-radius: 999px; background: var(--background-1); color: var(--text-secondary); font-size: var(--text-12); cursor: pointer; }
+.activity-details { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--space-12); margin: var(--space-12) 0 0; padding: var(--space-16); border-radius: var(--radius-16); background: var(--background-1); }
+.activity-details > div { min-width: 0; }
+.activity-details dt { color: var(--muted); font-size: var(--text-12); }
+.activity-details dd { margin: var(--space-4) 0 0; font-size: var(--text-14); white-space: pre-wrap; overflow-wrap: anywhere; }
+.activity-pagination { padding: var(--space-16) 0 var(--space-8); text-align: center; }
+.activity-sources dl { display: grid; gap: 2px; margin: 0; }
+.activity-sources dl > div { display: grid; grid-template-columns: minmax(100px, 160px) minmax(0, 1fr); gap: var(--space-12); padding: var(--space-12) var(--space-16); border-radius: var(--radius-12); background: var(--background-1); }
+.activity-sources dt { font-size: var(--text-14); font-weight: 500; }
+.activity-sources dd { margin: 0; color: var(--text-secondary); font-size: var(--text-14); overflow-wrap: anywhere; }
+.activity-page .login-gate { min-height: auto; padding: var(--space-20) 0; display: block; background: none; }
+.activity-page .login-surface { max-width: 100%; }
+@media (max-width: 600px) {
+  .activity-page { padding: var(--space-20) var(--space-16) var(--space-28); }
+  .activity-filters label { flex: 1 1 100%; }
+  .activity-filters input { font-size: 16px; }
+  .activity-details { grid-template-columns: minmax(0, 1fr); }
+  .activity-sources dl > div { grid-template-columns: minmax(0, 1fr); gap: var(--space-4); }
+  .activity-page .login-surface { width: 100%; padding: var(--space-16); }
+}
+/* Skeleton rows: same row box as AuditRow; the details pill keeps its offset. */
+.activity-row .skeleton-summary { margin-top: var(--space-8); }
+.activity-filters .skeleton-filter { flex: 0 1 220px; }

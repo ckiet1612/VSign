@@ -14,6 +14,7 @@ from app.backends.base import BackendPrediction, DecodedFrame
 from app.backends.mock import MockInferenceBackend
 from app.config import Settings
 from app.main import create_app
+from app.sentence import SentenceComposition
 
 
 def image_data_url(image_format: str = "WEBP") -> str:
@@ -41,6 +42,19 @@ def receive_prediction(client: TestClient, payload: dict) -> dict:
         return socket.receive_json()
 
 
+def test_metadata_reports_body_framing_for_models_trained_on_it(monkeypatch) -> None:
+    monkeypatch.setenv("INPUT_FRAMING", "trim-bodycrop-v1")
+    with TestClient(create_app(Settings.from_env())) as client:
+        assert client.get("/metadata").json()["input_framing"] == "trim-bodycrop-v1"
+    monkeypatch.setenv("INPUT_FRAMING", "stretch")
+    try:
+        Settings.from_env()
+    except RuntimeError as error:
+        assert "INPUT_FRAMING" in str(error)
+    else:
+        raise AssertionError("invalid INPUT_FRAMING accepted")
+
+
 def test_health_and_metadata() -> None:
     with TestClient(create_app(Settings())) as client:
         health = client.get("/health")
@@ -54,6 +68,7 @@ def test_health_and_metadata() -> None:
         "protocol_version": "1.0",
     }
     body = metadata.json()
+    assert body["input_framing"] == "center-square"
     assert body["mock"] is True
     assert body["candidate_labels_unverified"] is True
     assert body["frame_count"] == 16
@@ -92,6 +107,85 @@ def test_health_and_metadata() -> None:
         "Cảm ơn",
     ]
     assert len(set(body["collection_labels"])) == 30
+    assert body["sentence_ai_enabled"] is False
+
+
+class FixedSentenceComposer:
+    enabled = True
+
+    def compose(self, words: Sequence[str]) -> SentenceComposition:
+        assert list(words) == ["Tôi", "Muốn", "Mua", "Điện thoại"]
+        return SentenceComposition(
+            sentence="Tôi muốn mua điện thoại.",
+            provider="openai",
+            model="test-model",
+        )
+
+
+def test_compose_sentence_uses_configured_composer() -> None:
+    app = create_app(Settings(), sentence_composer=FixedSentenceComposer())
+
+    with TestClient(app) as client:
+        response = client.post(
+            "/sentence/compose",
+            json={"words": ["Tôi", "Muốn", "Mua", "Điện thoại"]},
+        )
+
+    assert response.status_code == 200
+    assert response.json() == {
+        "sentence": "Tôi muốn mua điện thoại.",
+        "provider": "openai",
+        "model": "test-model",
+        "warnings": [],
+    }
+
+
+def test_expanded_composition_returns_review_warnings_and_legacy_is_reversible() -> None:
+    words = ["Tôi", "Laptop", "Mới", "Muốn"]
+    with TestClient(create_app(Settings())) as client:
+        assert client.post("/sentence/compose", json={"words": words}).json() == {
+            "sentence": "Tôi muốn laptop mới.", "provider": "local", "model": None, "warnings": [],
+        }
+        unclear = client.post("/sentence/compose", json={"words": ["Laptop", "Mới", "Cũ"]})
+        assert unclear.status_code == 200
+        assert unclear.json()["sentence"] == "Laptop mới cũ."
+        assert unclear.json()["warnings"]
+    with TestClient(create_app(Settings(sentence_rules="legacy"))) as client:
+        assert client.post("/sentence/compose", json={"words": words}).json() == {
+            "sentence": "Tôi laptop mới muốn.", "provider": "local", "model": None, "warnings": [],
+        }
+
+
+def test_composition_does_not_silently_truncate_a_long_draft() -> None:
+    with TestClient(create_app(Settings())) as client:
+        response = client.post("/sentence/compose", json={"words": ["Nồi cơm điện"] * 30})
+        assert response.status_code == 422
+
+
+def test_compose_sentence_falls_back_locally_without_api_configuration() -> None:
+    with TestClient(create_app(Settings())) as client:
+        response = client.post(
+            "/sentence/compose",
+            json={"words": ["Tôi", "Muốn", "Mua", "Điện thoại"]},
+        )
+
+    assert response.status_code == 200
+    assert response.json() == {
+        "sentence": "Tôi muốn mua điện thoại.",
+        "provider": "local",
+        "model": None,
+        "warnings": [],
+    }
+
+
+def test_compose_sentence_rejects_words_outside_current_model() -> None:
+    with TestClient(create_app(Settings())) as client:
+        response = client.post(
+            "/sentence/compose",
+            json={"words": ["Tôi", "mật khẩu bí mật"]},
+        )
+
+    assert response.status_code == 422
 
 
 def test_valid_websocket_request_returns_schema_and_preserves_sequence() -> None:

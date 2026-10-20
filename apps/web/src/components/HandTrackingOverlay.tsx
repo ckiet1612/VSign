@@ -1,7 +1,6 @@
 import { useEffect, useRef, useState, type RefObject } from "react";
 import type {
   HandLandmarker as HandLandmarkerType,
-  HandLandmarkerResult,
   NormalizedLandmark,
   PoseLandmarker as PoseLandmarkerType,
 } from "@mediapipe/tasks-vision";
@@ -21,18 +20,24 @@ import {
   packLandmarkFrame,
 } from "../lib/landmarkFeatures";
 import { packBaselineLandmarkFrame } from "../lib/landmarkFeaturesV3";
+import { framingFrame, type FramingFrame } from "../lib/bodyFraming";
+import type { CaptureFramingMode } from "../lib/inferenceRoute";
+import { TrackingDisplayFilter, type TrackingDisplayFrame } from "../lib/trackingDisplay";
 
 export interface HandTrackingFrame {
   crop: NormalizedCropRegion | null;
   handCount: number;
   features: number[] | null;
   baselineFeatures: number[] | null;
+  /** Raw image-space detections for signing-span trim and body crop. */
+  framing?: FramingFrame;
   updatedAt: number;
 }
 
 interface HandTrackingOverlayProps {
   videoRef: RefObject<HTMLVideoElement | null>;
   active: boolean;
+  framingMode: CaptureFramingMode;
   onTrackingFrame: (frame: HandTrackingFrame) => void;
 }
 
@@ -53,7 +58,8 @@ const TARGET_INTERVAL_MS = 30;
 const POSE_INTERVAL_MS = 60;
 const HAND_TRACKING_CONFIDENCE = 0.35;
 const POSE_TRACKING_CONFIDENCE = 0.3;
-const HAND_COLORS = ["#dff36b", "#62ead1"] as const;
+// SnowUI Secondary Green / Mint.
+const HAND_COLORS = ["#71DD8C", "#6BE6D3"] as const;
 const UPPER_BODY_CONNECTIONS = [
   { start: 0, end: 2 },
   { start: 0, end: 5 },
@@ -70,11 +76,18 @@ const UPPER_BODY_CONNECTIONS = [
   { start: 0, end: 12 },
 ] as const;
 
-function trackerText(readout: TrackerReadout): string {
+function trackerText(
+  readout: TrackerReadout,
+  framingMode: CaptureFramingMode,
+): string {
   if (readout.phase === "loading") return "Đang tải tracking tay + cơ thể…";
   if (readout.phase === "error") return "Tracking cơ thể chưa sẵn sàng";
   if (readout.phase === "off") return "Tracking đang tắt";
   const speed = `${readout.fps || "—"} fps`;
+  if (framingMode === "fixed") {
+    const hands = readout.handCount ? `${readout.handCount} tay` : "Đưa tay vào khung";
+    return `${hands} · ${speed} · Khung RGB cố định`;
+  }
   if (!readout.handCount) return `Đưa tay vào vùng thu · ${speed}`;
   if (readout.distance === "too-far") {
     return `${readout.handCount} tay · ${speed} · Tự phóng gần`;
@@ -105,7 +118,7 @@ function prepareCanvas(
   return { context, width, height };
 }
 
-function handBounds(landmarks: NormalizedLandmark[], rect: DisplayRect) {
+function handBounds(landmarks: readonly NormalizedLandmark[], rect: DisplayRect) {
   const points = landmarks.map((landmark) => mirroredDisplayPoint(landmark, rect));
   const xs = points.map((point) => point.x);
   const ys = points.map((point) => point.y);
@@ -163,10 +176,9 @@ function roundedTrackingBox(
 function drawHands(
   canvas: HTMLCanvasElement,
   video: HTMLVideoElement,
-  result: HandLandmarkerResult,
+  display: TrackingDisplayFrame,
   connections: readonly { start: number; end: number }[],
   framing: AdaptiveFraming | null,
-  pose: readonly NormalizedLandmark[] | null,
 ) {
   const prepared = prepareCanvas(canvas);
   if (!prepared) return;
@@ -178,9 +190,11 @@ function drawHands(
     video.videoHeight,
   );
 
+  const pose = display.pose?.landmarks ?? null;
   if (isUsableUpperBodyPose(pose)) {
     const points = pose.map((point) => mirroredDisplayPoint(point, rect));
     context.save();
+    context.globalAlpha = display.pose!.opacity;
     context.strokeStyle = "rgba(125, 211, 252, 0.72)";
     context.fillStyle = "rgba(224, 242, 254, 0.92)";
     context.lineWidth = 2.2;
@@ -228,8 +242,8 @@ function drawHands(
     context.restore();
   }
 
-  result.landmarks.forEach((landmarks, handIndex) => {
-    const color = HAND_COLORS[handIndex % HAND_COLORS.length];
+  display.hands.forEach(({ landmarks, id, opacity }) => {
+    const color = HAND_COLORS[id % HAND_COLORS.length];
     const bounds = handBounds(landmarks, rect);
     const padding = 16;
     const left = Math.max(rect.x + 3, bounds.left - padding);
@@ -240,7 +254,7 @@ function drawHands(
     context.save();
     context.strokeStyle = color;
     context.lineWidth = 2;
-    context.globalAlpha = 0.82;
+    context.globalAlpha = 0.82 * opacity;
     context.lineJoin = "round";
     for (const connection of connections) {
       const start = bounds.points[connection.start];
@@ -251,21 +265,22 @@ function drawHands(
       context.lineTo(end.x, end.y);
       context.stroke();
     }
-    context.globalAlpha = 1;
+    context.globalAlpha = opacity;
     for (const [index, point] of bounds.points.entries()) {
       context.beginPath();
       context.arc(point.x, point.y, index % 4 === 0 ? 3.7 : 2.6, 0, Math.PI * 2);
       context.fillStyle = index % 4 === 0 ? "#ffffff" : color;
       context.fill();
     }
-    context.restore();
     roundedTrackingBox(context, left, top, right - left, bottom - top, color);
+    context.restore();
   });
 }
 
 export function HandTrackingOverlay({
   videoRef,
   active,
+  framingMode,
   onTrackingFrame,
 }: HandTrackingOverlayProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -395,17 +410,37 @@ export function HandTrackingOverlay({
     if (!modelReady || !landmarkerRef.current) return;
 
     let animationFrame = 0;
+    let renderAnimationFrame = 0;
     let videoFrame = 0;
     let scheduledVideo: HTMLVideoElement | null = null;
     let lastInferenceAt = 0;
     let lastPoseInferenceAt = -POSE_INTERVAL_MS;
     let lastVideoTime = -1;
     let latestPose: readonly NormalizedLandmark[] | null = null;
+    let latestFraming: AdaptiveFraming | null = null;
+    const displayFilter = new TrackingDisplayFilter();
     let samples = 0;
     let fpsWindowStarted = performance.now();
     let visibleFps = 0;
     let previousHands = -1;
     const connections = landmarkerRef.current.constructor as typeof HandLandmarkerType;
+
+    const renderFrame = (timestamp: number) => {
+      const video = videoRef.current;
+      const canvas = canvasRef.current;
+      if (video && canvas && video.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA) {
+        drawHands(
+          canvas,
+          video,
+          displayFilter.read(timestamp),
+          connections.HAND_CONNECTIONS,
+          framingMode === "adaptive" ? latestFraming : null,
+        );
+      } else if (canvas) {
+        prepareCanvas(canvas);
+      }
+      renderAnimationFrame = window.requestAnimationFrame(renderFrame);
+    };
 
     const scheduleNextFrame = () => {
       const video = videoRef.current;
@@ -433,9 +468,11 @@ export function HandTrackingOverlay({
       ) {
         try {
           const result = landmarker.detectForVideo(video, timestamp);
+          let poseObservation: readonly NormalizedLandmark[] | null | undefined;
           if (timestamp - lastPoseInferenceAt >= POSE_INTERVAL_MS) {
             const poseResult = poseLandmarker.detect(video);
             latestPose = poseResult.landmarks[0] ?? null;
+            poseObservation = latestPose;
             lastPoseInferenceAt = timestamp;
           }
           const calculated = calculateAdaptiveFraming(
@@ -450,19 +487,21 @@ export function HandTrackingOverlay({
               }
             : null;
           smoothedCropRef.current = framing?.crop ?? null;
-          drawHands(
-            canvas,
-            video,
-            result,
-            connections.HAND_CONNECTIONS,
-            framing,
-            latestPose,
-          );
+          latestFraming = framing;
+          displayFilter.update(result.landmarks, performance.now(), {
+            handedness: result.handedness.map((categories) => {
+              const category = categories[0];
+              return category?.score >= 0.65 ? category.categoryName : null;
+            }),
+            pose: poseObservation,
+          });
+          // Recognition and collection must consume only original detector data.
           onTrackingFrame({
-            crop: framing?.crop ?? null,
+            crop: framingMode === "adaptive" ? framing?.crop ?? null : null,
             handCount: result.landmarks.length,
             features: packLandmarkFrame(result.landmarks, latestPose),
             baselineFeatures: packBaselineLandmarkFrame(result.landmarks),
+            framing: framingFrame(timestamp, result.landmarks, latestPose),
             updatedAt: timestamp,
           });
           lastInferenceAt = timestamp;
@@ -481,10 +520,13 @@ export function HandTrackingOverlay({
               phase: handCount ? "tracking" : "ready",
               handCount,
               fps: visibleFps,
-              distance: framing?.distance ?? null,
+              distance: framingMode === "adaptive" ? framing?.distance ?? null : null,
             });
           }
         } catch {
+          displayFilter.reset();
+          latestFraming = null;
+          prepareCanvas(canvas);
           setReadout({ phase: "error", handCount: 0, fps: 0, distance: null });
           onTrackingFrame({
             crop: null,
@@ -500,13 +542,16 @@ export function HandTrackingOverlay({
     };
 
     scheduleNextFrame();
+    renderAnimationFrame = window.requestAnimationFrame(renderFrame);
     return () => {
       window.cancelAnimationFrame(animationFrame);
+      window.cancelAnimationFrame(renderAnimationFrame);
+      displayFilter.reset();
       if (videoFrame && scheduledVideo?.cancelVideoFrameCallback) {
         scheduledVideo.cancelVideoFrameCallback(videoFrame);
       }
     };
-  }, [active, modelReady, onTrackingFrame, videoRef]);
+  }, [active, framingMode, modelReady, onTrackingFrame, videoRef]);
 
   return (
     <div className={`tracking-overlay tracking-${readout.phase}`} aria-hidden="true">
@@ -514,7 +559,7 @@ export function HandTrackingOverlay({
       {active && <span className="tracking-scan" />}
       <div className="tracking-readout">
         <span className="tracking-status-dot" />
-        <span>{trackerText(readout)}</span>
+        <span>{trackerText(readout, framingMode)}</span>
       </div>
     </div>
   );

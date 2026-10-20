@@ -7,7 +7,8 @@ function isEditableTarget(target: EventTarget | null): boolean {
     tagName === "textarea" ||
     tagName === "select" ||
     tagName === "button" ||
-    tagName === "a"
+    tagName === "a" ||
+    tagName === "summary"
   );
 }
 

@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import List, Protocol, Sequence
+from typing import List, Optional, Protocol, Sequence, Tuple
 
 from PIL import Image
 
@@ -26,6 +26,8 @@ class BackendPrediction:
     label: str | None
     confidence: float | None
     top_k: List[BackendCandidate]
+    # Full softmax over the label map, for the per-word/context decision policy.
+    probabilities: Optional[Tuple[float, ...]] = None
 
 
 class InferenceBackend(Protocol):

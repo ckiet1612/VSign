@@ -1,0 +1,133 @@
+/*
+ * SnowUI design tokens (ByeWind) — transcribed from the official source
+ * github.com/SnowUI/home (snowui-themes.css, snowui-utilities.css, v1.2.0).
+ * Keep values identical to upstream; app-specific aliases live in styles.css.
+ */
+
+:root {
+  /* Typography */
+  --font-inter: "Inter Variable", "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --font-mono: "Menlo", "Monaco", "Courier New", monospace;
+  --font-family: var(--font-inter);
+  --font-regular: 400;
+  --font-semibold: 600;
+  --text-12: 0.75rem;  --leading-12: 1rem;
+  --text-14: 0.875rem; --leading-14: 1.25rem;
+  --text-16: 1rem;     --leading-16: 1.5rem;
+  --text-18: 1.125rem; --leading-18: 1.75rem;
+  --text-24: 1.5rem;   --leading-24: 2rem;
+  --text-32: 2rem;     --leading-32: 2.5rem;
+  --text-48: 3rem;     --leading-48: 3.625rem;
+  --text-64: 4rem;     --leading-64: 4.875rem;
+
+  /* Radius / spacing / size (nominal px at 16px root) */
+  --radius-4: 0.25rem;
+  --radius-8: 0.5rem;
+  --radius-12: 0.75rem;
+  --radius-16: 1rem;
+  --radius-20: 1.25rem;
+  --radius-24: 1.5rem;
+  --radius-32: 2rem;
+  --radius-full: 9999px;
+  --space-4: 0.25rem;
+  --space-8: 0.5rem;
+  --space-12: 0.75rem;
+  --space-16: 1rem;
+  --space-20: 1.25rem;
+  --space-24: 1.5rem;
+  --space-28: 1.75rem;
+  --space-40: 2.5rem;
+  --space-48: 3rem;
+  --size-16: 1rem;
+  --size-20: 1.25rem;
+  --size-24: 1.5rem;
+  --size-28: 1.75rem;
+  --size-32: 2rem;
+  --size-40: 2.5rem;
+  --size-48: 3rem;
+  --border-1: 0.0625rem;
+
+  /* Effects */
+  --shadow-glass-1: 0 0.25rem 1rem 0 rgba(0, 0, 0, 0.04);
+  --shadow-glass-2: 0 0.5rem 1.75rem 0 rgba(0, 0, 0, 0.10);
+  --shadow-focus: 0 0 0 0.25rem rgba(0, 0, 0, 0.04);
+  --shadow-drop-1: 0 0.03125rem 0.03125rem 0 rgba(0, 0, 0, 0.10);
+  --shadow-drop-2: 0 0.125rem 0.25rem 0 rgba(0, 0, 0, 0.10);
+  --blur-40: blur(1.25rem);
+  --blur-100: blur(3.125rem);
+  --gradient-sheen: linear-gradient(180deg, rgba(255, 255, 255, 0.05) 0%, rgba(255, 255, 255, 0.40) 100%);
+
+  /* Static colors (theme-independent) */
+  --static-black-100: #000000FF;
+  --static-black-80: #000000CC;
+  --static-black-40: #00000066;
+  --static-black-20: #00000033;
+  --static-black-10: #0000001A;
+  --static-black-4: #0000000A;
+  --static-white-100: #FFFFFFFF;
+  --static-white-80: #FFFFFFCC;
+  --static-white-40: #FFFFFF66;
+  --static-white-20: #FFFFFF33;
+  --static-white-10: #FFFFFF1A;
+  --static-white-4: #FFFFFF0A;
+
+  /* SnowUI Light (default) */
+  --black-100: #000000FF;
+  --black-80: #000000CC;
+  --black-40: #00000066;
+  --black-20: #00000033;
+  --black-10: #0000001A;
+  --black-4: #0000000A;
+  --white-100: #FFFFFFFF;
+  --white-80: #FFFFFFCC;
+  --white-40: #FFFFFF66;
+  --white-20: #FFFFFF33;
+  --white-10: #FFFFFF1A;
+  --white-4: #FFFFFF0A;
+  --background-1: #FFFFFFFF;
+  --background-2: #F9F9FAFF;
+  --background-3: #FFFFFFE5;
+  --surface-1: #FFFFFFCC;
+  --surface-2: #00000008;
+  --surface-3: #00000005;
+  --secondary-purple: #B899EBFF;
+  --secondary-indigo: #ADADFBFF;
+  --secondary-blue: #7DBBFFFF;
+  --secondary-cyan: #A0BCE8FF;
+  --secondary-mint: #6BE6D3FF;
+  --secondary-green: #71DD8CFF;
+  --secondary-yellow: #FFCC00FF;
+  --secondary-orange: #FFB55BFF;
+  --secondary-red: #FF4747FF;
+  --foreground: var(--black-100);
+  --background: var(--background-1);
+  --primary: var(--black-100);
+  --logo-1: #4C98FDFF;
+  --logo-2: #4F507FFF;
+  --color-1: #E6F1FDFF;
+  --color-2: #EDEEFCFF;
+}
+
+/* SnowUI Dark */
+[theme="dark"] {
+  --black-100: #FFFFFFFF;
+  --black-80: #FFFFFFCC;
+  --black-40: #FFFFFF66;
+  --black-20: #FFFFFF33;
+  --black-10: #FFFFFF26;
+  --black-4: #FFFFFF1A;
+  --white-100: #000000FF;
+  --white-80: #000000CC;
+  --white-40: #00000066;
+  --white-20: #00000033;
+  --white-10: #0000001A;
+  --white-4: #0000000A;
+  --background-1: #333333FF;
+  --background-2: #FFFFFF0A;
+  --background-3: #404040E5;
+  --surface-1: #FFFFFF0A;
+  --surface-2: #0000001A;
+  --surface-3: #FFFFFF0A;
+  --primary: var(--secondary-indigo);
+  --logo-2: #EDEDFFFF;
+}

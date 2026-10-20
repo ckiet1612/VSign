@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from collections.abc import Mapping
 from pathlib import Path
+from time import perf_counter
 from typing import Any, Sequence
 
 import numpy as np
@@ -10,6 +11,10 @@ from PIL import Image
 from app.backends.base import BackendCandidate, BackendPrediction, DecodedFrame
 from app.backends.labels import load_labels
 from app.models import FRAME_COUNT, FRAME_SIZE, PredictionStatus
+
+
+IMAGENET_MEAN = np.asarray([0.485, 0.456, 0.406], dtype=np.float32)
+IMAGENET_STD = np.asarray([0.229, 0.224, 0.225], dtype=np.float32)
 
 
 class PyTorchInferenceBackend:
@@ -74,6 +79,19 @@ class PyTorchInferenceBackend:
         self._torch = torch
         self._model = model.to(resolved_device).eval()
         self._device = resolved_device
+        self.last_timings_ms: dict[str, float] = {}
+        if device == "cpu":
+            self._warmup()
+
+    def _warmup(self) -> None:
+        # Pay lazy operator initialization before the server accepts requests.
+        tensor = self._torch.zeros(
+            (1, 3, FRAME_COUNT, FRAME_SIZE, FRAME_SIZE), device=self._device
+        )
+        with self._torch.inference_mode():
+            self._model(tensor)
+        if self._device.type == "cuda":
+            self._torch.cuda.synchronize(self._device)
 
     @staticmethod
     def _extract_state_dict(checkpoint: Any) -> Mapping[str, Any]:
@@ -100,43 +118,57 @@ class PyTorchInferenceBackend:
             raise ValueError(f"PyTorch backend cần đúng {FRAME_COUNT} frame")
         arrays = []
         for decoded in frames:
-            rgb = decoded.image.convert("RGB").resize(
-                (FRAME_SIZE, FRAME_SIZE), Image.Resampling.BILINEAR
-            )
+            rgb = decoded.image
+            if rgb.mode != "RGB":
+                rgb = rgb.convert("RGB")
+            if rgb.size != (FRAME_SIZE, FRAME_SIZE):
+                rgb = rgb.resize((FRAME_SIZE, FRAME_SIZE), Image.Resampling.BILINEAR)
             arrays.append(np.asarray(rgb, dtype=np.float32) / 255.0)
         clip = np.stack(arrays, axis=0)
-        mean = np.asarray([0.485, 0.456, 0.406], dtype=np.float32)
-        std = np.asarray([0.229, 0.224, 0.225], dtype=np.float32)
-        clip = (clip - mean) / std
-        return np.transpose(clip, (3, 0, 1, 2))[None, ...].astype(np.float32)
+        clip = (clip - IMAGENET_MEAN) / IMAGENET_STD
+        return np.ascontiguousarray(np.transpose(clip, (3, 0, 1, 2))[None, ...])
 
     def predict(
         self, frames: Sequence[DecodedFrame], sequence: int
     ) -> BackendPrediction:
         del sequence
+        started = perf_counter()
         tensor = self._torch.from_numpy(self._preprocess(frames)).to(self._device)
+        prepared = perf_counter()
         with self._torch.inference_mode():
             logits = self._model(tensor)
             probabilities = self._torch.softmax(logits, dim=1)[0].detach().cpu().numpy()
+        inferred = perf_counter()
         if probabilities.size != len(self.labels):
             raise RuntimeError(
                 f"PyTorch output có {probabilities.size} lớp nhưng label map có {len(self.labels)}"
             )
-        indices = np.argsort(probabilities)[::-1][:3]
+        indices = np.argsort(probabilities)[::-1]
+        winner = int(indices[0])
         top_k = [
             BackendCandidate(self.labels[int(index)], float(probabilities[index]))
             for index in indices
-        ]
+            if self.labels[int(index)] != "Không ký hiệu"
+        ][:3]
         margin = (
-            top_k[0].confidence - top_k[1].confidence
-            if len(top_k) > 1
-            else top_k[0].confidence
+            float(probabilities[winner] - probabilities[int(indices[1])])
+            if len(indices) > 1
+            else float(probabilities[winner])
         )
+        finished = perf_counter()
+        self.last_timings_ms = {
+            "preprocess_ms": (prepared - started) * 1000,
+            "model_ms": (inferred - prepared) * 1000,
+            "postprocess_ms": (finished - inferred) * 1000,
+            "total_ms": (finished - started) * 1000,
+        }
+        full = tuple(float(value) for value in probabilities)
         if (
-            top_k[0].confidence < self.confidence_threshold
+            self.labels[winner] == "Không ký hiệu"
+            or probabilities[winner] < self.confidence_threshold
             or margin < self.margin_threshold
         ):
-            return BackendPrediction(PredictionStatus.UNCERTAIN, None, None, top_k)
+            return BackendPrediction(PredictionStatus.UNCERTAIN, None, None, top_k, full)
         return BackendPrediction(
-            PredictionStatus.OK, top_k[0].label, top_k[0].confidence, top_k
+            PredictionStatus.OK, top_k[0].label, top_k[0].confidence, top_k, full
         )

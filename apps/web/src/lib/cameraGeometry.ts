@@ -39,6 +39,20 @@ export function containedVideoRect(
   };
 }
 
+export function centeredSquareRect(rect: DisplayRect): DisplayRect {
+  const x = Number.isFinite(rect.x) ? rect.x : 0;
+  const y = Number.isFinite(rect.y) ? rect.y : 0;
+  const width = positive(rect.width);
+  const height = positive(rect.height);
+  const side = Math.min(width, height);
+  return {
+    x: x + (width - side) / 2,
+    y: y + (height - side) / 2,
+    width: side,
+    height: side,
+  };
+}
+
 export function mirroredDisplayPoint(
   point: NormalizedPoint,
   rect: DisplayRect,

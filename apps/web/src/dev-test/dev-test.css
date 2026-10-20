@@ -1,0 +1,71 @@
+.dev-test-shell { min-height: 100vh; background: #f7f8fa; color: #202427; font-size: 14px; letter-spacing: 0; }
+.dev-test-shell button, .dev-test-shell a, .dev-test-shell input, .dev-test-shell select, .dev-test-shell textarea { font: inherit; }
+.dev-test-shell button, .dt-section-toolbar a { min-height: 36px; display: inline-flex; align-items: center; justify-content: center; gap: 7px; padding: 7px 11px; border: 1px solid #cbd1d5; border-radius: 4px; background: white; color: #202427; cursor: pointer; text-decoration: none; }
+.dev-test-shell button:disabled { cursor: not-allowed; opacity: .5; }
+.dev-test-shell button.dt-primary { background: #166347; color: white; border-color: #166347; }
+.dev-test-shell button.dt-stop { background: #a62928; color: white; border-color: #a62928; }
+.dt-header { min-height: 64px; display: flex; align-items: center; gap: 20px; padding: 12px 24px; border-bottom: 1px solid #dce1e5; background: white; }
+.dt-header > a { display: flex; align-items: center; gap: 8px; color: #202427; text-decoration: none; }
+.dt-header h1 { font-size: 20px; margin: 0; line-height: 1.3; }
+.dt-dev-tag { font-size: 11px; color: #8c3d0c; background: #fff1cc; padding: 4px 7px; border: 1px solid #dfc185; border-radius: 3px; margin-left: auto; }
+.dt-runtime { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; padding: 10px 24px; background: #edf0f2; border-bottom: 1px solid #dce1e5; font-size: 12px; overflow-wrap: anywhere; }
+.dt-session { margin-left: auto; }
+.dt-content { max-width: 1420px; padding: 24px; margin: auto; }
+.dt-capture-layout { display: grid; grid-template-columns: minmax(0, 1.7fr) minmax(270px, 1fr); gap: 28px; }
+.dt-camera { position: relative; aspect-ratio: 16 / 9; background: #171a1b; overflow: hidden; }
+.dt-camera > video { width: 100%; height: 100%; display: block; object-fit: contain; transform: scaleX(-1); }
+.dt-guide { position: absolute; pointer-events: none; border: 2px solid #e0b653; opacity: .85; }
+.dt-camera-status { position: absolute; bottom: 10px; left: 10px; color: white; background: #242729; padding: 5px 9px; max-width: calc(100% - 20px); font-size: 12px; }
+.dt-recording { background: #a62928; }
+.dt-camera-actions { display: flex; justify-content: space-between; gap: 12px; margin-top: 12px; }
+.dt-test-settings fieldset { padding: 0; margin: 0; border: 0; display: grid; gap: 12px; min-width: 0; }
+.dev-test-shell label { display: grid; gap: 5px; font-size: 12px; font-weight: 700; min-width: 0; }
+.dev-test-shell input:not([type=checkbox]), .dev-test-shell select, .dev-test-shell textarea { border: 1px solid #cbd1d5; background: white; border-radius: 4px; padding: 8px 10px; width: 100%; color: #202427; min-width: 0; min-height: 36px; }
+.dev-test-shell textarea { min-height: 85px; resize: vertical; }
+.dt-field-pair { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.dt-last-result { border-top: 1px solid #dce1e5; margin-top: 18px; padding-top: 16px; min-height: 125px; }
+.dt-last-result dl { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin: 10px 0 0; }
+.dt-last-result dl > div { min-width: 0; }
+.dt-last-result dt { font-size: 11px; color: #60696f; }
+.dt-last-result dd { margin: 2px 0 0; font-weight: 700; overflow-wrap: anywhere; }
+.dt-outcome { font-size: 12px; font-weight: 700; color: #3d4246; }
+.dt-correct, .dt-correct_rejection { color: #166347; }
+.dt-wrong, .dt-false_accept { color: #a62928; }
+.dt-uncertain { color: #976215; }
+.dt-technical_error { color: #8b3488; }
+.dt-section-toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; padding: 22px 0 12px; }
+.dt-section-toolbar h2 { margin: 0 auto 0 0; font-size: 17px; }
+.dt-section-toolbar label { display: flex; align-items: center; gap: 8px; }
+.dt-section-toolbar select { width: auto; max-width: 200px; }
+.dev-test-shell .dt-check { display: flex; align-items: center; gap: 8px; }
+.dt-check input { accent-color: #166347; width: 16px; height: 16px; margin: 0; }
+.dt-group { margin-bottom: 20px; }
+.dt-group-title { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 8px; padding: 10px 0; font-size: 12px; }
+.dt-metrics { display: flex; flex-wrap: wrap; gap: 24px; padding: 12px 0; border-top: 1px solid #dce1e5; }
+.dt-metrics > span { font-size: 12px; color: #60696f; }
+.dt-metrics strong { color: #202427; margin-left: 5px; }
+.dt-table-scroll { overflow-x: auto; background: white; border: 1px solid #dce1e5; }
+.dev-test-shell table { border-collapse: collapse; width: 100%; min-width: 760px; font-size: 12px; text-align: left; }
+.dev-test-shell th, .dev-test-shell td { padding: 10px 12px; border-bottom: 1px solid #e5e8eb; vertical-align: middle; }
+.dev-test-shell thead th { background: #edf0f2; font-size: 11px; white-space: nowrap; }
+.dev-test-shell tbody tr:last-child > * { border-bottom: 0; }
+.dt-notice, .dt-alert { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; margin: 16px 0 0; padding: 10px 12px; background: #fff4d5; color: #6f4c13; border: 1px solid #dfc185; overflow-wrap: anywhere; }
+.dt-alert { margin: 12px 24px 0; }
+.dt-empty { padding: 20px 0; margin: 0; color: #60696f; }
+.dt-review { border: 1px solid #cbd1d5; border-radius: 6px; padding: 18px; width: min(480px, calc(100vw - 24px)); color: #202427; max-height: calc(100dvh - 40px); overflow: auto; font: inherit; }
+.dt-review::backdrop { background: #0008; }
+.dt-review video { width: 100%; max-height: 280px; background: #171a1b; }
+.dt-dialog-header, .dt-dialog-actions { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 14px; }
+.dt-dialog-header h2 { margin: 0; font-size: 18px; }
+.dt-review > label { margin-top: 12px; }
+.dt-dialog-actions { margin: 16px 0 0; font-size: 12px; }
+@media (max-width: 760px) {
+  .dt-header { padding: 12px 16px; gap: 12px; }
+  .dt-header h1 { font-size: 17px; }
+  .dt-runtime { padding: 10px 16px; }
+  .dt-session { margin-left: 0; }
+  .dt-content { padding: 16px; }
+  .dt-capture-layout { grid-template-columns: minmax(0, 1fr); gap: 20px; }
+  .dt-last-result { min-height: 100px; }
+  .dt-metrics { gap: 12px 20px; }
+}

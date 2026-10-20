@@ -16,6 +16,8 @@ export interface FramesMessage {
   sequence: number;
   captured_at: number;
   frames: string[];
+  /** Words already in the sentence (at most 8); the runtime may rank this sign with them. */
+  context_words?: string[];
 }
 
 export interface PredictionCandidate {
@@ -31,7 +33,11 @@ export interface PredictionMessage {
   confidence: number | null;
   top_k: PredictionCandidate[];
   model_version: string;
+  /** Decision steps that changed the fixed-threshold result; absent on older runtimes. */
+  adjusted?: PredictionAdjustment[];
 }
+
+export type PredictionAdjustment = "calibrated" | "context";
 
 export interface InferenceMetadata {
   backend: string;
@@ -49,6 +55,22 @@ export interface InferenceMetadata {
   mock: boolean;
   collection_enabled: boolean;
   collection_target_per_hand: number;
+  sentence_ai_enabled: boolean;
+  /** Absent on older runtimes, which always expect the center square. */
+  input_framing?: InputFraming;
+}
+
+export type InputFraming = "center-square" | "trim-bodycrop-v1";
+
+export interface SentenceComposeRequest {
+  words: string[];
+}
+
+export interface SentenceComposeResponse {
+  sentence: string;
+  provider: "openai" | "local";
+  model: string | null;
+  warnings?: string[];
 }
 
 export type CollectionHand = "right" | "left";
@@ -66,6 +88,8 @@ export type NegativeAction =
 
 export interface CollectionSampleRequest {
   session_id: string;
+  batch?: "personal-100";
+  sample_key?: string;
   captured_at: number;
   duration_ms: number;
   expected_label: string;
@@ -87,6 +111,8 @@ export interface CollectionSummaryResponse {
   enabled: boolean;
   target_per_hand: number;
   counts: Record<string, CollectionHandCounts>;
+  batch?: "personal-100" | null;
+  target_per_label?: number | null;
 }
 
 export interface CollectionSampleResponse {
@@ -96,6 +122,7 @@ export interface CollectionSampleResponse {
   hand: CollectionHand;
   relative_video_path: string;
   label_hand_count: number;
+  label_count?: number | null;
 }
 
 const predictionStatuses: ReadonlySet<PredictionStatus> = new Set([
@@ -144,7 +171,10 @@ export function isPredictionMessage(value: unknown): value is PredictionMessage 
     value.top_k.length > 3 ||
     !value.top_k.every(isPredictionCandidate) ||
     typeof value.model_version !== "string" ||
-    value.model_version.trim().length === 0
+    value.model_version.trim().length === 0 ||
+    (value.adjusted !== undefined &&
+      (!Array.isArray(value.adjusted) ||
+        !value.adjusted.every((item) => item === "calibrated" || item === "context")))
   ) {
     return false;
   }
