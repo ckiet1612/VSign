@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import secrets
+import re
 from dataclasses import dataclass
 from datetime import timedelta
 from typing import Optional
@@ -26,6 +27,13 @@ from app.platform_db import (
 
 
 SESSION_COOKIE_NAME = "vsign_session"
+
+
+def login_email(identifier: str) -> str:
+    value = normalize_email(identifier)
+    if re.fullmatch(r"[a-z0-9][a-z0-9._-]{2,63}", value):
+        return f"{value}@vsign.invalid"
+    return value
 
 
 def local_admin_id(workspace_id: str, role: str = "admin") -> str:

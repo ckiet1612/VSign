@@ -13,6 +13,7 @@ export async function composeSentence(
 ): Promise<SentenceComposeResponse> {
   const response = await fetcher(`${inferenceHttpUrl}/sentence/compose`, {
     method: "POST",
+    credentials: "include",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ words }),
     ...(signal ? { signal } : {}),

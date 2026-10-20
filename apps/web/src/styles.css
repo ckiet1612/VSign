@@ -179,7 +179,7 @@ button:focus-visible, a:focus-visible, summary:focus-visible, select:focus-visib
 .sidebar-nav-item:disabled { color: var(--black-20); cursor: not-allowed; opacity: 1; }
 .sidebar-nav-item:not(:disabled):not(.active):hover { background: var(--black-4); }
 .sidebar-account {
-  margin-top: auto; padding: var(--space-8); display: flex; align-items: center; gap: var(--space-8); overflow: hidden;
+  margin-top: auto; padding: var(--space-8); display: flex; flex-shrink: 0; align-items: center; gap: var(--space-8); overflow: hidden;
   transition: padding var(--sidebar-motion), gap var(--sidebar-motion);
 }
 .sidebar-avatar {
@@ -187,14 +187,12 @@ button:focus-visible, a:focus-visible, summary:focus-visible, select:focus-visib
   background: var(--gradient-sheen), var(--logo-1);
 }
 
-.sidebar-account-copy { flex: 1 1 auto; min-width: 0; display: grid; justify-items: start; gap: 2px; }
+.sidebar-account-copy { flex: 1 1 auto; min-width: 0; display: grid; grid-template-columns: minmax(0, 1fr); gap: 2px; }
 .sidebar-account-copy strong { overflow: hidden; color: var(--ink); font-size: var(--text-14); font-weight: var(--font-regular); text-overflow: ellipsis; white-space: nowrap; }
 .sidebar-account-copy span { min-width: 0; overflow: hidden; color: var(--muted); font-size: var(--text-12); text-transform: capitalize; text-overflow: ellipsis; white-space: nowrap; }
-.sidebar-account-action { flex: 0 0 auto; min-height: 28px; padding: 0 var(--space-8); display: inline-flex; align-items: center; gap: var(--space-4); border: 0; border-radius: var(--radius-8); color: var(--ink); background: var(--black-4); font-size: var(--text-12); cursor: pointer; }
+.sidebar-account-action { flex: 0 0 32px; width: 32px; height: 32px; padding: 0; display: inline-flex; align-items: center; justify-content: center; border: 0; border-radius: var(--radius-8); color: var(--ink); background: var(--black-4); cursor: pointer; }
 .sidebar-account-action:hover { background: var(--black-10); }
-.sidebar-account-action { transition: padding var(--sidebar-motion), gap var(--sidebar-motion); }
 .sidebar-account-action svg { flex-shrink: 0; }
-.sidebar-account-action span { max-width: 6em; overflow: hidden; white-space: nowrap; transition: max-width var(--sidebar-motion), opacity 100ms ease-out; }
 /* Boot and the empty pre-render page use the shell's frame colour, so the shell appears without a white-to-grey flash. */
 html:has(> body > #root:empty) { background: var(--background-2); }
 .platform-loading { min-height: 100dvh; display: grid; place-items: center; background: var(--background-2); }
@@ -205,19 +203,21 @@ html:has(> body > #root:empty) { background: var(--background-2); }
 
 /* ---------- Login ---------- */
 .login-gate { min-height: 100dvh; padding: var(--space-28); display: grid; place-items: center; background: var(--background-2); }
-.login-surface { width: min(100%, 420px); padding: var(--space-40) var(--space-28); border-radius: var(--radius-24); background: var(--background-1); box-shadow: var(--shadow-glass-1); }
-.login-surface h1 { margin: var(--space-8) 0; color: var(--ink); font-size: var(--text-24); line-height: var(--leading-24); font-weight: var(--font-semibold); }
+.login-surface { width: min(100%, 360px); min-width: 0; }
+.login-mark { display: block; margin-bottom: var(--space-16); }
+.login-surface > h1, .login-surface > h2 { margin: 0 0 var(--space-28); overflow-wrap: anywhere; }
+.login-surface h1 { margin: 0 0 var(--space-28); color: var(--ink); font-size: var(--text-24); line-height: var(--leading-24); font-weight: var(--font-semibold); }
 .login-surface > p { margin: 0 0 var(--space-24); color: var(--muted); font-size: var(--text-14); line-height: var(--leading-14); }
 .login-surface form { display: grid; gap: var(--space-16); }
 .login-surface label { display: grid; gap: var(--space-8); color: var(--ink); font-size: var(--text-14); }
 .login-surface input {
   width: 100%; min-height: 44px; padding: var(--space-8) var(--space-16); border: var(--border-1) solid var(--black-10);
-  border-radius: var(--radius-12); color: var(--ink); background: var(--white-100);
+  border-radius: var(--radius-8); color: var(--ink); background: var(--white-100); font-size: 16px;
 }
 .login-surface input:focus { border-color: var(--black-40); }
 .login-surface input:disabled { background: var(--black-4); cursor: wait; }
 .login-surface button {
-  min-height: 44px; padding: var(--space-8) var(--space-16); border: 0; border-radius: var(--radius-12);
+  min-height: 44px; padding: var(--space-8) var(--space-16); border: 0; border-radius: var(--radius-8);
   color: var(--on-accent); background: var(--accent); font-weight: var(--font-semibold); cursor: pointer;
 }
 .login-surface button:hover:not(:disabled) { background: var(--accent-hover); }

@@ -66,12 +66,12 @@ export function AppSidebar({
         <div className="sidebar-account">
           <span className="sidebar-avatar" aria-hidden="true" />
           <div className="sidebar-account-copy">
-            <strong>{user.display_name}</strong>
-            <span>{workspaceRoleLabels[user.role]}</span>
+            <strong title={user.display_name}>{user.display_name}</strong>
+            <span title={workspaceRoleLabels[user.role]}>{workspaceRoleLabels[user.role]}</span>
           </div>
           {onLogout && <button type="button" className="sidebar-account-action" onClick={() => void onLogout()}
             aria-label="Đăng xuất" title="Đăng xuất">
-            <LogOut size={16} aria-hidden="true" /><span>Đăng xuất</span>
+            <LogOut size={16} aria-hidden="true" />
           </button>}
         </div>
       )}

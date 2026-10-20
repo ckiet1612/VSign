@@ -152,7 +152,7 @@ export default function App() {
   if (platform.authRequired && !platform.user) {
     return (
       <LoginGate
-        workspaceName={platform.context?.name ?? "VSign workspace"}
+        workspaceName="VSign"
         busy={platform.submitting}
         onLogin={platform.login}
       />
@@ -748,6 +748,7 @@ function WorkspaceApp({ platform }: { platform: WorkspacePlatform }) {
     setCollectionProgressReady(false);
     const controller = new AbortController();
     fetch(`${inferenceHttpUrl}/collection/summary?batch=${PERSONAL_COLLECTION_BATCH}`, {
+      credentials: "include",
       signal: controller.signal,
     })
       .then((response) => {

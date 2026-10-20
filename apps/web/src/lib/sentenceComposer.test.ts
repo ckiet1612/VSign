@@ -29,6 +29,7 @@ describe("composeSentence", () => {
       "http://localhost:8000/sentence/compose",
       {
         method: "POST",
+        credentials: "include",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ words: ["Tôi", "Muốn", "Mua", "Điện thoại"] }),
       },

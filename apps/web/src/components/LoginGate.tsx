@@ -9,7 +9,7 @@ interface LoginGateProps {
 }
 
 export function LoginGate({ workspaceName, busy = false, error = "", embedded = false, onLogin }: LoginGateProps) {
-  const [email, setEmail] = useState("");
+  const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [submitError, setSubmitError] = useState("");
   const [submitting, setSubmitting] = useState(false);
@@ -22,16 +22,16 @@ export function LoginGate({ workspaceName, busy = false, error = "", embedded = 
   return (
     <Container className={`login-gate${embedded ? " login-gate-embedded" : ""}`} aria-labelledby="login-title">
       <section className="login-surface">
-        <span className="sidebar-kicker">WORKSPACE</span>
+        <img className="login-mark" src={`${import.meta.env.BASE_URL}brand/vsign-mark.svg`} alt="" width="40" height="40" />
         <Heading id="login-title">Đăng nhập {workspaceName}</Heading>
-        <p>Đăng nhập để truy cập workspace VSign.</p>
         <form onSubmit={async event => {
           event.preventDefault();
           if (submitting) return;
           setSubmitError("");
           setSubmitting(true);
           try {
-            await onLogin(email, password);
+            await onLogin(username, password);
+            if (mountedRef.current) setPassword("");
           } catch (loginError) {
             if (mountedRef.current) setSubmitError(loginError instanceof Error ? loginError.message : "Không thể đăng nhập");
           } finally {
@@ -39,8 +39,8 @@ export function LoginGate({ workspaceName, busy = false, error = "", embedded = 
           }
         }}>
           <label>
-            Email
-            <input type="email" value={email} autoComplete="username" required onChange={event => setEmail(event.target.value)} />
+            Tên đăng nhập
+            <input type="text" value={username} autoComplete="username" autoCapitalize="none" spellCheck={false} maxLength={320} required disabled={busy || submitting} onChange={event => setUsername(event.target.value)} />
           </label>
           <label>
             Mật khẩu

@@ -33,13 +33,14 @@ from app.platform_auth import (
     Principal,
     capabilities_for,
     create_session,
+    login_email,
     record_audit,
     resolve_local_admin,
     resolve_principal,
     revoke_session,
     verify_password,
 )
-from app.platform_db import AuditEvent, Database, Membership, User, Workspace, hash_session_token, normalize_email, utc_now
+from app.platform_db import AuditEvent, Database, Membership, User, Workspace, hash_session_token, utc_now
 
 
 @lru_cache(maxsize=1)
@@ -138,7 +139,7 @@ def create_platform_router(
     def login(request: Request, payload: AuthLoginRequest, response: Response) -> AuthSessionResponse:
         validate_origin(request)
         database = get_database(request)
-        email = normalize_email(payload.email)
+        email = login_email(payload.email)
         address_key = hash_session_token(request.client.host if request.client else "unknown")
         account_key = hash_session_token(email)
         with database.session() as session:
@@ -165,7 +166,7 @@ def create_platform_router(
         password_valid = verify_password(password_hasher, password_hash, payload.password)
         if user is None or membership is None or not password_valid:
             record_audit(database, settings.workspace_id, "auth.login_failed", "system", None, "failure", {"address_key": address_key, "account_key": account_key})
-            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Email hoặc mật khẩu không đúng")
+            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Tên đăng nhập hoặc mật khẩu không đúng")
 
         token = create_session(database, user, settings.workspace_id, settings.auth_session_ttl_seconds, request.cookies.get(SESSION_COOKIE_NAME))
         response.set_cookie(

@@ -41,7 +41,7 @@ from app.models import (
 )
 from app.model_manifest import load_model_manifest
 from app.platform_db import create_database
-from app.platform_auth import bootstrap_platform
+from app.platform_auth import SESSION_COOKIE_NAME, bootstrap_platform, resolve_principal
 from app.platform_router import create_platform_router
 from app.sentence import SentenceComposer, create_sentence_composer
 from contracts.v1.workspace import WORKSPACE_API_VERSION
@@ -173,14 +173,6 @@ def create_app(
             application.state.platform_database = None
 
     app = FastAPI(title="VSign inference", version="0.1.0", lifespan=lifespan)
-    app.add_middleware(
-        CORSMiddleware,
-        allow_origins=list(resolved_settings.allowed_origins),
-        allow_credentials=True,
-        allow_methods=["GET", "POST", "PUT"] if resolved_settings.app_environment == "development" and resolved_settings.dev_test_enabled else ["GET", "POST"],
-        allow_headers=["*"],
-        expose_headers=["X-Request-ID", "X-VSign-API-Version", "Retry-After"],
-    )
     app.state.settings = resolved_settings
     app.state.backend = resolved_backend
     app.state.runtime_settings = resolved_settings
@@ -197,6 +189,35 @@ def create_app(
             app.state.password_hasher,
         )
     )
+
+    async def authorize_runtime(token: Optional[str], permission: str) -> None:
+        if not resolved_settings.auth_required:
+            return
+        database = app.state.platform_database
+        if database is None:
+            raise HTTPException(503, "Workspace chưa sẵn sàng")
+        current = await run_in_threadpool(resolve_principal, database, token, resolved_settings.workspace_id)
+        if current is None:
+            raise HTTPException(401, "Đăng nhập để tiếp tục")
+        if not current.can(permission):
+            raise HTTPException(403, "Bạn không có quyền thực hiện thao tác này")
+
+    @app.middleware("http")
+    async def protect_runtime_requests(request: Request, call_next: Any) -> Any:
+        permissions = {"/sentence/compose": "recognize:use", "/collection/summary": "data:use",
+                       "/collection/samples": "data:use"}
+        permission = permissions.get(request.url.path.rstrip("/"))
+        if permission and request.method != "OPTIONS" and resolved_settings.auth_required:
+            try:
+                await authorize_runtime(request.cookies.get(SESSION_COOKIE_NAME), permission)
+                if request.method not in {"GET", "HEAD"}:
+                    origin = request.headers.get("origin")
+                    if ((origin and origin not in resolved_settings.allowed_origins) or
+                            (not origin and request.headers.get("sec-fetch-site") in {"cross-site", "same-site"})):
+                        raise HTTPException(403, "Origin không được phép")
+            except HTTPException as error:
+                return JSONResponse(status_code=error.status_code, content={"detail": error.detail})
+        return await call_next(request)
 
     @app.middleware("http")
     async def add_platform_headers(request: Request, call_next: Any) -> Any:
@@ -250,6 +271,16 @@ def create_app(
                         content={"detail": "Mẫu thu vượt giới hạn kích thước"},
                     )
         return await call_next(request)
+
+    # Wrap auth middleware too, so denied requests retain credentialed CORS headers.
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=list(resolved_settings.allowed_origins),
+        allow_credentials=True,
+        allow_methods=["GET", "POST", "PUT"] if resolved_settings.app_environment == "development" and resolved_settings.dev_test_enabled else ["GET", "POST"],
+        allow_headers=["*"],
+        expose_headers=["X-Request-ID", "X-VSign-API-Version", "Retry-After"],
+    )
 
     @app.get("/health", response_model=HealthResponse)
     async def health() -> HealthResponse:
@@ -433,11 +464,23 @@ def create_app(
         if origin and "*" not in allowed and origin not in allowed:
             await websocket.close(code=1008, reason="Origin không được phép")
             return
+        token = websocket.cookies.get(SESSION_COOKIE_NAME)
+        try:
+            await authorize_runtime(token, "recognize:use")
+        except HTTPException:
+            await websocket.close(code=1008, reason="Đăng nhập để tiếp tục")
+            return
         await websocket.accept()
         try:
             while True:
                 packet = await websocket.receive()
                 if packet["type"] == "websocket.disconnect":
+                    break
+                # An open socket must not outlive a revoked or expired login session.
+                try:
+                    await authorize_runtime(token, "recognize:use")
+                except HTTPException:
+                    await websocket.close(code=1008, reason="Phiên đăng nhập đã hết hạn")
                     break
                 raw_text = packet.get("text")
                 if raw_text is None:

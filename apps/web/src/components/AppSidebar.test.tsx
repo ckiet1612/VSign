@@ -4,6 +4,22 @@ import { describe, expect, it, vi } from "vitest";
 import { AppSidebar } from "./AppSidebar";
 
 describe("AppSidebar", () => {
+  it("reserves logout for an icon and exposes the full account labels on hover", async () => {
+    const onLogout = vi.fn(async () => undefined);
+    const displayName = "Quan tri vien he thong VSign voi ten rat dai";
+    render(<AppSidebar activeView="overview" onNavigate={vi.fn()} onLogout={onLogout}
+      user={{ id: "admin", email: "admin@example.com", display_name: displayName, role: "system_admin" }} />);
+
+    expect(screen.getByText(displayName)).toHaveAttribute("title", displayName);
+    expect(screen.getByText("Quản trị hệ thống")).toHaveAttribute("title", "Quản trị hệ thống");
+    const logout = screen.getByRole("button", { name: "Đăng xuất" });
+    expect(logout).toHaveAttribute("title", "Đăng xuất");
+    expect(logout).toHaveTextContent("");
+    expect(logout.querySelector("span")).toBeNull();
+    await userEvent.click(logout);
+    expect(onLogout).toHaveBeenCalledOnce();
+  });
+
   it("shows the local admin without offering logout", () => {
     render(<AppSidebar activeView="models" onNavigate={vi.fn()}
       user={{ id: "local-admin", email: "local@vsign.invalid", display_name: "Admin local", role: "admin" }} />);
