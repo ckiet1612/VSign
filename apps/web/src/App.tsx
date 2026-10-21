@@ -1517,6 +1517,7 @@ function WorkspaceApp({ platform }: { platform: WorkspacePlatform }) {
 
       <main
         id="workspace"
+        data-view={activeWorkspaceView}
         className={`workspace ${activeWorkspaceView === "data" && managedData && dataTab !== "collect" ? "workspace-single" : activeWorkspaceView === "recognize" || activeWorkspaceView === "data" ? `mode-${mode}` : "workspace-single"}`}
         aria-labelledby={activeWorkspaceView === "data" && managedData ? "workspace-data-title" : activeWorkspaceView === "recognize" || activeWorkspaceView === "data" ? "workspace-title" : "workspace-page-title"}
       >

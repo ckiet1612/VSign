@@ -4,9 +4,10 @@ import type { WorkspaceView } from "../lib/workspaceNavigation";
 import type { ReactNode } from "react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Bar, BarChart, CartesianGrid, Cell, ComposedChart, Line, ReferenceLine, ResponsiveContainer, Tooltip, XAxis, YAxis, matchByDataKey } from "recharts";
-import { Activity, ArrowUpRight, BarChart3, Boxes, Calendar, CircleAlert, CircleCheck, Cpu, Database, RefreshCw, Robot } from "../icons";
+import { Activity, ArrowUpRight, BarChart3, Calendar, CircleAlert, CircleCheck, Clock, Database, FileCheck, Folder, Radar, RefreshCw, Robot, Stack, Tag } from "../icons";
 import { useSystemDashboard } from "../hooks/useSystemDashboard";
 import { useTabMotion } from "../hooks/useTabMotion";
+import { activityLabel } from "../lib/activityLabels";
 import { morphDateBars, morphDateLine } from "../lib/chartMorph";
 import { DashboardSkeleton } from "./SystemDashboardSkeleton";
 import "../styles/system-dashboard.css";
@@ -27,9 +28,6 @@ const fullDay = (value: string) => new Date(value).toLocaleDateString("vi-VN", {
 const time = (value: string) => new Date(value).toLocaleString("vi-VN", { timeZone: "UTC" });
 const evaluationStatus: Record<string, string> = { queued: "Đang chờ", running: "Đang đánh giá", completed: "Hoàn tất", failed: "Thất bại", cancelled: "Đã hủy" };
 const workerStatus = { online: "Sẵn sàng", offline: "Ngoại tuyến", not_configured: "Chưa cấu hình" };
-const eventNames: Record<string, string> = { "auth.login": "Đăng nhập", "auth.logout": "Đăng xuất", "model.registered": "Đăng ký mô hình",
-  "auth.login_failed": "Đăng nhập thất bại", "permission.denied": "Từ chối truy cập", "model.baseline_observed": "Ghi nhận phiên bản ban đầu",
-  "evaluation.completed": "Hoàn tất đánh giá", "evaluation.created": "Tạo lượt đánh giá", "data.sample_saved": "Lưu mẫu thu" };
 const chartTick = { fontSize: 11, fill: "var(--muted)" };
 const checkedRange = (root: HTMLElement) => root.querySelector<HTMLInputElement>("input:checked")?.parentElement ?? null;
 const tooltipStyle = { borderRadius: 12, border: "1px solid var(--line)", fontSize: 12, boxShadow: "var(--shadow-drop-1)" };
@@ -190,7 +188,7 @@ export function SystemDashboard({ platformUrl, workspaceId, user, runtime, onNav
             <Meter target={targetTotal} segments={[{ value: data.totals.samples - data.period.samples, tone: "ink" }, { value: data.period.samples, tone: "accent" }]} />
           </button>
           <button type="button" className="dash-card dash-kpi is-gauge" onClick={() => onNavigate("data")}>
-            <CardTitle icon={Boxes}>Bộ dữ liệu</CardTitle>
+            <CardTitle icon={Folder}>Bộ dữ liệu</CardTitle>
             <div className="dash-stats"><Stat value={<Count value={data.totals.datasets_sealed} />} label="Đã chốt" />
               <Stat value={<Count value={data.totals.datasets_draft} />} label="Bản nháp" align="end" /></div>
             <div className="dash-gauge-wrap"><Gauge value={datasets ? data.totals.datasets_sealed / datasets : 0} />
@@ -207,7 +205,7 @@ export function SystemDashboard({ platformUrl, workspaceId, user, runtime, onNav
         </section>
 
         <section className="dash-card dash-chart-card" aria-labelledby="daily-samples-title">
-          <div className="dash-card-head"><CardTitle icon={Activity} id="daily-samples-title">Mẫu thu theo ngày</CardTitle>
+          <div className="dash-card-head"><CardTitle icon={Clock} id="daily-samples-title">Mẫu thu theo ngày</CardTitle>
             <span className="dash-card-note">{day(data.start_date)} – {day(data.generated_at)} · UTC</span></div>
           <div className="dash-chart-stats">
             <div className="dash-stat-column"><Stat value={<Count value={data.period.samples} />} label="Mẫu trong kỳ" />
@@ -233,15 +231,17 @@ export function SystemDashboard({ platformUrl, workspaceId, user, runtime, onNav
               </ComposedChart>
             </ResponsiveContainer>
           </div>
-          <div className="dash-legend" aria-hidden="true"><span><i className="is-bar" />Mẫu mỗi ngày</span><span><i className="is-line" />Trung bình 7 ngày</span>
-            {peak && <span><i className="is-accent" />Ngày cao nhất</span>}</div>
-          {data.period.samples === 0 && <p className="dashboard-empty-note">Chưa có mẫu thu trong kỳ</p>}
+          <div className="dash-chart-foot">
+            <div className="dash-legend" aria-hidden="true"><span><i className="is-bar" />Mẫu mỗi ngày</span><span><i className="is-line" />Trung bình 7 ngày</span>
+              {peak && <span><i className="is-accent" />Ngày cao nhất</span>}</div>
+            {data.period.samples === 0 && <p className="dashboard-empty-note">Chưa có mẫu thu trong kỳ</p>}
+          </div>
           <details className="dashboard-data-table"><summary>Số liệu theo ngày</summary><table><thead><tr><th>Ngày UTC</th><th>Mẫu đã lưu</th></tr></thead><tbody>
             {data.daily_samples.map(row => <tr key={row.date}><td>{day(row.date)}</td><td>{number(row.count)}</td></tr>)}</tbody></table></details>
         </section>
 
         <section className="dash-card dash-chart-card" aria-labelledby="label-distribution-title">
-          <div className="dash-card-head"><CardTitle icon={BarChart3} id="label-distribution-title">Phân bố ký hiệu</CardTitle>
+          <div className="dash-card-head"><CardTitle icon={Tag} id="label-distribution-title">Phân bố ký hiệu</CardTitle>
             <LinkButton label="Xem dữ liệu" onClick={() => onNavigate("data")} /></div>
           <div className="dash-chart-stats">
             <Stat value={<Count value={labels.length} />} label="Ký hiệu" />
@@ -263,13 +263,13 @@ export function SystemDashboard({ platformUrl, workspaceId, user, runtime, onNav
                 </BarChart>
               </ResponsiveContainer>
             </div>
-            <div className="dash-legend" aria-hidden="true"><span><i className="is-ink" />Chưa đạt hạn mức</span><span><i className="is-accent" />Đã đạt hạn mức</span></div>
+            <div className="dash-chart-foot"><div className="dash-legend" aria-hidden="true"><span><i className="is-ink" />Chưa đạt hạn mức</span><span><i className="is-accent" />Đã đạt hạn mức</span></div></div>
           </> : <div className="dashboard-chart-empty"><Database size={24} aria-hidden="true" /><p>Chưa có dữ liệu ký hiệu</p></div>}
         </section>
 
         <section className="dash-card dash-list-card" aria-labelledby="quota-title">
-          <div className="dash-card-head"><CardTitle icon={Database} id="quota-title">Tiến độ hạn mức</CardTitle><span className="dash-card-note">Tất cả bộ dữ liệu</span></div>
-          {labels.length ? <div className="dashboard-quota-list">{labels.map(row => <div key={row.label} className="dashboard-quota">
+          <div className="dash-card-head"><CardTitle icon={Stack} id="quota-title">Tiến độ hạn mức</CardTitle><span className="dash-card-note">Tất cả bộ dữ liệu</span></div>
+          {labels.length ? <div className="dashboard-quota-list dash-scroll-fade">{labels.map(row => <div key={row.label} className="dashboard-quota">
             <div><strong>{row.label}</strong><span>{number(row.count)} / {number(row.target)} mẫu</span></div>
             <Meter size="small" label={`Hạn mức ${row.label}`} valueNow={row.count} target={row.target}
               segments={[{ value: row.count, tone: row.target > 0 && row.count >= row.target ? "accent" : "ink" }]} />
@@ -277,7 +277,7 @@ export function SystemDashboard({ platformUrl, workspaceId, user, runtime, onNav
         </section>
 
         <section className="dash-card dash-list-card" aria-labelledby="recent-evaluations-title">
-          <div className="dash-card-head"><CardTitle icon={BarChart3} id="recent-evaluations-title">Đánh giá gần đây</CardTitle>
+          <div className="dash-card-head"><CardTitle icon={FileCheck} id="recent-evaluations-title">Đánh giá gần đây</CardTitle>
             <button className="dash-text-link" type="button" onClick={() => onNavigate("evaluation")}>Tất cả<ArrowUpRight size={14} aria-hidden="true" /></button></div>
           {data.recent_evaluations.length ? <ul className="dashboard-recent-list">{data.recent_evaluations.map(row => <li key={row.id}>
             <span className="dash-avatar" aria-hidden="true"><Robot size={18} /></span>
@@ -289,7 +289,7 @@ export function SystemDashboard({ platformUrl, workspaceId, user, runtime, onNav
 
       <aside className="dash-card dash-side" aria-label="Vận hành">
         <section aria-labelledby="operations-title">
-          <div className="dash-card-head"><CardTitle icon={Cpu} id="operations-title">Vận hành dịch vụ</CardTitle><LinkButton label="Giám sát" onClick={() => onNavigate("monitoring")} /></div>
+          <div className="dash-card-head"><CardTitle icon={Radar} id="operations-title">Vận hành dịch vụ</CardTitle><LinkButton label="Giám sát" onClick={() => onNavigate("monitoring")} /></div>
           <div className="dash-runtime">
             <span className="dash-avatar is-accent" aria-hidden="true"><Robot size={22} /></span>
             <div><strong>{metadata ? metadata.model_version : "Chưa xác nhận metadata runtime"}</strong>
@@ -308,8 +308,8 @@ export function SystemDashboard({ platformUrl, workspaceId, user, runtime, onNav
           <div className="dash-card-head"><CardTitle icon={Activity} id="recent-activity-title">Hoạt động hệ thống</CardTitle>
             <button className="dash-text-link" type="button" onClick={() => onNavigate("activity")}>Nhật ký<ArrowUpRight size={14} aria-hidden="true" /></button></div>
           <p className="dash-card-note"><Count value={data.period.events} /> sự kiện trong {period} ngày</p>
-          {data.recent_activity.length ? <ol className="dash-timeline">{data.recent_activity.map(row => <li key={row.id} className={row.outcome === "success" ? "is-success" : "is-failure"}>
-            <div><strong>{eventNames[row.event_type] ?? row.event_type}</strong><time dateTime={row.occurred_at}>{time(row.occurred_at)} UTC</time></div>
+          {data.recent_activity.length ? <ol className="dash-timeline dash-scroll-fade">{data.recent_activity.map(row => <li key={row.id} className={row.outcome === "success" ? "is-success" : "is-failure"}>
+            <div><strong>{activityLabel(row.event_type) ?? row.event_type}</strong><time dateTime={row.occurred_at}>{time(row.occurred_at)} UTC</time></div>
             <span className={`dashboard-status status-${row.outcome}`}>{row.outcome === "success" ? "Thành công" : "Thất bại"}</span>
           </li>)}</ol> : <p className="dashboard-empty">Chưa có hoạt động trong kỳ</p>}
         </section>

@@ -21,7 +21,7 @@ Muốn huỷ một quầy, vào **Cài đặt → Màn hình khách → Huỷ**.
 
 ## Phục vụ khách
 
-1. Ở trang **Nhận dạng**, chọn quầy rồi chọn **Kết nối**. Trang sẽ nhớ quầy này cho lần tải lại sau.
+1. Ở trang **Nhận dạng**, mở **Nguồn camera** cạnh tiêu đề rồi chọn quầy. Trang sẽ nhớ quầy này cho lần tải lại sau. Chọn **Camera máy này** khi không dùng màn hình khách.
 2. Laptop khách bật camera, và video hiện trên máy nhân viên. Nhận dạng thủ công và tự động vẫn dùng như cũ. Từ và câu hiện trên cả hai máy.
 3. **Cuộc hội thoại mới** xoá từ và câu trên cả hai máy nhưng vẫn giữ kết nối.
 4. **Kết thúc phiên** đưa laptop khách về màn chờ và tắt camera. Máy vẫn còn đăng ký.

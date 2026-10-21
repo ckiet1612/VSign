@@ -357,7 +357,12 @@ html:has(> body > #root:empty) { background: var(--background-2); }
   align-items: stretch;
   background: var(--background-1);
 }
-.workspace-intro { container-type: inline-size; grid-column: 1 / -1; display: grid; gap: 0; padding: var(--space-28) var(--space-28) 0; }
+/* Title on the left, page controls (the counter display) on the right, notes below; same as .workspace-page-header. */
+.workspace-intro {
+  container-type: inline-size; grid-column: 1 / -1; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between;
+  gap: var(--space-16) var(--space-24); padding: var(--space-28) var(--space-28) 0;
+}
+.workspace-intro > .workspace-title { flex: 1 1 auto; min-width: min(100%, 240px); }
 .workspace-title {
   margin: 0; color: var(--ink); font-size: clamp(var(--text-32), 5cqi, var(--text-48)); line-height: 1.08;
   font-weight: 500; letter-spacing: -0.02em; overflow-wrap: anywhere;
@@ -1316,3 +1321,4 @@ button:disabled { cursor: not-allowed; opacity: 0.4; }
 
 /* A counter display's picture that is not live is hidden, so a frozen last frame never passes for live video. */
 .camera-stage.remote-unavailable video { visibility: hidden; }
+.camera-heading-source { margin-left: calc(var(--space-4) - var(--space-8)); color: var(--text-secondary); font-weight: var(--font-regular); }

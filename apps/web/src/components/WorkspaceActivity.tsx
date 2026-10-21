@@ -5,6 +5,7 @@ import { RefreshCw, Server } from "../icons";
 import { useWorkspaceActivity, type WorkspaceActivityFilters } from "../hooks/useWorkspaceActivity";
 import { LoginGate } from "./LoginGate";
 import { CardHead, PageHero } from "./PageChrome";
+import { activityGroups as groups, activityTitle } from "../lib/activityLabels";
 import "../styles/activity.css";
 import { Bone, FieldBone, PillBone, SkeletonRegion, TextBone } from "./Skeleton";
 
@@ -20,33 +21,6 @@ interface WorkspaceActivityProps {
   workspaceId?: string;
 }
 
-const groups = [
-  ["auth", "Đăng nhập & phiên"], ["permission", "Quyền truy cập"], ["model", "Mô hình"],
-  ["collection", "Thu dữ liệu"], ["data", "Bộ dữ liệu"], ["deployment", "Triển khai"], ["evaluation", "Đánh giá"], ["integration", "Tích hợp"],
-] as const;
-const labels: Record<string, string> = {
-  "auth.login": "Đăng nhập", "auth.login_succeeded": "Đăng nhập", "auth.login_success": "Đăng nhập",
-  "auth.login_failed": "Đăng nhập thất bại", "auth.logout": "Đăng xuất",
-  "permission.denied": "Từ chối truy cập", "model.selected": "Đổi mô hình",
-  "permission.member_updated": "Cập nhật thành viên", "permission.invitation_created": "Tạo lời mời",
-  "permission.invitation_revoked": "Thu hồi lời mời", "permission.invitation_accepted": "Chấp nhận lời mời",
-  "model.switched": "Đổi mô hình",
-  "model.selection_changed": "Đổi mô hình", "collection.started": "Bắt đầu thu dữ liệu",
-  "collection.paused": "Tạm dừng thu dữ liệu", "collection.resumed": "Tiếp tục thu dữ liệu",
-  "collection.stopped": "Dừng thu dữ liệu", "collection.completed": "Hoàn tất thu dữ liệu", "collection.sample_saved": "Lưu mẫu",
-  "model.registered": "Thêm phiên bản đề xuất", "model.baseline_observed": "Ghi nhận phiên bản ban đầu",
-  "model.validation_passed": "Đánh giá đạt", "model.validation_failed": "Đánh giá không đạt", "model.approved": "Phiên bản được phê duyệt",
-  "deployment.deploy_requested": "Yêu cầu triển khai", "deployment.rollback_requested": "Yêu cầu hoàn tác",
-  "deployment.succeeded": "Triển khai hoàn tất", "deployment.failed": "Triển khai thất bại",
-  "data.labels_created": "Tạo phiên bản danh mục", "data.dataset_created": "Tạo bộ dữ liệu",
-  "data.quota_changed": "Cập nhật hạn mức mẫu", "data.snapshot_created": "Chốt phiên bản dữ liệu",
-  "evaluation.requested": "Yêu cầu đánh giá", "evaluation.started": "Bắt đầu đánh giá",
-  "evaluation.completed": "Hoàn tất đánh giá", "evaluation.failed": "Đánh giá thất bại", "evaluation.cancelled": "Hủy lượt đánh giá",
-  "integration.key_created": "Tạo khóa API", "integration.key_revoked": "Thu hồi khóa API",
-  "integration.webhook_created": "Thêm webhook", "integration.webhook_updated": "Cập nhật webhook",
-  "integration.webhook_rotated": "Đổi khóa ký webhook", "integration.webhook_test_requested": "Yêu cầu thử webhook",
-  "integration.delivery_retry_requested": "Yêu cầu gửi lại webhook",
-};
 const actorLabels = { user: "Người dùng", system: "Hệ thống", service: "Dịch vụ" };
 const metadataLabels: Record<string, string> = {
   model_id: "ID mô hình", model_version: "Phiên bản mô hình", previous_model_version: "Phiên bản trước",
@@ -97,8 +71,7 @@ function AuditRow({ event }: { event: WorkspaceAuditEvent }) {
   const source = event.metadata.source;
   const sourceLabel = source === "browser_report" ? "Trình duyệt báo cáo"
     : source === undefined || source === "server" || source === "server_action" ? "Máy chủ ghi nhận" : "Nguồn chưa xác định";
-  const title = (Object.hasOwn(labels, event.event_type) ? labels[event.event_type] : undefined)
-    ?? groups.find(([group]) => event.event_type.startsWith(`${group}.`))?.[1] ?? "Hoạt động khác";
+  const title = activityTitle(event.event_type);
   return (
     <article className="activity-row" aria-label={`${title} · ${event.event_id}`}>
       <div className="activity-row-heading">

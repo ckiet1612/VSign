@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState, type FormEvent } from 'react';
 import qrcode from 'qrcode-generator';
 import type { CreatedEnrollment, DisplayOverview } from '../../../../contracts/v1/display';
-import { Check, Copy, Plus, Trash2, Video, X } from '../icons';
+import { Check, Clock, Copy, LayoutGrid, Plus, Trash2, Video, X } from '../icons';
 import { copyText } from '../lib/copy';
 import { WorkspaceApiError, workspaceRequest } from '../lib/workspaceApi';
 import { CardHead } from './PageChrome';
@@ -114,88 +114,91 @@ export function CounterDisplaySettings({ platformUrl }: { platformUrl: string })
   if (overview && !overview.permissions.manage) {
     return <p role="status" className="settings-muted">Chỉ quản trị viên được thêm hoặc huỷ màn hình quầy.</p>;
   }
+  const host = window.location.host;
+  const displays = overview?.displays ?? [];
+  const others = pending.filter(row => row.id !== created?.id);
   return <div className="display-settings">
     <section className="page-card" aria-labelledby="display-settings-title">
       <CardHead icon={Video} id="display-settings-title" title="Màn hình khách" />
-      <p className="settings-muted">
-        Laptop đặt trước khách tại quầy. Đăng ký một lần bằng mã 6 số; máy giữ hiệu lực đến khi bị huỷ.
-        Nhân viên chọn quầy ở trang Nhận dạng để hiển thị camera và câu cho khách.
-      </p>
       {error && <p role="alert" className="settings-error">{error}</p>}
       {message && <p role="status" className="settings-saved"><Check size={16} aria-hidden="true" />{message}</p>}
-      <form className="display-settings-add" onSubmit={event => void create(event)}>
-        <label>Tên quầy<input value={name} maxLength={60} required placeholder="Ví dụ: Quầy 1" disabled={busy}
+      <form className="display-add-form" onSubmit={event => void create(event)}>
+        <label><span className="sr-only">Tên quầy</span><input value={name} maxLength={60} required placeholder="Tên quầy, ví dụ Quầy 1" disabled={busy}
           onChange={event => setName(event.target.value)} /></label>
-        <button type="submit" disabled={busy || !name.trim()}><Plus size={16} aria-hidden="true" />Thêm màn hình quầy</button>
+        <button type="submit" className="settings-primary" disabled={busy || !name.trim()}><Plus size={16} aria-hidden="true" />Thêm màn hình quầy</button>
       </form>
     </section>
 
     {created && codeOpen && <section className="page-card display-enrollment" aria-label={`Đăng ký ${created.name}`}>
-      {claimed?.status === 'awaiting_confirmation' && claimed.verification ? <>
-        <h2>Máy khách đã nhập mã</h2>
-        <p>Kiểm tra màn hình laptop khách hiện đúng mã đối chiếu này rồi xác nhận.</p>
-        <strong className="display-enrollment-code" aria-label={`Mã đối chiếu ${claimed.verification.split('').join(' ')}`}>{claimed.verification}</strong>
+      {claimed?.status === 'awaiting_confirmation' && claimed.verification ? <div className="display-enrollment-main">
+        <h2>{created.name}: xác nhận nếu laptop khách hiện cùng mã</h2>
+        <strong className="display-code-box is-verification" aria-label={`Mã đối chiếu ${claimed.verification.split('').join(' ')}`}>{claimed.verification}</strong>
         <div className="settings-actions">
-          <button type="button" className="team-primary" disabled={busy} onClick={() => void decide(created.id, true)}><Check size={16} aria-hidden="true" />Xác nhận</button>
+          <button type="button" className="settings-primary" disabled={busy} onClick={() => void decide(created.id, true)}><Check size={16} aria-hidden="true" />Xác nhận</button>
           <button type="button" disabled={busy} onClick={() => void decide(created.id, false)}><X size={16} aria-hidden="true" />Từ chối</button>
         </div>
-      </> : <>
-        <h2>Mở <code>/display</code> trên laptop khách và nhập mã</h2>
-        <div className="display-enrollment-body">
-          <div>
-            <strong className="display-enrollment-code" aria-label={`Mã ${created.code.split('').join(' ')}`}>
-              {created.code.slice(0, 3)} {created.code.slice(3)}
-            </strong>
-            <p className="settings-muted">Dùng một lần · còn {countdown ?? '—'}</p>
-            <div className="settings-actions">
-              <button type="button" onClick={() => void copyText(link).then(() => setMessage('Đã sao chép liên kết.'))}>
-                <Copy size={16} aria-hidden="true" />Sao chép liên kết
-              </button>
-              <button type="button" disabled={busy} onClick={() => void decide(created.id, false)}><X size={16} aria-hidden="true" />Huỷ mã</button>
-            </div>
+      </div> : <>
+        <div className="display-enrollment-main">
+          <h2>{created.name}: nhập mã tại <code>{host}/display</code></h2>
+          <strong className="display-code-box" aria-label={`Mã ${created.code.split('').join(' ')}`}>
+            <span>{created.code.slice(0, 3)}</span> <span>{created.code.slice(3)}</span>
+          </strong>
+          <span className="page-status">Còn {countdown ?? '—'}</span>
+          <div className="settings-actions">
+            <button type="button" onClick={() => void copyText(link).then(() => setMessage('Đã sao chép liên kết.'))}>
+              <Copy size={16} aria-hidden="true" />Sao chép liên kết
+            </button>
+            <button type="button" disabled={busy} onClick={() => void decide(created.id, false)}><X size={16} aria-hidden="true" />Huỷ mã</button>
           </div>
-          <QrCode value={link} label="Mã QR mở màn hình quầy" />
         </div>
+        <div className="display-qr-box"><QrCode value={link} label="Mã QR mở màn hình quầy" /></div>
       </>}
     </section>}
 
-    {pending.filter(row => row.id !== created?.id).map(row => <section key={row.id} className="page-card display-enrollment" aria-label={`Đăng ký ${row.name}`}>
-      <h2>{row.name}: {row.status === 'awaiting_confirmation' ? `máy khách chờ xác nhận · mã đối chiếu ${row.verification}` : 'mã đang chờ nhập'}</h2>
-      <div className="settings-actions">
-        {row.status === 'awaiting_confirmation' && <button type="button" className="team-primary" disabled={busy} onClick={() => void decide(row.id, true)}><Check size={16} aria-hidden="true" />Xác nhận</button>}
-        <button type="button" disabled={busy} onClick={() => void decide(row.id, false)}><X size={16} aria-hidden="true" />{row.status === 'awaiting_confirmation' ? 'Từ chối' : 'Huỷ mã'}</button>
-      </div>
-    </section>)}
+    {others.length > 0 && <section className="page-card" aria-labelledby="display-pending-title">
+      <CardHead icon={Clock} id="display-pending-title" title="Mã đang chờ" />
+      <ul className="display-pending">{others.map(row => <li key={row.id} aria-label={`Đăng ký ${row.name}`}>
+        <span><strong>{row.name}</strong>{row.status === 'awaiting_confirmation' && <> · mã <strong>{row.verification}</strong></>}</span>
+        <div className="settings-actions">
+          {row.status === 'awaiting_confirmation' && <button type="button" className="settings-primary" disabled={busy} onClick={() => void decide(row.id, true)}><Check size={16} aria-hidden="true" />Xác nhận</button>}
+          <button type="button" disabled={busy} onClick={() => void decide(row.id, false)}><X size={16} aria-hidden="true" />{row.status === 'awaiting_confirmation' ? 'Từ chối' : 'Huỷ mã'}</button>
+        </div>
+      </li>)}</ul>
+    </section>}
 
     {confirm && <section className="page-card display-confirm" aria-label="Xác nhận thay đổi"><h2>{confirm.title}</h2>
       <div className="settings-actions">
-        <button type="button" className="team-primary" disabled={busy} onClick={() => void run(confirm.action)}>Xác nhận</button>
+        <button type="button" className="settings-primary" disabled={busy} onClick={() => void run(confirm.action)}>Xác nhận</button>
         <button type="button" disabled={busy} onClick={() => setConfirm(null)}>Hủy</button>
       </div>
     </section>}
 
     <section className="page-card" aria-label="Danh sách màn hình quầy">
-      {!overview ? <p role="status" className="settings-muted">Đang tải…</p> : !overview.displays.length ? (
+      <CardHead icon={LayoutGrid} title="Quầy đã đăng ký" />
+      {!overview ? <p role="status" className="settings-muted">Đang tải…</p> : !displays.length ? (
         <p className="settings-muted">Chưa có màn hình quầy nào.</p>
-      ) : <ul className="display-list">{overview.displays.map(row => <li key={row.id}>
+      ) : <ul className="display-list">{displays.map(row => <li key={row.id}>
         {renaming?.id === row.id ? (
-          <form className="display-settings-add" onSubmit={event => { event.preventDefault();
+          <form className="display-rename" onSubmit={event => { event.preventDefault();
             void post(`/${row.id}/rename`, { name: renaming.name.trim() }).then(result => { apply(result); if (result) setRenaming(null); }); }}>
-            <label><span className="sr-only">Tên mới</span><input value={renaming.name} maxLength={60} required autoFocus disabled={busy}
-              onChange={event => setRenaming({ id: row.id, name: event.target.value })} /></label>
-            <button type="submit" disabled={busy || !renaming.name.trim()}>Lưu</button>
+            <label className="sr-only" htmlFor={`display-rename-${row.id}`}>Tên mới</label>
+            <input id={`display-rename-${row.id}`} value={renaming.name} maxLength={60} required autoFocus disabled={busy}
+              onChange={event => setRenaming({ id: row.id, name: event.target.value })} />
+            <button type="submit" className="settings-primary" disabled={busy || !renaming.name.trim()}>Lưu</button>
             <button type="button" onClick={() => setRenaming(null)}>Hủy</button>
           </form>
         ) : <>
-          <div className="display-list-main">
+          <span className={`display-list-icon${row.online ? ' is-online' : ''}`} aria-hidden="true"><Video size={18} /></span>
+          <div className="display-list-main" title={`Lần thấy cuối: ${time(row.last_seen_at)}`}>
             <strong>{row.name}</strong>
-            <span className={`counter-display-status tone-${row.online ? 'ok' : 'off'}`}><i aria-hidden="true" />
-              {row.online ? 'Đang mở' : 'Chưa mở'}{row.staff ? ` · ${row.staff} đang phục vụ` : ''}</span>
-            <span className="settings-muted">Lần thấy cuối: {time(row.last_seen_at)}</span>
+            <span className="display-list-meta">
+              <span className={`counter-display-status tone-${row.online ? 'ok' : 'off'}`}><i aria-hidden="true" />{row.online ? 'Đang mở' : 'Chưa mở'}</span>
+              {row.staff && <span>· {row.staff} đang phục vụ</span>}
+            </span>
           </div>
           <div className="settings-actions">
             <button type="button" disabled={busy} onClick={() => setRenaming({ id: row.id, name: row.name })}>Đổi tên</button>
-            <button type="button" disabled={busy} onClick={() => setConfirm({
+            <button type="button" className="display-danger" disabled={busy} onClick={() => setConfirm({
               title: `Huỷ “${row.name}”? Laptop này sẽ thoát ngay và cần mã mới để đăng ký lại.`,
               action: async () => apply(await post(`/${row.id}/revoke`)),
             })}><Trash2 size={16} aria-hidden="true" />Huỷ</button>

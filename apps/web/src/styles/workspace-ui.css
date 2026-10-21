@@ -25,8 +25,13 @@
    shows one lift instead of two. */
 .workspace-page.is-fallback > :not(.workspace-page-header, .dash-hero) { animation-delay: 120ms; }
 /* The camera views have no page wrapper: the title stays, camera and side column lift in a short cascade.
-   Only mounting replays this, so switching recognize/collect inside the view does not re-animate. */
+   Recognition and Data share the camera and side column (they stay mounted so the camera keeps running), so mounting
+   alone would not replay the lift when switching between them. Each view names its own copy of the keyframes:
+   the name changes with the view, which restarts the animation, while switching recognize/collect inside a view
+   does not. */
+@keyframes content-enter-data { from { opacity: 0.2; transform: translateY(6px); } }
 .workspace:is(.mode-recognize, .mode-collect) > :not(.workspace-intro, .workspace-data) { animation: content-enter 260ms var(--page-ease) backwards; }
+.workspace[data-view="data"]:is(.mode-recognize, .mode-collect) > :not(.workspace-intro, .workspace-data) { animation-name: content-enter-data; }
 .workspace:is(.mode-recognize, .mode-collect) > .panel { animation-delay: 40ms; }
 .workspace:is(.mode-recognize, .mode-collect) > .side-column { animation-delay: 80ms; }
 

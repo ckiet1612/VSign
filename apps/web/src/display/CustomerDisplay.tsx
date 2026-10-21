@@ -9,6 +9,7 @@ import { useCamera } from "../hooks/useCamera";
 import { displaySocketUrl, useDisplayChannel } from "../hooks/useDisplayChannel";
 import { useDisplaySender } from "../hooks/useDisplayPeer";
 import { centeredSquareRect } from "../lib/cameraGeometry";
+import { TriangleAlert, UsersRound, Video } from "../icons";
 import { WorkspaceApiError, workspaceRequest } from "../lib/workspaceApi";
 import "./display.css";
 
@@ -33,6 +34,12 @@ const unpairedText: Record<string, string> = {
 
 type Content = Pick<DisplayStateMessage, "word" | "words" | "sentence" | "phase" | "guide">;
 const EMPTY: Content = { word: null, words: [], sentence: "", phase: "ready", guide: "fixed" };
+
+const MARK = `${import.meta.env.BASE_URL}brand/vsign-mark.svg`;
+
+function Brand() {
+  return <span className="display-brand"><img src={MARK} alt="" width="28" height="28" draggable={false} />VSign</span>;
+}
 
 function readLinkToken(): string | null {
   const token = new URLSearchParams(window.location.hash.slice(1)).get("token");
@@ -78,7 +85,9 @@ export function CustomerDisplay({ platformUrl }: { platformUrl: string }) {
   }, []);
 
   if (!device) {
-    return <main className="customer-display is-message"><p role="status">{loadError || "Đang mở màn hình quầy…"}</p></main>;
+    return <main className="customer-display is-message">
+      <div className="display-card is-quiet"><Brand /><p role="status">{loadError || "Đang mở màn hình quầy…"}</p></div>
+    </main>;
   }
   if (device.state === "unpaired") {
     return <PairingForm platformUrl={platformUrl} notice={notice} onClaimed={state => { setNotice(""); setDevice(state); }} />;
@@ -87,9 +96,10 @@ export function CustomerDisplay({ platformUrl }: { platformUrl: string }) {
     return (
       <main className="customer-display is-message" aria-labelledby="display-confirm-title">
         <div className="display-card">
-          <p className="display-eyebrow">{device.workspace_name}</p>
+          <Brand />
+          <p className="display-eyebrow">{device.workspace_name} · Bước 3/3</p>
           <h1 id="display-confirm-title">Chờ nhân viên xác nhận</h1>
-          <p>Nhân viên sẽ thấy mã này trên máy của họ. Hãy kiểm tra hai mã giống nhau.</p>
+          <p>Máy nhân viên đang hiện mã đối chiếu. Hai mã giống nhau thì nhân viên sẽ xác nhận.</p>
           <strong className="display-verification" aria-label={`Mã đối chiếu ${device.verification.split("").join(" ")}`}>{device.verification}</strong>
           <p className="display-muted">Đăng ký thành “{device.name}”</p>
         </div>
@@ -139,9 +149,10 @@ function PairingForm({ platformUrl, notice, onClaimed }: {
   return (
     <main className="customer-display is-message" aria-labelledby="display-pair-title">
       <form className="display-card" onSubmit={submit}>
-        <p className="display-eyebrow">VSign · Màn hình khách</p>
+        <Brand />
+        <p className="display-eyebrow">Màn hình khách · Bước 2/3</p>
         <h1 id="display-pair-title">Đăng ký màn hình quầy</h1>
-        <p>Nhập mã 6 số nhân viên tạo trong Cài đặt → Màn hình khách. Chỉ cần làm một lần cho máy này.</p>
+        <p>Nhập mã 6 số nhân viên vừa tạo trong Cài đặt → Màn hình khách. Chỉ cần làm một lần cho máy này.</p>
         {notice && <p className="display-notice" role="status">{notice}</p>}
         <label className="display-code">
           <span className="sr-only">Mã 6 số</span>
@@ -150,7 +161,7 @@ function PairingForm({ platformUrl, notice, onClaimed }: {
             placeholder="••••••" aria-describedby={error ? "display-pair-error" : undefined} />
         </label>
         {error && <p id="display-pair-error" className="display-error" role="alert">{error}</p>}
-        <button type="submit" className="display-primary" disabled={busy || code.length !== 6}>
+        <button type="submit" className="display-primary is-block" disabled={busy || code.length !== 6}>
           {busy ? "Đang gửi…" : "Đăng ký"}
         </button>
       </form>
@@ -257,51 +268,83 @@ function CounterScreen({ platformUrl, display, onUnpaired }: {
   const sentence = content.sentence || content.words.join(" ");
   const hint = phaseHint[content.phase];
 
+  const lostNow = lost && !serving;
+  const status = replaced ? { text: "Đang mở ở cửa sổ khác", tone: "off" }
+    : lostNow ? { text: "Mất kết nối", tone: "off" }
+    : !online ? { text: "Đang kết nối…", tone: "wait" }
+    : serving ? { text: staff.name ? `Nhân viên ${staff.name}` : "Đang phục vụ", tone: "ok" }
+    : { text: "Chờ nhân viên", tone: "wait" };
+
   return (
-    <main className={`customer-display${serving ? " is-serving" : ""}`} aria-labelledby="display-counter-title">
-      <h1 id="display-counter-title" className="sr-only">{display.name}</h1>
-      <section className="display-stage" aria-label="Camera của bạn">
-        <video ref={videoRef} autoPlay muted playsInline onLoadedMetadata={updateSize} onResize={updateSize}
-          aria-label="Hình ảnh camera của bạn" hidden={camera.status !== "ready"} />
-        {camera.status === "ready" && content.guide === "fixed" && (
-          <svg className="display-guide" viewBox={`0 0 ${videoSize.width} ${videoSize.height}`} preserveAspectRatio="xMidYMid meet" aria-hidden="true">
-            <rect x={square.x} y={square.y} width={square.width} height={square.height} rx={Math.min(24, square.width / 20)} />
-          </svg>
-        )}
-        {replaced ? (
-          <div className="display-overlay" role="alert">
-            <strong>Màn hình quầy đang mở ở cửa sổ khác</strong>
-            <button type="button" className="display-primary" onClick={() => { setReplaced(false); setSession(value => value + 1); }}>
-              Dùng cửa sổ này
-            </button>
+    <main className={`customer-display is-counter${serving ? " is-serving" : ""}`} aria-labelledby="display-counter-title">
+      <header className="display-topbar">
+        <Brand />
+        <h1 id="display-counter-title">{display.name}</h1>
+        <span className={`display-status tone-${status.tone}`}><i aria-hidden="true" />{status.text}</span>
+      </header>
+      <div className={`display-body${serving ? "" : " is-idle"}`}>
+        <section className={`display-stage${camera.status === "ready" ? " is-live" : ""}`} aria-label="Camera của bạn">
+          <video ref={videoRef} autoPlay muted playsInline onLoadedMetadata={updateSize} onResize={updateSize}
+            aria-label="Hình ảnh camera của bạn" hidden={camera.status !== "ready"} />
+          {camera.status === "ready" && content.guide === "fixed" && (
+            <svg className="display-guide" viewBox={`0 0 ${videoSize.width} ${videoSize.height}`} preserveAspectRatio="xMidYMid meet" aria-hidden="true">
+              <rect x={square.x} y={square.y} width={square.width} height={square.height} rx={Math.min(24, square.width / 20)} />
+            </svg>
+          )}
+          {replaced ? (
+            <div className="display-overlay" role="alert">
+              <div className="display-overlay-card">
+                <span className="display-overlay-icon" aria-hidden="true"><Video size={28} /></span>
+                <strong>Màn hình quầy đang mở ở cửa sổ khác</strong>
+                <button type="button" className="display-primary" onClick={() => { setReplaced(false); setSession(value => value + 1); }}>
+                  Dùng cửa sổ này
+                </button>
+              </div>
+            </div>
+          ) : lostNow ? (
+            <div className="display-overlay is-warning" role="alert">
+              <div className="display-overlay-card">
+                <span className="display-overlay-icon" aria-hidden="true"><TriangleAlert size={28} /></span>
+                <strong>Mất kết nối với máy nhân viên</strong>
+                <span>Đang chờ nối lại…</span>
+              </div>
+            </div>
+          ) : !online ? (
+            <div className="display-overlay" role="status">
+              <div className="display-overlay-card"><span className="display-spinner" aria-hidden="true" /><strong>Đang kết nối máy chủ…</strong></div>
+            </div>
+          ) : !staff.online ? (
+            <div className="display-overlay is-welcome" role="status">
+              <div className="display-overlay-card">
+                <span className="display-overlay-icon" aria-hidden="true"><UsersRound size={36} /></span>
+                <strong>Xin chào!</strong>
+                <span>Nhân viên sẽ kết nối trong giây lát.</span>
+              </div>
+            </div>
+          ) : camera.status !== "ready" ? (
+            <div className="display-overlay" role="status">
+              <div className="display-overlay-card">
+                {camera.status === "requesting" || camera.status === "off" ? <span className="display-spinner" aria-hidden="true" />
+                  : <span className="display-overlay-icon" aria-hidden="true"><TriangleAlert size={28} /></span>}
+                <strong>{camera.status === "requesting" || camera.status === "off" ? "Đang bật camera…" : "Camera chưa sẵn sàng"}</strong>
+                {camera.status !== "requesting" && camera.status !== "off" && <span>{camera.message}</span>}
+              </div>
+            </div>
+          ) : null}
+          {serving && hint && camera.status === "ready" && <p className="display-hint" role="status">{hint}</p>}
+        </section>
+        {/* Nothing to read while nobody serves: the welcome takes the whole screen. */}
+        {serving && <section className="display-captions" aria-live="polite" aria-label="Kết quả nhận dạng">
+          <div className="display-caption">
+            <span className="display-caption-label">Từ vừa nhận</span>
+            <p className="display-word">{content.word ?? " "}</p>
           </div>
-        ) : lost && !(online && staff.online) ? (
-          <div className="display-overlay is-warning" role="alert">
-            <strong>Mất kết nối với máy nhân viên</strong>
-            <span>Đang chờ nối lại…</span>
+          <div className="display-caption is-sentence">
+            <span className="display-caption-label">Câu</span>
+            <p className={`display-sentence${sentence ? "" : " is-empty"}`}>{sentence || "Hãy bắt đầu ký"}</p>
           </div>
-        ) : !online ? (
-          <div className="display-overlay" role="status"><strong>Đang kết nối máy chủ…</strong></div>
-        ) : !staff.online ? (
-          <div className="display-overlay" role="status">
-            <span className="display-eyebrow">{display.name}</span>
-            <strong>Xin chào!</strong>
-            <span>Nhân viên sẽ kết nối trong giây lát.</span>
-          </div>
-        ) : camera.status !== "ready" ? (
-          <div className="display-overlay" role="status">
-            <strong>{camera.status === "requesting" || camera.status === "off" ? "Đang bật camera…" : "Camera chưa sẵn sàng"}</strong>
-            {camera.status !== "requesting" && camera.status !== "off" && <span>{camera.message}</span>}
-          </div>
-        ) : null}
-        {serving && hint && camera.status === "ready" && <p className="display-hint" role="status">{hint}</p>}
-      </section>
-      <section className="display-captions" aria-live="polite" aria-label="Kết quả nhận dạng">
-        {serving ? <>
-          <p className="display-word">{content.word ?? " "}</p>
-          <p className={`display-sentence${sentence ? "" : " is-empty"}`}>{sentence || "Hãy bắt đầu ký"}</p>
-        </> : <p className="display-sentence is-empty">{display.name}</p>}
-      </section>
+        </section>}
+      </div>
     </main>
   );
 }

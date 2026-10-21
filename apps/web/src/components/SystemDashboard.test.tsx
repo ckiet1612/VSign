@@ -83,7 +83,7 @@ it("renders honest empty charts and no invented growth rates", async () => {
 
 it("labels common system events in Vietnamese and preserves unknown event names", async () => {
   const fixture = dashboardFixture(30);
-  fixture.recent_activity = ["permission.denied", "auth.login_failed", "model.baseline_observed", "custom.event"].map(event_type => ({
+  fixture.recent_activity = ["permission.denied", "auth.login_failed", "model.baseline_observed", "display.enrollment_confirmed", "display.future_action", "custom.event"].map(event_type => ({
     id: event_type, event_type, outcome: "failure", occurred_at: "2026-10-18T11:00:00Z",
   }));
   vi.stubGlobal("fetch", async () => new Response(JSON.stringify(fixture)));
@@ -91,5 +91,8 @@ it("labels common system events in Vietnamese and preserves unknown event names"
   expect(await screen.findByText("Từ chối truy cập")).toBeInTheDocument();
   expect(screen.getByText("Đăng nhập thất bại")).toBeInTheDocument();
   expect(screen.getByText("Ghi nhận phiên bản ban đầu")).toBeInTheDocument();
+  expect(screen.getByText("Xác nhận màn hình khách")).toBeInTheDocument();
+  // A new event of a known group is named by its group rather than shown as a raw type.
+  expect(screen.getByText("Màn hình khách")).toBeInTheDocument();
   expect(screen.getByText("custom.event")).toBeInTheDocument();
 });

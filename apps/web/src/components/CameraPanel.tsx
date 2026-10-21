@@ -241,7 +241,7 @@ export function CameraPanel({
   return (
     <section className={`panel camera-panel ${ready ? "is-ready" : "is-idle"}`} aria-labelledby="camera-title">
       <div className="camera-heading">
-        <h2 id="camera-title">Camera</h2>
+        <h2 id="camera-title">Camera{remote && <span className="camera-heading-source"> · {remote.name}</span>}</h2>
         <div className="camera-status-group" aria-label="Trạng thái hệ thống">
           <span className={`camera-state camera-state-${camera.status}`} role="status">
             <i aria-hidden="true" />{cameraStatusText[camera.status]}

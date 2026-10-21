@@ -1,54 +1,164 @@
-/* Staff control for a counter display, under the recognition page title. */
-.counter-display {
-  margin-top: var(--space-16); padding: var(--space-12) var(--space-16); display: grid; gap: var(--space-8);
-  border-radius: var(--radius-16); background: var(--black-4);
+/* Counter display, staff side: the camera-source control in the recognition header and Settings → Màn hình khách.
+   Same language as the page headers: 40px controls on Background 1 with a hairline border, glass popovers. */
+
+/* Camera source picker (not connected) */
+.counter-picker { position: relative; flex: 0 0 auto; }
+.counter-trigger {
+  display: inline-flex; align-items: center; gap: var(--space-8); height: var(--page-control-height); padding: 0 var(--space-12) 0 var(--space-16);
+  border: 1px solid var(--line); border-radius: var(--page-control-radius); background: var(--background-1);
+  color: var(--text-secondary); font: inherit; font-size: var(--text-14); white-space: nowrap; cursor: pointer;
+  /* Same press as every button (styles.css): this rule replaces the global transition, so it lists transform too. */
+  transition: background-color 160ms var(--page-ease), transform 100ms ease;
 }
-.counter-display.is-connected { background: var(--success-soft); }
-.counter-display-row { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-12); }
-.counter-display-icon {
-  width: 32px; height: 32px; flex-shrink: 0; display: grid; place-items: center;
-  border-radius: var(--radius-full); color: var(--ink); background: var(--background-1);
+.counter-trigger > svg:first-child { color: var(--ink); }
+.counter-trigger:hover:not(:disabled), .counter-trigger[aria-expanded="true"] { background: var(--black-4); }
+.counter-trigger:disabled { opacity: .5; cursor: not-allowed; }
+.counter-trigger:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+.counter-trigger > svg:last-child { transition: transform 200ms var(--page-ease); }
+.counter-trigger[aria-expanded="true"] > svg:last-child { transform: rotate(180deg); }
+
+.counter-menu {
+  position: absolute; top: calc(100% + var(--space-8)); right: 0; z-index: 30; width: min(320px, calc(100vw - 32px));
+  max-height: min(420px, 70dvh); overflow-y: auto; padding: var(--space-8);
+  border: var(--border-1) solid var(--black-4); border-radius: var(--radius-16); background: var(--background-3);
+  box-shadow: var(--shadow-glass-2); -webkit-backdrop-filter: var(--blur-40); backdrop-filter: var(--blur-40);
+  animation: counter-menu-in 160ms var(--page-ease);
 }
-.counter-display-picker { flex: 1 1 260px; min-width: 0; display: flex; align-items: center; gap: var(--space-8); }
-.counter-display-picker > span { color: var(--text-secondary); font-size: var(--text-14); line-height: var(--leading-14); white-space: nowrap; }
-.counter-display-picker select { flex: 1; min-width: 0; min-height: 36px; }
-.counter-display-current { flex: 1 1 200px; min-width: 0; display: grid; gap: 2px; }
-.counter-display-current strong { color: var(--ink); font-size: var(--text-14); line-height: var(--leading-14); font-weight: 600; }
+@keyframes counter-menu-in { from { opacity: 0; } }
+.counter-menu [role="menuitemradio"] {
+  width: 100%; min-height: 48px; display: flex; align-items: center; gap: var(--space-12); padding: var(--space-8);
+  border: 0; border-radius: var(--radius-12); background: transparent; color: var(--ink); font: inherit; text-align: left; cursor: pointer;
+}
+.counter-menu [role="menuitemradio"]:hover, .counter-menu [role="menuitemradio"]:focus-visible { background: var(--black-4); outline: none; }
+.counter-menu [role="menuitemradio"] > svg { flex-shrink: 0; margin-left: auto; }
+.counter-menu-icon {
+  display: grid; place-items: center; flex: 0 0 32px; width: 32px; height: 32px; border-radius: var(--radius-8);
+  background: var(--background-2); color: var(--ink);
+}
+.counter-menu-text { display: grid; gap: 2px; min-width: 0; }
+.counter-menu-text strong { font-size: var(--text-14); line-height: var(--leading-14); font-weight: 500; overflow-wrap: anywhere; }
+.counter-menu-text small { display: inline-flex; align-items: center; gap: 6px; color: var(--muted); font-size: var(--text-12); line-height: var(--leading-12); }
+.counter-menu-text small i { flex: 0 0 6px; width: 6px; height: 6px; border-radius: 50%; background: var(--black-20); }
+.counter-menu-text small.is-online { color: var(--text-secondary); }
+.counter-menu-text small.is-online i { background: var(--secondary-green); }
+.counter-menu-label { margin: var(--space-8) var(--space-8) var(--space-4); color: var(--muted); font-size: var(--text-12); line-height: var(--leading-12); }
+.counter-menu-empty { margin: 0; padding: var(--space-8); color: var(--text-secondary); font-size: var(--text-12); line-height: 1.5; }
+
+/* Serving a counter: one grouped control, like the segmented tabs. */
+.counter-display.is-connected {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 2px; padding: 3px; max-width: 100%;
+  border: 1px solid var(--line); border-radius: var(--page-control-radius); background: var(--background-1);
+}
+.counter-session { display: inline-flex; align-items: center; gap: var(--space-8); min-width: 0; padding: 2px var(--space-12) 2px 2px; }
+.counter-session-icon {
+  display: grid; place-items: center; flex: 0 0 30px; width: 30px; height: 30px; border-radius: 9px;
+  background: var(--secondary-green); color: var(--black-100);
+}
+.counter-session-text { display: grid; min-width: 0; }
+.counter-session-text strong { color: var(--ink); font-size: var(--text-14); line-height: 18px; font-weight: 500; overflow-wrap: anywhere; }
+.counter-action {
+  display: inline-flex; align-items: center; gap: 6px; min-height: 34px; padding: 7px var(--space-12);
+  border: 0; border-radius: 9px; background: transparent; color: var(--text-secondary);
+  font: inherit; font-size: var(--text-14); line-height: 18px; white-space: nowrap; cursor: pointer;
+  transition: background-color 160ms var(--page-ease), color 160ms var(--page-ease), transform 100ms ease;
+}
+.counter-action:hover:not(:disabled) { background: var(--black-4); color: var(--ink); }
+.counter-action:disabled { opacity: .45; cursor: not-allowed; }
+.counter-action:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+
 .counter-display-status {
-  display: inline-flex; align-items: center; gap: var(--space-4);
+  display: inline-flex; align-items: center; gap: 6px;
   font-size: var(--text-12); line-height: var(--leading-12); color: var(--text-secondary);
 }
-.counter-display-status i { width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
-.counter-display-status.tone-ok { color: var(--success); }
-.counter-display-status.tone-wait { color: var(--blue); }
+.counter-display-status i { flex: 0 0 6px; width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+.counter-display-status.tone-ok i { background: var(--secondary-green); }
+.counter-display-status.tone-wait i { background: var(--secondary-blue); animation: counter-wait 1.2s ease-in-out infinite; }
 .counter-display-status.tone-off { color: var(--caution); }
-.counter-display-actions { display: flex; flex-wrap: wrap; gap: var(--space-8); }
-.counter-display .secondary-button { min-height: 36px; }
+@keyframes counter-wait { 50% { opacity: .35; } }
+
+/* Notes under the header row (counter in use, taken over, revoked). */
 .counter-display-note {
-  margin: 0; display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-8);
-  color: var(--text-secondary); font-size: var(--text-14); line-height: var(--leading-14);
+  flex: 1 1 100%; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--space-8) var(--space-16);
+  margin: 0; padding: var(--space-8) var(--space-8) var(--space-8) var(--space-16); min-height: 48px; box-sizing: border-box;
+  border-radius: var(--radius-12); background: var(--caution-soft); color: var(--ink); font-size: var(--text-14); line-height: var(--leading-14);
+  animation: content-enter 260ms var(--page-ease) backwards;
 }
-.counter-display-hint {
-  margin: var(--space-12) 0 0; display: flex; align-items: center; gap: var(--space-8);
-  color: var(--text-secondary); font-size: var(--text-14); line-height: var(--leading-14);
+.counter-display-note strong { font-weight: 600; }
+.counter-note-action {
+  min-height: 32px; padding: 0 var(--space-12); border: 0; border-radius: var(--radius-8);
+  background: var(--black-100); color: var(--white-100); font: inherit; font-size: var(--text-14); cursor: pointer;
+}
+.counter-note-action:hover:not(:disabled) { background: var(--accent-hover); }
+.counter-note-action:disabled { opacity: .45; cursor: not-allowed; }
+.counter-note-dismiss {
+  display: grid; place-items: center; width: 32px; height: 32px; padding: 0; border: 0; border-radius: 50%;
+  background: transparent; color: var(--text-secondary); cursor: pointer;
+}
+.counter-note-dismiss:hover { background: var(--black-4); color: var(--ink); }
+:is(.counter-note-action, .counter-note-dismiss):focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+
+@container (max-width: 640px) {
+  .counter-picker, .counter-display.is-connected { flex: 1 1 100%; }
+  .counter-trigger { width: 100%; }
+  .counter-trigger > svg:last-child { margin-left: auto; }
+  .counter-menu { left: 0; right: auto; width: 100%; }
 }
 
 /* Settings → Màn hình khách */
-.display-settings { display: grid; gap: var(--space-16); max-width: 760px; }
-.display-settings-add { display: flex; flex-wrap: wrap; align-items: flex-end; gap: var(--space-12); margin-top: var(--space-12); }
-.display-settings-add label { display: grid; gap: var(--space-4); flex: 1 1 220px; font-size: var(--text-14); }
-.display-enrollment h2 { margin: 0 0 var(--space-12); font-size: var(--text-16); line-height: var(--leading-16); font-weight: 600; }
-.display-enrollment p { margin: 0 0 var(--space-12); }
-.display-enrollment-body { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--space-24); }
-.display-enrollment-code {
-  display: block; margin-bottom: var(--space-8); color: var(--ink); font-size: var(--text-48); line-height: 1.1;
-  font-weight: 700; letter-spacing: 0.08em; font-variant-numeric: tabular-nums;
+.display-settings { display: grid; gap: var(--space-12); max-width: 760px; }
+.display-settings .page-card { margin: 0; }
+.display-settings h2 { margin: 0; font-size: var(--text-16); line-height: 1.4; font-weight: 500; }
+.display-settings h2 code { padding: 1px 6px; border-radius: 6px; background: var(--background-1); font-size: 0.9em; }
+.display-settings .page-card-head h2 { font-size: var(--text-14); font-weight: var(--font-regular); }
+.display-add-form { display: flex; flex-wrap: wrap; align-items: flex-end; gap: var(--space-12); }
+.display-add-form label { flex: 1 1 240px; max-width: 400px; }
+.display-settings input {
+  display: block; width: 100%; min-height: 40px; padding: 9px 12px; border: 1px solid var(--line); border-radius: var(--radius-12);
+  background: var(--background-1); color: var(--ink); font: inherit; font-size: var(--text-14);
 }
-.display-qr { width: 168px; height: 168px; flex-shrink: 0; border-radius: var(--radius-12); }
-.display-list { margin: 0; padding: 0; list-style: none; display: grid; }
-.display-list li {
-  display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--space-12);
-  padding: var(--space-12) 0; border-bottom: var(--border-1, 1px) solid var(--black-10, rgba(0, 0, 0, 0.08));
+.display-settings input:focus-visible { outline: 2px solid var(--focus); outline-offset: 3px; }
+
+/* A code that is out: steps 2 and 3 of enrolling a counter. */
+.display-enrollment { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: var(--space-24); align-items: center; animation: content-enter 260ms var(--page-ease) backwards; }
+.display-enrollment-main { display: grid; gap: var(--space-12); justify-items: start; min-width: 0; }
+.display-code-box {
+  display: inline-flex; align-items: center; gap: var(--space-12); padding: var(--space-12) var(--space-20); border-radius: var(--radius-16);
+  background: var(--background-1); color: var(--ink); font-size: var(--text-48); line-height: 1.1; font-weight: 600;
+  letter-spacing: 0.12em; font-variant-numeric: tabular-nums;
 }
-.display-list li:last-child { border-bottom: 0; }
-.display-list-main { display: grid; gap: 2px; min-width: 0; }
+.display-code-box.is-verification { padding: var(--space-12) var(--space-28); background: var(--black-100); color: var(--white-100); letter-spacing: 0.24em; }
+.display-qr-box { padding: var(--space-12); border-radius: var(--radius-16); background: var(--background-1); }
+.display-qr { display: block; width: 152px; height: 152px; }
+
+.display-pending { display: grid; gap: 2px; margin: 0; padding: 0; list-style: none; }
+.display-pending li, .display-list li {
+  display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-12); padding: var(--space-12) var(--space-16);
+  border-radius: var(--radius-12); background: var(--background-1);
+}
+.display-pending li > span:first-child { flex: 1 1 200px; min-width: 0; font-size: var(--text-14); }
+
+/* Registered counters */
+.display-list { display: grid; gap: 2px; margin: 0; padding: 0; list-style: none; }
+.display-list-icon {
+  display: grid; place-items: center; flex: 0 0 40px; width: 40px; height: 40px; border-radius: var(--radius-12);
+  background: var(--background-2); color: var(--ink);
+}
+.display-list-icon.is-online { background: var(--secondary-green); color: var(--black-100); }
+.display-list-main { display: grid; gap: 4px; flex: 1 1 220px; min-width: 0; }
+.display-list-main strong { font-size: var(--text-14); line-height: var(--leading-14); font-weight: 500; overflow-wrap: anywhere; }
+.display-list-meta { display: flex; flex-wrap: wrap; align-items: center; gap: 4px var(--space-8); color: var(--muted); font-size: var(--text-12); line-height: var(--leading-12); }
+.display-list .settings-actions { gap: var(--space-8); margin-left: auto; }
+.display-list .display-rename { display: flex; flex: 1 1 100%; flex-wrap: wrap; align-items: center; gap: var(--space-8); }
+.display-list .display-rename input { flex: 1 1 220px; max-width: 360px; width: auto; }
+.display-settings button.display-danger:hover:not(:disabled) { background: var(--danger-soft); border-color: transparent; color: var(--red); }
+.display-confirm { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--space-12); background: var(--caution-soft); }
+.display-confirm h2 { flex: 1 1 260px; color: var(--ink); font-size: var(--text-14); }
+
+@media (max-width: 700px) {
+  .display-enrollment { grid-template-columns: minmax(0, 1fr); }
+  .display-code-box { font-size: var(--text-32); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .counter-trigger, .counter-trigger > svg:last-child, .counter-action { transition: none; }
+  .counter-display-status.tone-wait i { animation: none; }
+}

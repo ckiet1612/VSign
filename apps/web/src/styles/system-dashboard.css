@@ -94,8 +94,10 @@
 .dash-meter.is-small .dash-meter-target { margin: -3px 0; }
 .dash-meter.is-small .dash-meter-tail { height: 100%; }
 
-/* Chart cards */
-.dash-chart-card { display: flex; flex-direction: column; gap: var(--space-16); }
+/* Chart cards: the two cards of a row share their row tracks (head, figures, chart, legend, table), so their charts
+   start and end at the same height even when one card's figures take two lines. */
+.dash-chart-card { grid-row: span 5; display: grid; grid-template-rows: subgrid; row-gap: var(--space-16); align-content: start; }
+.dash-chart-foot { display: grid; gap: var(--space-8); align-content: start; }
 .dash-chart-stats { display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); align-items: center; gap: var(--space-12); }
 .dash-chart-stats > .dash-stat.is-end, .dash-chart-stats > .dash-stat-column:last-child { justify-self: end; }
 .dash-stat-column { display: grid; gap: var(--space-12); }
@@ -127,7 +129,7 @@
 .dashboard-recent-list li { display: flex; align-items: center; gap: var(--space-12); padding: var(--space-12) 0; border-bottom: 1px solid var(--line); }
 .dashboard-recent-list li:last-child { border-bottom: 0; }
 .dashboard-recent-list li > div, .dash-timeline li > div { display: grid; flex: 1 1 auto; gap: 2px; min-width: 0; }
-.dashboard-recent-list strong, .dash-timeline strong { font-size: var(--text-14); font-weight: 500; overflow-wrap: anywhere; }
+.dashboard-recent-list strong, .dash-timeline strong { font-size: var(--text-14); font-weight: 500; overflow-wrap: break-word; }
 .dashboard-recent-list time, .dash-timeline time { color: var(--muted); font-size: var(--text-12); }
 .dash-avatar { display: grid; place-items: center; flex-shrink: 0; width: 40px; height: 40px; border-radius: var(--radius-12); background: var(--background-1); color: var(--ink); }
 .dash-avatar.is-accent { width: 48px; height: 48px; border-radius: var(--radius-16); background: var(--secondary-green); color: var(--black-100); }
@@ -156,13 +158,21 @@
 .dashboard-service-grid .is-offline { color: var(--muted); }
 .dashboard-warning { display: grid; gap: 2px; margin: 0; padding: var(--space-12) var(--space-16); border-radius: var(--radius-12); background: var(--caution-soft); color: var(--caution); font-size: var(--text-14); font-weight: 500; }
 .dashboard-warning span { color: var(--text-secondary); font-size: var(--text-12); font-weight: var(--font-regular); }
-.dash-activity { flex: 1 1 auto; padding-top: var(--space-24); border-top: 1px solid var(--line); }
+/* The activity list fills what the operations panel leaves of the row's height and scrolls inside it; it never sets
+   that height itself (size containment), so a long log cannot stretch the page or end in a half-cut row. */
+.dash-activity { flex: 1 1 auto; min-height: 0; padding-top: var(--space-24); border-top: 1px solid var(--line); }
 .dash-activity .dash-card-note { margin-top: calc(var(--space-12) * -1); }
-.dash-timeline { display: grid; max-height: 420px; overflow-y: auto; }
+.dash-timeline { display: grid; align-content: start; flex: 1 1 0; min-height: 240px; overflow-y: auto; contain: size; overscroll-behavior: contain; }
 .dash-timeline li { position: relative; display: flex; align-items: center; gap: var(--space-12); padding: var(--space-12) 0 var(--space-12) var(--space-20); }
 .dash-timeline li::before { content: ""; position: absolute; left: 3px; top: 0; bottom: 0; width: 1px; background: var(--line); }
 .dash-timeline li::after { content: ""; position: absolute; left: 0; top: 50%; width: 7px; height: 7px; margin-top: -4px; border-radius: 50%; background: var(--black-100); }
 .dash-timeline li.is-success::after { background: var(--secondary-green); }
+/* Scrolling lists fade out at the bottom edge while more rows sit below it, so a row cut by the edge reads as
+   "scroll for more". The fade follows the scroll position and is absent when the list fits. */
+@property --dash-fade { syntax: "<length>"; inherits: false; initial-value: 0px; }
+.dash-scroll-fade { mask-image: linear-gradient(to bottom, #000 calc(100% - var(--dash-fade)), transparent);
+  animation: dash-scroll-fade linear both; animation-timeline: scroll(self); }
+@keyframes dash-scroll-fade { from, 96% { --dash-fade: 48px; } to { --dash-fade: 0px; } }
 .dash-timeline li:first-child::before { top: 50%; }
 .dash-timeline li:last-child::before { bottom: 50%; }
 
@@ -174,6 +184,8 @@
   .dash-layout { grid-template-columns: minmax(0, 1fr); }
   .dash-side { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-24); }
   .dash-activity { padding-top: 0; border-top: 0; }
+  /* Below the main column there is no row height to fill: the list takes its own height, up to a limit. */
+  .dash-timeline { flex: none; min-height: 0; max-height: 420px; contain: none; }
 }
 @container dashboard (max-width: 860px) {
   .dash-hero { grid-template-columns: minmax(0, 1fr); }
