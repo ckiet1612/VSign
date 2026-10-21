@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { useTabMotion } from '../hooks/useTabMotion';
+import { useUrlTab } from '../hooks/useUrlTab';
 import type { AuthenticatedUser } from '../../../../contracts/v1/workspace';
 import type { IntegrationWebhook } from '../../../../contracts/v1/integrations';
 import { useWorkspaceIntegrations, type IntegrationAction } from '../hooks/useWorkspaceIntegrations';
@@ -12,6 +13,7 @@ import { Bone, SkeletonRegion, TableBone, TextBone } from "./Skeleton";
 
 interface Props {platformUrl:string;workspaceId:string;user:AuthenticatedUser|null}
 type Tab='keys'|'webhooks'|'logs';
+const tabKeys:readonly Tab[]=['keys','webhooks','logs'];
 const date=(value:string|null)=>value ? new Date(value).toLocaleString('vi-VN') : 'Chưa có';
 const statuses={pending:'Đang chờ',sending:'Đang gửi',delivered:'Đã giao',failed:'Thất bại',cancelled:'Đã hủy'};
 const tones={pending:'',sending:'is-running',delivered:'is-success',failed:'is-failure',cancelled:''};
@@ -20,7 +22,7 @@ const errors:Record<string,string>={network_error:'Không kết nối được',
   claim_inactive:'Lượt gửi đã hết hạn',webhook_disabled:'Webhook đã tắt',scope_denied:'Không đủ quyền',key_inactive:'Khóa hết hạn hoặc đã thu hồi',rate_limited:'Vượt hạn mức'};
 
 function IntegrationWorkspace(props:Props) {
-  const [tab,setTab]=useState<Tab>('keys'),[form,setForm]=useState<'key'|'webhook'|IntegrationWebhook|null>(null);
+  const [tab,setTab]=useUrlTab(tabKeys,'keys'),[form,setForm]=useState<'key'|'webhook'|IntegrationWebhook|null>(null);
   const [secret,setSecret]=useState<string|null>(null),[message,setMessage]=useState(''),[copied,setCopied]=useState(false);
   const [pending,setPending]=useState<IntegrationAction|null>(null);
   const [confirm,setConfirm]=useState<{title:string;action:IntegrationAction}|null>(null);

@@ -1,0 +1,207 @@
+import { useCallback, useEffect, useMemo, useState, type FormEvent } from 'react';
+import qrcode from 'qrcode-generator';
+import type { CreatedEnrollment, DisplayOverview } from '../../../../contracts/v1/display';
+import { Check, Copy, Plus, Trash2, Video, X } from '../icons';
+import { copyText } from '../lib/copy';
+import { WorkspaceApiError, workspaceRequest } from '../lib/workspaceApi';
+import { CardHead } from './PageChrome';
+import '../styles/counter-display.css';
+
+const BASE = '/api/v1/displays';
+const IDLE_REFRESH_MS = 10000;
+// While a code is out, the claim and its verification code should show up without a manual refresh.
+const ENROLLING_REFRESH_MS = 2000;
+const time = (value: string | null) => value ? new Date(value).toLocaleString('vi-VN') : 'Chưa từng';
+
+function QrCode({ value, label }: { value: string; label: string }) {
+  const path = useMemo(() => {
+    const code = qrcode(0, 'M');
+    code.addData(value);
+    code.make();
+    const size = code.getModuleCount();
+    let d = '';
+    for (let row = 0; row < size; row += 1) {
+      for (let col = 0; col < size; col += 1) if (code.isDark(row, col)) d += `M${col + 4} ${row + 4}h1v1h-1z`;
+    }
+    return { d, size: size + 8 };
+  }, [value]);
+  return <svg className="display-qr" viewBox={`0 0 ${path.size} ${path.size}`} role="img" aria-label={label} shapeRendering="crispEdges">
+    <rect width={path.size} height={path.size} fill="#fff" /><path d={path.d} fill="#000" />
+  </svg>;
+}
+
+function useCountdown(until: string | null) {
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => {
+    if (!until) return;
+    const timer = window.setInterval(() => setNow(Date.now()), 1000);
+    return () => window.clearInterval(timer);
+  }, [until]);
+  if (!until) return null;
+  const left = Math.max(0, Math.round((Date.parse(until) - now) / 1000));
+  return `${Math.floor(left / 60)}:${String(left % 60).padStart(2, '0')}`;
+}
+
+type Confirm = { title: string; action: () => Promise<unknown> };
+
+/** Settings → Màn hình khách: enroll counter laptops once with a code, rename them, revoke them. */
+export function CounterDisplaySettings({ platformUrl }: { platformUrl: string }) {
+  const [overview, setOverview] = useState<DisplayOverview | null>(null);
+  const [created, setCreated] = useState<CreatedEnrollment | null>(null);
+  const [name, setName] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState('');
+  const [message, setMessage] = useState('');
+  const [confirm, setConfirm] = useState<Confirm | null>(null);
+  const [renaming, setRenaming] = useState<{ id: string; name: string } | null>(null);
+
+  const refresh = useCallback(async (signal?: AbortSignal) => {
+    try {
+      const { body } = await workspaceRequest<DisplayOverview>(platformUrl, BASE, { cache: 'no-store' }, signal);
+      if (body) { setOverview(body); setError(''); }
+    } catch (cause) {
+      if (!(cause instanceof DOMException && cause.name === 'AbortError')) {
+        setError(cause instanceof WorkspaceApiError ? cause.message : 'Chưa tải được danh sách màn hình quầy.');
+      }
+    }
+  }, [platformUrl]);
+
+  const pending = overview?.enrollments ?? [];
+  const enrolling = !!created || pending.length > 0;
+  useEffect(() => {
+    const controller = new AbortController();
+    void refresh(controller.signal);
+    const timer = window.setInterval(() => { if (document.visibilityState === 'visible') void refresh(); },
+      enrolling ? ENROLLING_REFRESH_MS : IDLE_REFRESH_MS);
+    return () => { controller.abort(); window.clearInterval(timer); };
+  }, [refresh, enrolling]);
+
+  const post = async (path: string, body?: unknown) => {
+    setBusy(true); setError(''); setMessage('');
+    try {
+      const { body: result } = await workspaceRequest<unknown>(platformUrl, BASE + path, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body ?? {}),
+      });
+      return result;
+    } catch (cause) {
+      setError(cause instanceof WorkspaceApiError ? cause.message : 'Chưa lưu được thay đổi. Hãy thử lại.');
+      return null;
+    } finally {
+      setBusy(false);
+    }
+  };
+  const apply = (result: unknown) => { if (result && typeof result === 'object' && 'displays' in result) setOverview(result as DisplayOverview); };
+
+  const create = async (event: FormEvent) => {
+    event.preventDefault();
+    const result = await post('/enrollments', { name: name.trim() });
+    if (result) { setCreated(result as CreatedEnrollment); setName(''); void refresh(); }
+  };
+
+  const claimed = created ? pending.find(row => row.id === created.id) : undefined;
+  // The code card closes once its enrollment is decided or gone (confirmed, rejected, expired).
+  const codeOpen = created && (!overview || pending.some(row => row.id === created.id));
+  const countdown = useCountdown(codeOpen ? claimed?.expires_at ?? created.expires_at : null);
+  const link = created ? `${window.location.origin}/display#token=${created.link_token}` : '';
+
+  const decide = async (id: string, accept: boolean) => {
+    apply(await post(`/enrollments/${id}/${accept ? 'confirm' : 'reject'}`));
+    if (created?.id === id) setCreated(null);
+    if (accept) setMessage('Đã xác nhận màn hình quầy.');
+  };
+  const run = async (action: () => Promise<unknown>) => { await action(); setConfirm(null); };
+
+  if (overview && !overview.permissions.manage) {
+    return <p role="status" className="settings-muted">Chỉ quản trị viên được thêm hoặc huỷ màn hình quầy.</p>;
+  }
+  return <div className="display-settings">
+    <section className="page-card" aria-labelledby="display-settings-title">
+      <CardHead icon={Video} id="display-settings-title" title="Màn hình khách" />
+      <p className="settings-muted">
+        Laptop đặt trước khách tại quầy. Đăng ký một lần bằng mã 6 số; máy giữ hiệu lực đến khi bị huỷ.
+        Nhân viên chọn quầy ở trang Nhận dạng để hiển thị camera và câu cho khách.
+      </p>
+      {error && <p role="alert" className="settings-error">{error}</p>}
+      {message && <p role="status" className="settings-saved"><Check size={16} aria-hidden="true" />{message}</p>}
+      <form className="display-settings-add" onSubmit={event => void create(event)}>
+        <label>Tên quầy<input value={name} maxLength={60} required placeholder="Ví dụ: Quầy 1" disabled={busy}
+          onChange={event => setName(event.target.value)} /></label>
+        <button type="submit" disabled={busy || !name.trim()}><Plus size={16} aria-hidden="true" />Thêm màn hình quầy</button>
+      </form>
+    </section>
+
+    {created && codeOpen && <section className="page-card display-enrollment" aria-label={`Đăng ký ${created.name}`}>
+      {claimed?.status === 'awaiting_confirmation' && claimed.verification ? <>
+        <h2>Máy khách đã nhập mã</h2>
+        <p>Kiểm tra màn hình laptop khách hiện đúng mã đối chiếu này rồi xác nhận.</p>
+        <strong className="display-enrollment-code" aria-label={`Mã đối chiếu ${claimed.verification.split('').join(' ')}`}>{claimed.verification}</strong>
+        <div className="settings-actions">
+          <button type="button" className="team-primary" disabled={busy} onClick={() => void decide(created.id, true)}><Check size={16} aria-hidden="true" />Xác nhận</button>
+          <button type="button" disabled={busy} onClick={() => void decide(created.id, false)}><X size={16} aria-hidden="true" />Từ chối</button>
+        </div>
+      </> : <>
+        <h2>Mở <code>/display</code> trên laptop khách và nhập mã</h2>
+        <div className="display-enrollment-body">
+          <div>
+            <strong className="display-enrollment-code" aria-label={`Mã ${created.code.split('').join(' ')}`}>
+              {created.code.slice(0, 3)} {created.code.slice(3)}
+            </strong>
+            <p className="settings-muted">Dùng một lần · còn {countdown ?? '—'}</p>
+            <div className="settings-actions">
+              <button type="button" onClick={() => void copyText(link).then(() => setMessage('Đã sao chép liên kết.'))}>
+                <Copy size={16} aria-hidden="true" />Sao chép liên kết
+              </button>
+              <button type="button" disabled={busy} onClick={() => void decide(created.id, false)}><X size={16} aria-hidden="true" />Huỷ mã</button>
+            </div>
+          </div>
+          <QrCode value={link} label="Mã QR mở màn hình quầy" />
+        </div>
+      </>}
+    </section>}
+
+    {pending.filter(row => row.id !== created?.id).map(row => <section key={row.id} className="page-card display-enrollment" aria-label={`Đăng ký ${row.name}`}>
+      <h2>{row.name}: {row.status === 'awaiting_confirmation' ? `máy khách chờ xác nhận · mã đối chiếu ${row.verification}` : 'mã đang chờ nhập'}</h2>
+      <div className="settings-actions">
+        {row.status === 'awaiting_confirmation' && <button type="button" className="team-primary" disabled={busy} onClick={() => void decide(row.id, true)}><Check size={16} aria-hidden="true" />Xác nhận</button>}
+        <button type="button" disabled={busy} onClick={() => void decide(row.id, false)}><X size={16} aria-hidden="true" />{row.status === 'awaiting_confirmation' ? 'Từ chối' : 'Huỷ mã'}</button>
+      </div>
+    </section>)}
+
+    {confirm && <section className="page-card display-confirm" aria-label="Xác nhận thay đổi"><h2>{confirm.title}</h2>
+      <div className="settings-actions">
+        <button type="button" className="team-primary" disabled={busy} onClick={() => void run(confirm.action)}>Xác nhận</button>
+        <button type="button" disabled={busy} onClick={() => setConfirm(null)}>Hủy</button>
+      </div>
+    </section>}
+
+    <section className="page-card" aria-label="Danh sách màn hình quầy">
+      {!overview ? <p role="status" className="settings-muted">Đang tải…</p> : !overview.displays.length ? (
+        <p className="settings-muted">Chưa có màn hình quầy nào.</p>
+      ) : <ul className="display-list">{overview.displays.map(row => <li key={row.id}>
+        {renaming?.id === row.id ? (
+          <form className="display-settings-add" onSubmit={event => { event.preventDefault();
+            void post(`/${row.id}/rename`, { name: renaming.name.trim() }).then(result => { apply(result); if (result) setRenaming(null); }); }}>
+            <label><span className="sr-only">Tên mới</span><input value={renaming.name} maxLength={60} required autoFocus disabled={busy}
+              onChange={event => setRenaming({ id: row.id, name: event.target.value })} /></label>
+            <button type="submit" disabled={busy || !renaming.name.trim()}>Lưu</button>
+            <button type="button" onClick={() => setRenaming(null)}>Hủy</button>
+          </form>
+        ) : <>
+          <div className="display-list-main">
+            <strong>{row.name}</strong>
+            <span className={`counter-display-status tone-${row.online ? 'ok' : 'off'}`}><i aria-hidden="true" />
+              {row.online ? 'Đang mở' : 'Chưa mở'}{row.staff ? ` · ${row.staff} đang phục vụ` : ''}</span>
+            <span className="settings-muted">Lần thấy cuối: {time(row.last_seen_at)}</span>
+          </div>
+          <div className="settings-actions">
+            <button type="button" disabled={busy} onClick={() => setRenaming({ id: row.id, name: row.name })}>Đổi tên</button>
+            <button type="button" disabled={busy} onClick={() => setConfirm({
+              title: `Huỷ “${row.name}”? Laptop này sẽ thoát ngay và cần mã mới để đăng ký lại.`,
+              action: async () => apply(await post(`/${row.id}/revoke`)),
+            })}><Trash2 size={16} aria-hidden="true" />Huỷ</button>
+          </div>
+        </>}
+      </li>)}</ul>}
+    </section>
+  </div>;
+}

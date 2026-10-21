@@ -38,6 +38,8 @@ export function useWorkspaceNavigation(landing: WorkspaceView = "recognize") {
     const url = new URL(window.location.href);
     if (nextView === "recognize" && landingRef.current === "recognize") url.searchParams.delete("view");
     else url.searchParams.set("view", nextView);
+    // A section belongs to the page it was chosen on; the next page opens on its own first section.
+    if (nextView !== currentView()) url.searchParams.delete("tab");
     window.history.pushState({}, "", url);
   }, []);
 

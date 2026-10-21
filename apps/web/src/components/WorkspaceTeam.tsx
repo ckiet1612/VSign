@@ -3,6 +3,7 @@ import type { AuthenticatedUser } from '../../../../contracts/v1/workspace';
 import type { GrantableRole, TeamChange, TeamMember, TeamTab } from '../../../../contracts/v1/team';
 import { useWorkspaceTeam, type TeamAction } from '../hooks/useWorkspaceTeam';
 import { useTabMotion } from '../hooks/useTabMotion';
+import { useUrlTab } from '../hooks/useUrlTab';
 import { ArrowLeft, ArrowRight, Check, Copy, Mail, Pause, Play, Plus, RefreshCw, ShieldCheck, Trash2, UsersRound, X } from '../icons';
 import { PageHero } from './PageChrome';
 import { memberStatusLabels, permissionLabels, teamActionLabels, teamRoleLabels } from '../lib/teamLabels';
@@ -12,6 +13,7 @@ import { Bone, SkeletonRegion, TableBone, TextBone } from "./Skeleton";
 
 interface Props {platformUrl:string; workspaceId:string; user:AuthenticatedUser|null}
 const tabs:[TeamTab,string][]=[['members','Thành viên'],['roles','Vai trò'],['invitations','Lời mời'],['audit','Nhật ký quyền']];
+const tabKeys=tabs.map(([id])=>id);
 const invitationStatuses={pending:'Đang chờ',accepted:'Đã chấp nhận',expired:'Hết hạn',revoked:'Đã thu hồi'};
 const date=(value:string)=>new Date(value).toLocaleString('vi-VN');
 function describe(value:TeamChange|null) {
@@ -19,7 +21,7 @@ function describe(value:TeamChange|null) {
 }
 
 function TeamWorkspace(props:Props) {
-  const [tab,setTab]=useState<TeamTab>('members'),[search,setSearch]=useState(''),[draftSearch,setDraftSearch]=useState('');
+  const [tab,setTab]=useUrlTab(tabKeys,'members'),[search,setSearch]=useState(''),[draftSearch,setDraftSearch]=useState('');
   const [cursor,setCursor]=useState(''),[history,setHistory]=useState<string[]>([]);
   const [actionFilter,setActionFilter]=useState(''),[memberId,setMemberId]=useState(''),[memberName,setMemberName]=useState(''),[fromAt,setFromAt]=useState(''),[toAt,setToAt]=useState('');
   const [form,setForm]=useState(false),[email,setEmail]=useState(''),[inviteRole,setInviteRole]=useState<GrantableRole>('operator'),[days,setDays]=useState(7);

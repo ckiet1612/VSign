@@ -43,6 +43,8 @@ from app.model_manifest import load_model_manifest
 from app.platform_db import create_database
 from app.platform_auth import SESSION_COOKIE_NAME, bootstrap_platform, resolve_principal
 from app.platform_router import create_platform_router
+from app.display_hub import DisplayHub
+from app.display_router import create_display_socket
 from app.sentence import SentenceComposer, create_sentence_composer
 from contracts.v1.workspace import WORKSPACE_API_VERSION
 
@@ -183,6 +185,7 @@ def create_app(
     app.state.collection_lock = Lock()
     app.state.platform_database = None
     app.state.password_hasher = password_hasher
+    app.state.display_hub = DisplayHub()
     app.include_router(
         create_platform_router(
             resolved_settings,
@@ -241,7 +244,7 @@ def create_app(
         is_evaluation_write = request.method == "POST" and request.url.path.startswith("/api/v1/workspace/evaluations")
         is_integration_write = request.method == "POST" and request.url.path.startswith("/api/v1/workspace/integrations")
         is_team_write = request.method == 'POST' and request.url.path.startswith(('/api/v1/workspace/team', '/api/v1/invitations/'))
-        is_settings_write = request.method == 'POST' and request.url.path.startswith('/api/v1/workspace/settings')
+        is_settings_write = request.method == 'POST' and request.url.path.startswith(('/api/v1/workspace/settings', '/api/v1/displays'))
         is_data_write = request.method == "POST" and request.url.path.startswith("/api/v1/workspace/data")
         is_data_sample = is_data_write and request.url.path.endswith("/samples")
         if is_models_write or is_evaluation_write or is_integration_write or is_team_write or is_settings_write or is_data_write or request.url.path in {"/api/v1/auth/login", "/api/v1/workspace/audit/client-events"}:
@@ -550,6 +553,8 @@ def create_app(
                 await websocket.send_json(response.model_dump(mode="json"))
         except WebSocketDisconnect:
             return
+
+    app.add_api_websocket_route("/ws/display/{display_id}", create_display_socket(resolved_settings))
 
     if resolved_settings.app_environment == "development" and resolved_settings.dev_test_enabled:
         from app.dev_test import create_dev_test_router

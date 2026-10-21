@@ -23,6 +23,10 @@ function render() {
     void import("./components/InvitationAcceptance").then(({ InvitationAcceptance }) => {
       root.render(<StrictMode><InvitationAcceptance platformUrl={config.platformHttpUrl} /></StrictMode>);
     });
+  } else if (!config.publicDemo && window.location.pathname === "/display") {
+    void import("./display/CustomerDisplay").then(({ CustomerDisplay }) => {
+      root.render(<StrictMode><CustomerDisplay platformUrl={config.platformHttpUrl} /></StrictMode>);
+    });
   } else if (import.meta.env.DEV && !config.publicDemo && window.location.pathname === "/dev-test") {
     void import("./dev-test/DevTestApp").then(({ default: DevTestApp }) => {
       root.render(<StrictMode><DevTestApp /></StrictMode>);

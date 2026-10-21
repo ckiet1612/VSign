@@ -57,6 +57,8 @@ interface CameraPanelProps {
   onPointerDown: (event: ReactPointerEvent<HTMLButtonElement>) => void;
   onPointerUp: (event: ReactPointerEvent<HTMLButtonElement>) => void;
   onPointerCancel: (event: ReactPointerEvent<HTMLButtonElement>) => void;
+  /** The picture comes from a counter display's camera; it is switched on there, not here. */
+  remote?: { name: string };
 }
 
 const connectionText: Record<ConnectionStatus, string> = {
@@ -99,6 +101,7 @@ export function CameraPanel({
   onPointerDown,
   onPointerUp,
   onPointerCancel,
+  remote,
 }: CameraPanelProps) {
   const startCameraButtonRef = useRef<HTMLButtonElement>(null);
   const ready = camera.status === "ready";
@@ -252,14 +255,14 @@ export function CameraPanel({
       <div
         className={`camera-stage ${
           recording ? "is-recording" : ""
-        } ${ready ? "camera-ready-stage" : ""} framing-${framingMode}`}
+        } ${ready ? "camera-ready-stage" : ""} ${remote && !ready ? "remote-unavailable" : ""} framing-${framingMode}`}
       >
         <video
           ref={videoRef}
           autoPlay
           muted
           playsInline
-          aria-label="Hình ảnh camera trực tiếp"
+          aria-label={remote ? `Hình ảnh camera trực tiếp từ ${remote.name}` : "Hình ảnh camera trực tiếp"}
           onLoadedMetadata={updateVideoDimensions}
           onResize={updateVideoDimensions}
         />
@@ -319,17 +322,19 @@ export function CameraPanel({
             {onboardingStatus === "off" || onboardingStatus === "requesting" ? <Camera size={22} /> : <CameraOff size={22} />}
           </span>
           <strong>
-            {onboardingStatus === "off" || onboardingStatus === "requesting"
+            {remote
+              ? onboardingStatus === "interrupted" ? `Mất video từ ${remote.name}` : `Đang chờ video từ ${remote.name}`
+              : onboardingStatus === "off" || onboardingStatus === "requesting"
               ? "Bật camera để bắt đầu"
               : onboardingStatus === "denied" ? "Cần quyền truy cập camera" : "Camera chưa sẵn sàng"}
           </strong>
-          {onboardingStatus !== "off" && !ready && camera.message && (
+          {(remote || onboardingStatus !== "off") && !ready && camera.message && (
             <p className="camera-message" aria-live="polite">{camera.message}</p>
           )}
-          <button ref={startCameraButtonRef} type="button" className="camera-start-button"
+          {!remote && <button ref={startCameraButtonRef} type="button" className="camera-start-button"
             onClick={() => void camera.enable()} disabled={camera.status === "requesting"}>
             <Camera size={18} aria-hidden="true" />{camera.status === "requesting" ? "Đang bật…" : "Bật camera"}
-          </button>
+          </button>}
         </div>
         {recording && (
           <div className="recording-badge">
@@ -382,7 +387,7 @@ export function CameraPanel({
             )) : holdButton}
           </div>
           <button type="button" className="secondary-button camera-stop-button camera-stop-icon"
-            aria-label="Tắt camera" title="Tắt camera"
+            aria-label="Tắt camera" title="Tắt camera" hidden={!!remote}
             aria-hidden={!ready || undefined} inert={!ready} onClick={stopCamera}>
             <CameraOff size={18} aria-hidden="true" />
           </button>

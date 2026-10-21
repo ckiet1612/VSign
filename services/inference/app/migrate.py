@@ -17,9 +17,10 @@ from app import evaluation_db  # Register evaluation queue metadata.
 from app import integration_db  # Register integration metadata.
 from app import team_db  # Register invitations and team metadata.
 from app import workspace_settings_db  # Register workspace and personal preferences.
+from app import display_db  # Register counter displays.
 
 
-CURRENT_SCHEMA_REVISION = "0011_system_admin"
+CURRENT_SCHEMA_REVISION = "0012_display_devices"
 
 
 def migration_config() -> Config:

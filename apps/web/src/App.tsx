@@ -51,10 +51,13 @@ import { WorkspaceTeam } from "./components/WorkspaceTeam";
 import { WorkspaceSettings } from "./components/WorkspaceSettings";
 import { useWorkspaceSessionDefaults } from "./hooks/useWorkspaceSessionDefaults";
 import { WorkspaceData, type DataTab } from "./components/WorkspaceData";
+import { useUrlTab } from "./hooks/useUrlTab";
 import { useWorkspaceData } from "./hooks/useWorkspaceData";
 import { WorkspaceTopbar } from "./components/WorkspaceTopbar";
 import { config } from "./config";
 import { useCamera } from "./hooks/useCamera";
+import { useCounterDisplay } from "./hooks/useCounterDisplay";
+import { CounterDisplayControl } from "./components/CounterDisplayControl";
 import { useAutomaticSignCapture } from "./hooks/useAutomaticSignCapture";
 import { useAutomaticInferenceQueue } from "./hooks/useAutomaticInferenceQueue";
 import { useAutomaticSentence } from "./hooks/useAutomaticSentence";
@@ -127,6 +130,7 @@ const AUTOMATIC_PREDICTION_THRESHOLDS = {
   margin: 0.24,
 } as const;
 
+const DATA_TABS: readonly DataTab[] = ["collect", "sessions", "datasets", "labels"];
 const PERSONAL_COLLECTION_BATCH = "personal-100";
 const PERSONAL_COLLECTION_TARGET = 100;
 
@@ -222,9 +226,11 @@ function WorkspaceApp({ platform }: { platform: WorkspacePlatform }) {
   const sentenceCaptureRef = useRef<{ capture: SentenceCapture; at: number } | null>(null);
   const [metadata, setMetadata] = useState<InferenceMetadata | null>(null);
   const [metadataError, setMetadataError] = useState(false);
+  // Until the first connection attempt resolves, "disconnected" is only the initial state, not a lost connection.
+  const [connectionSettled, setConnectionSettled] = useState(false);
   const [mode, setMode] = useState<AppMode>(workspaceView === "data" && platform.available ? "collect" : "recognize");
   const managedData = platform.available && platform.context !== null && !config.publicDemo;
-  const [dataTab, setDataTab] = useState<DataTab>("collect");
+  const [dataTab, setDataTab] = useUrlTab(DATA_TABS, "collect", workspaceView === "data");
   const [datasetId, setDatasetId] = useState("");
   const data = useWorkspaceData({ platformUrl: config.platformHttpUrl,
     workspaceId: platform.context?.workspace_id ?? "local", user: platform.user, enabled: managedData });
@@ -419,10 +425,21 @@ function WorkspaceApp({ platform }: { platform: WorkspacePlatform }) {
     purpose: mode,
     inferenceRoute,
   });
+  // While the server connection is pending, the guide already shows the server's fixed square, so it does not
+  // start as the wide local-model frame and jump to the square once the socket opens.
+  const guideFraming = !config.publicDemo && (inferenceRoute === "unavailable" || !connectionSettled)
+    ? "fixed" : capturePipeline.framing;
   // The server model decides whether RGB clips are trimmed and cropped around the signer.
   const bodyFraming = inferenceRoute === "server" && metadata?.input_framing === "trim-bodycrop-v1";
   const predictLandmarks = localModel.predict;
-  const camera = useCamera(videoRef);
+  // A counter display swaps the camera source for the customer laptop's camera; everything downstream is unchanged.
+  const counterDisplay = useCounterDisplay({
+    platformUrl: config.platformHttpUrl,
+    enabled: !config.publicDemo && platform.available && platform.user !== null &&
+      platform.capabilities?.recognize !== false && workspaceView === "recognize" && mode === "recognize",
+    storageKey: platform.user ? `vsign.counterDisplay:${platform.context?.workspace_id ?? "local"}:${platform.user.id}` : null,
+  });
+  const camera = useCamera(videoRef, counterDisplay.remoteStream);
   const captureModeTouched = useRef(false);
   useWorkspaceSessionDefaults({ platformUrl: config.platformHttpUrl, workspaceId: platform.context?.workspace_id ?? 'local',
     identity: platform.user ? `${platform.user.id}:${platform.user.role}` : null,
@@ -1106,6 +1123,26 @@ function WorkspaceApp({ platform }: { platform: WorkspacePlatform }) {
     }
   };
 
+  const clearSentence = () => {
+    autoTranscriptRef.current.invalidate();
+    sentenceSequencesRef.current.clear();
+    sentenceCaptureRef.current = null;
+    automaticTranscriptCaptureRef.current = null;
+    manualTranscriptCaptureRef.current = null;
+    automaticSentence.reset();
+    applyTranscriptAction({ type: "clear" });
+    setAutomaticAddedSequence(null);
+    invalidateManualComposition();
+  };
+
+  // Both screens start over; the counter connection and the camera stay as they are.
+  const startNewConversation = () => {
+    clearSentence();
+    dispatchInference({ type: "capture_cancelled", message: "" });
+    counterDisplay.newConversation();
+    setNotice("Đã bắt đầu cuộc hội thoại mới.");
+  };
+
   const copyTranscript = async () => {
     try {
       const draftText = automaticSentence.drafts.map(item => {
@@ -1291,7 +1328,9 @@ function WorkspaceApp({ platform }: { platform: WorkspacePlatform }) {
   };
 
   const visiblePhase =
-    inference.pendingSequence !== null
+    inference.phase === "disconnected" && !connectionSettled
+      ? "ready"
+      : inference.pendingSequence !== null
       ? inference.phase
       : capture.status === "capturing" ||
     automaticPhase === "capturing" || automaticPhase === "postroll"
@@ -1299,6 +1338,21 @@ function WorkspaceApp({ platform }: { platform: WorkspacePlatform }) {
       : capture.status === "encoding" || automaticPhase === "encoding"
         ? "processing"
         : inference.phase;
+  const publishToCounter = counterDisplay.publish;
+  const counterConnected = counterDisplay.connected;
+  const counterSentence = automaticSentenceEnabled
+    ? automaticSentence.drafts.filter(draft => draft.sentence).at(-1)?.sentence ?? ""
+    : composedSentence;
+  const counterWord = inference.prediction?.status === "ok" && inference.prediction.label !== IDLE_LABEL
+    ? inference.prediction.label : null;
+  useEffect(() => {
+    if (!counterConnected) return;
+    publishToCounter({
+      phase: visiblePhase, word: counterWord?.slice(0, 64) ?? null,
+      words: transcript.words.slice(-200).map(word => word.slice(0, 64)),
+      sentence: counterSentence.slice(0, 600), guide: guideFraming,
+    });
+  }, [counterConnected, publishToCounter, visiblePhase, counterWord, transcript.words, counterSentence, guideFraming]);
   const collectionEnabled =
     managedData ? data.snapshot?.permissions.collect === true && data.snapshot.collection_enabled : !config.publicDemo &&
     metadata?.collection_enabled === true &&
@@ -1344,6 +1398,9 @@ function WorkspaceApp({ platform }: { platform: WorkspacePlatform }) {
       : config.publicDemo && localModel.status === "loading"
         ? "connecting"
         : socket.status;
+  useEffect(() => {
+    if (connectionState !== "connecting") setConnectionSettled(true);
+  }, [connectionState]);
   const activeModelVersion = inferenceRoute === "local" && localModel.status === "ready"
     ? localModel.modelVersion
     : metadata?.model_version ?? "";
@@ -1537,6 +1594,10 @@ function WorkspaceApp({ platform }: { platform: WorkspacePlatform }) {
           <h1 id="workspace-title" className="workspace-title">
             {mode === "recognize" ? "Nhận dạng ký hiệu" : "Thu dữ liệu cải thiện AI"}
           </h1>
+          {mode === "recognize" && !config.publicDemo && platform.user && (
+            <CounterDisplayControl display={counterDisplay} onNewConversation={startNewConversation}
+              locked={capture.status !== "idle" || automaticPhase === "capturing" || automaticPhase === "postroll"} />
+          )}
         </header>}
         <CameraPanel
           videoRef={videoRef}
@@ -1545,7 +1606,7 @@ function WorkspaceApp({ platform }: { platform: WorkspacePlatform }) {
           captureStatus={capture.status}
           canCapture={canCapture}
           purpose={mode}
-          framingMode={capturePipeline.framing}
+          framingMode={guideFraming}
           captureInputMode={captureInputMode}
           automaticPhase={automaticPhase}
           automaticQueue={{
@@ -1584,6 +1645,7 @@ function WorkspaceApp({ platform }: { platform: WorkspacePlatform }) {
           onPointerDown={handlePointerDown}
           onPointerUp={finishPointerCapture}
           onPointerCancel={finishPointerCapture}
+          remote={counterDisplay.connected ? { name: counterDisplay.displayName || "máy khách" } : undefined}
         />
         <div className="side-column">
           {mode === "collect" && (
@@ -1639,18 +1701,7 @@ function WorkspaceApp({ platform }: { platform: WorkspacePlatform }) {
                 invalidateManualComposition();
                 setNotice("Đã hoàn tác từ cuối.");
               }}
-              onClear={() => {
-                autoTranscriptRef.current.invalidate();
-                sentenceSequencesRef.current.clear();
-                sentenceCaptureRef.current = null;
-                automaticTranscriptCaptureRef.current = null;
-                manualTranscriptCaptureRef.current = null;
-                automaticSentence.reset();
-                applyTranscriptAction({ type: "clear" });
-                setAutomaticAddedSequence(null);
-                invalidateManualComposition();
-                setNotice("Đã xóa toàn bộ câu.");
-              }}
+              onClear={() => { clearSentence(); setNotice("Đã xóa toàn bộ câu."); }}
               onCopy={() => void copyTranscript()}
             />
           )}

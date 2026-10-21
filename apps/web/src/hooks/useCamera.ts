@@ -46,9 +46,25 @@ function stopTracks(stream: MediaStream): void {
   for (const track of stream.getTracks()) track.stop();
 }
 
+const remoteMessages: Partial<Record<CameraStatus, string>> = {
+  off: "Đang chờ video từ máy khách.",
+  requesting: "Đang nhận video từ máy khách…",
+  ready: "Đang nhận video từ máy khách.",
+  interrupted: "Mất video từ máy khách. Đang chờ nối lại.",
+};
+
+// A remote picture that stops advancing for this long is treated as lost, never as live.
+const REMOTE_STALL_MS = 1500;
+
+/**
+ * The video source for recognition: the device webcam, or, when `remoteStream` is given (a counter display is
+ * connected), the customer laptop's camera. `null` means the counter is connected but its video has not arrived.
+ */
 export function useCamera(
   videoRef: RefObject<HTMLVideoElement | null>,
+  remoteStream?: MediaStream | null,
 ): CameraController {
+  const remote = remoteStream !== undefined;
   const [status, setStatus] = useState<CameraStatus>("off");
   const streamRef = useRef<MediaStream | null>(null);
   const mountedRef = useRef(true);
@@ -66,14 +82,16 @@ export function useCamera(
   }, [videoRef]);
 
   const disable = useCallback(() => {
+    // The counter's camera is turned off on the counter, not here.
+    if (remote) return;
     requestIdRef.current += 1;
     requestingRef.current = false;
     stopStream();
     if (mountedRef.current) setStatus("off");
-  }, [stopStream]);
+  }, [remote, stopStream]);
 
   const enable = useCallback(async () => {
-    if (requestingRef.current || streamRef.current) return;
+    if (remote || requestingRef.current || streamRef.current) return;
     if (!navigator.mediaDevices?.getUserMedia) {
       if (mountedRef.current) setStatus("unavailable");
       return;
@@ -134,7 +152,40 @@ export function useCamera(
     } finally {
       if (requestId === requestIdRef.current) requestingRef.current = false;
     }
-  }, [stopStream, videoRef]);
+  }, [remote, stopStream, videoRef]);
+
+  // Remote mode: the local webcam is released, and the status follows the remote picture frame by frame.
+  useEffect(() => {
+    if (!remote) return;
+    requestIdRef.current += 1;
+    requestingRef.current = false;
+    stopStream();
+    const video = videoRef.current;
+    const track = remoteStream?.getVideoTracks()[0];
+    if (!video || !remoteStream || !track) { setStatus("off"); return; }
+    video.srcObject = remoteStream;
+    void video.play().catch(() => undefined);
+    setStatus("requesting");
+    let lastTime = -1, lastAdvance = 0;
+    const check = () => {
+      const now = performance.now();
+      if (video.currentTime !== lastTime) { lastTime = video.currentTime; lastAdvance = lastTime > 0 ? now : 0; }
+      const live = track.readyState === "live" && !track.muted && lastAdvance > 0 && now - lastAdvance < REMOTE_STALL_MS;
+      setStatus(live ? "ready" : lastAdvance ? "interrupted" : "requesting");
+    };
+    const timer = window.setInterval(check, 250);
+    track.addEventListener("mute", check);
+    track.addEventListener("unmute", check);
+    track.addEventListener("ended", check);
+    return () => {
+      window.clearInterval(timer);
+      track.removeEventListener("mute", check);
+      track.removeEventListener("unmute", check);
+      track.removeEventListener("ended", check);
+      if (video.srcObject === remoteStream) video.srcObject = null;
+      if (mountedRef.current) setStatus("off");
+    };
+  }, [remote, remoteStream, stopStream, videoRef]);
 
   useEffect(() => {
     mountedRef.current = true;
@@ -146,5 +197,5 @@ export function useCamera(
     };
   }, [stopStream]);
 
-  return { status, message: cameraMessages[status], enable, disable };
+  return { status, message: (remote ? remoteMessages[status] : undefined) ?? cameraMessages[status], enable, disable };
 }

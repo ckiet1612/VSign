@@ -3,14 +3,19 @@ import type { AuthenticatedUser } from '../../../../contracts/v1/workspace';
 import type { SettingsTab, WorkspaceSettingsSnapshot } from '../../../../contracts/v1/settings';
 import { useWorkspaceSettings, type SettingsAction } from '../hooks/useWorkspaceSettings';
 import { useTabMotion } from '../hooks/useTabMotion';
+import { useUrlTab } from '../hooks/useUrlTab';
 import { Archive, Check, RefreshCw, Save, Undo2 } from '../icons';
 import { CardHead, PageHero } from './PageChrome';
+import { CounterDisplaySettings } from './CounterDisplaySettings';
 import '../styles/workspace-settings.css';
 import { Bone, FieldBone, SkeletonRegion } from "./Skeleton";
 
 interface Props { platformUrl: string; workspaceId: string; user: AuthenticatedUser | null; onWorkspaceChanged?: () => void }
 type Reader = ReturnType<typeof useWorkspaceSettings>;
-const tabs: [SettingsTab, string][] = [['workspace', 'Workspace'], ['retention', 'Retention'], ['collection', 'Thu mẫu'], ['runtime', 'Runtime'], ['notifications', 'Thông báo']];
+// Counter displays are managed here but are not part of the settings snapshot, so their tab has its own panel.
+type Tab = SettingsTab | 'displays';
+const tabs: [Tab, string][] = [['workspace', 'Workspace'], ['retention', 'Retention'], ['collection', 'Thu mẫu'], ['runtime', 'Runtime'], ['displays', 'Màn hình khách'], ['notifications', 'Thông báo']];
+const settingsTabKeys = tabs.map(([key]) => key);
 const time = (value: string) => new Date(value).toLocaleString('vi-VN');
 
 function SettingsForm({ tab, reader, onSaved, onReset }: { tab: SettingsTab; reader: Reader; onSaved: (value: WorkspaceSettingsSnapshot) => void; onReset: () => void }) {
@@ -82,12 +87,12 @@ function SettingsForm({ tab, reader, onSaved, onReset }: { tab: SettingsTab; rea
 
 function SettingsWorkspace(props: Props) {
   const reader = useWorkspaceSettings(props), data = reader.snapshot;
-  const [selected, setSelected] = useState<SettingsTab>('workspace'), [seed, setSeed] = useState(0);
+  const [selected, setSelected] = useUrlTab(settingsTabKeys, 'workspace'), [seed, setSeed] = useState(0);
   const availableTabs = data?.permissions.manage ? tabs : tabs.filter(([key]) => key === 'notifications');
   const tab = availableTabs.some(([key]) => key === selected) ? selected : 'notifications';
   const tabList = useRef<HTMLDivElement>(null), tabPanel = useRef<HTMLDivElement>(null);
   useTabMotion(tabList, tabs.findIndex(([key]) => key === tab), { panel: tabPanel, mounted: !!data });
-  const selectTab = (next: SettingsTab) => { setSelected(next); };
+  const selectTab = (next: Tab) => { setSelected(next); };
   const onKeys = (event: KeyboardEvent<HTMLButtonElement>) => {
     const index = availableTabs.findIndex(([key]) => key === tab);
     const next = event.key === 'Home' ? 0 : event.key === 'End' ? availableTabs.length - 1
@@ -116,8 +121,9 @@ function SettingsWorkspace(props: Props) {
     </SkeletonRegion>}
     {data && <>
       <div ref={tabPanel} id="settings-panel" role="tabpanel" aria-labelledby={`settings-tab-${tab}`} aria-busy={reader.busy}>
+        {tab === 'displays' ? <CounterDisplaySettings platformUrl={props.platformUrl} /> :
         <SettingsForm key={`${tab}:${seed}`} tab={tab} reader={reader} onReset={() => setSeed(old => old + 1)}
-          onSaved={() => { if (tab === 'workspace') props.onWorkspaceChanged?.(); }} />
+          onSaved={() => { if (tab === 'workspace') props.onWorkspaceChanged?.(); }} />}
         {tab === 'retention' && <section className="settings-retention page-card" aria-label="Kiểm tra retention">
           <CardHead icon={Archive} title="Dữ liệu hết hạn"><button type="button" disabled={!reader.ready} onClick={() => void reader.loadPreview()}>Xem trước retention</button></CardHead>
           {reader.preview && <><dl className="settings-facts">

@@ -6,7 +6,7 @@ import { savedSettings, settingsSnapshot, settingsUser } from '../test/settingsF
 const props = { platformUrl: 'http://localhost:8000', workspaceId: 'local', user: settingsUser };
 afterEach(() => vi.unstubAllGlobals());
 
-it('renders five groups and persists only the explicitly submitted section', async () => {
+it('renders six groups and persists only the explicitly submitted section', async () => {
   const fetcher = vi.fn(async (_url: string, init: RequestInit) => {
     const payload = init.method === 'POST' ? JSON.parse(String(init.body)) : null;
     return new Response(JSON.stringify(payload ? savedSettings(payload.request_id, { workspace: payload.workspace }) : settingsSnapshot()));
@@ -14,7 +14,7 @@ it('renders five groups and persists only the explicitly submitted section', asy
   vi.stubGlobal('fetch', fetcher);
   render(<WorkspaceSettings {...props} />);
   await screen.findByLabelText('Tên workspace');
-  expect(screen.getAllByRole('tab')).toHaveLength(5);
+  expect(screen.getAllByRole('tab')).toHaveLength(6);
   fireEvent.change(screen.getByLabelText('Tên workspace'), { target: { value: 'Tên mới' } });
   fireEvent.click(screen.getByRole('button', { name: 'Lưu cài đặt' }));
   await screen.findByText('Đã lưu cài đặt.');

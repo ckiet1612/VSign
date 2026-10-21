@@ -67,4 +67,40 @@ describe("useCamera", () => {
     expect(track.stop).toHaveBeenCalledOnce();
     expect(result.current.status).toBe("off");
   });
+
+  it("theo dõi video từ xa: chỉ báo sẵn sàng khi khung hình còn chạy", () => {
+    vi.useFakeTimers({ toFake: ["setInterval", "clearInterval", "setTimeout", "clearTimeout", "performance", "Date"] });
+    try {
+      const track = { readyState: "live", muted: false, addEventListener: vi.fn(), removeEventListener: vi.fn() };
+      const remote = { getVideoTracks: () => [track], getTracks: () => [track] } as unknown as MediaStream;
+      const video = { srcObject: null as MediaStream | null, currentTime: 0, play: vi.fn(async () => undefined) };
+      const videoRef = { current: video as unknown as HTMLVideoElement };
+      const { result, rerender } = renderHook(({ stream }) => useCamera(videoRef, stream),
+        { initialProps: { stream: remote as MediaStream | null } });
+      expect(video.srcObject).toBe(remote);
+      expect(result.current.status).toBe("requesting");
+
+      video.currentTime = 0.1;
+      act(() => { vi.advanceTimersByTime(250); });
+      expect(result.current.status).toBe("ready");
+
+      // The picture freezes: after the stall window it must not look live.
+      act(() => { vi.advanceTimersByTime(2000); });
+      expect(result.current.status).toBe("interrupted");
+      expect(result.current.message).toMatch(/Mất video/);
+
+      video.currentTime = 0.5;
+      act(() => { vi.advanceTimersByTime(250); });
+      expect(result.current.status).toBe("ready");
+      track.muted = true;
+      act(() => { vi.advanceTimersByTime(250); });
+      expect(result.current.status).toBe("interrupted");
+
+      rerender({ stream: null });
+      expect(video.srcObject).toBeNull();
+      expect(result.current.status).toBe("off");
+    } finally {
+      vi.useRealTimers();
+    }
+  });
 });

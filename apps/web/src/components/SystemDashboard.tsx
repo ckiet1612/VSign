@@ -2,11 +2,12 @@ import type { AuthenticatedUser } from "@workspace-contracts";
 import type { RuntimeSnapshot } from "../hooks/useRuntimeStatus";
 import type { WorkspaceView } from "../lib/workspaceNavigation";
 import type { ReactNode } from "react";
-import { useRef, useState } from "react";
-import { Bar, BarChart, CartesianGrid, Cell, ComposedChart, Line, ReferenceLine, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { Bar, BarChart, CartesianGrid, Cell, ComposedChart, Line, ReferenceLine, ResponsiveContainer, Tooltip, XAxis, YAxis, matchByDataKey } from "recharts";
 import { Activity, ArrowUpRight, BarChart3, Boxes, Calendar, CircleAlert, CircleCheck, Cpu, Database, RefreshCw, Robot } from "../icons";
 import { useSystemDashboard } from "../hooks/useSystemDashboard";
 import { useTabMotion } from "../hooks/useTabMotion";
+import { morphDateBars, morphDateLine } from "../lib/chartMorph";
 import { DashboardSkeleton } from "./SystemDashboardSkeleton";
 import "../styles/system-dashboard.css";
 
@@ -32,6 +33,41 @@ const eventNames: Record<string, string> = { "auth.login": "Đăng nhập", "aut
 const chartTick = { fontSize: 11, fill: "var(--muted)" };
 const checkedRange = (root: HTMLElement) => root.querySelector<HTMLInputElement>("input:checked")?.parentElement ?? null;
 const tooltipStyle = { borderRadius: 12, border: "1px solid var(--line)", fontSize: 12, boxShadow: "var(--shadow-drop-1)" };
+// Stable chart props: a new object or function each render would restart a morph that is under way.
+const byDate = matchByDataKey("date");
+const dailyMargin = { top: 8, right: 4, left: -28, bottom: 0 };
+const dailyDomain: [number, (max: number) => number] = [0, max => Math.max(4, max)];
+const dailyBarRadius: [number, number, number, number] = [4, 4, 0, 0];
+const dailyActiveDot = { r: 4 };
+const chartCursor = { fill: "var(--soft)" };
+const dailyTooltipLabel = (value: unknown) => `${day(String(value))} UTC`;
+const dailyTooltipValue = (value: unknown, name: unknown) => [decimal(Number(value)), name === "average" ? "TB 7 ngày" : "Mẫu đã lưu"] as [string, string];
+const MORPH_MS = 600;
+const reducedMotion = () => typeof window !== "undefined" && !!window.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches;
+
+const DIGITS = ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9"];
+
+/**
+ * A figure whose digits roll to their new value when the range or a refresh changes it: each digit
+ * slides once, straight to its target, instead of the whole number flickering through every value.
+ * Columns are keyed from the right so units stay put while the number gains or loses digits.
+ */
+function Count({ value, format = number }: { value: number; format?: (value: number) => string }) {
+  const text = format(value);
+  const chars = [...text];
+  // Only columns a later value adds fade in; the first paint shows the number as is.
+  const columns = useRef(chars.length);
+  useEffect(() => { columns.current = chars.length; });
+  const fresh = (key: number) => key > columns.current ? " is-new" : "";
+  return <span className="dash-roll"><span className="sr-only">{text}</span>
+    <span aria-hidden="true">{chars.map((char, index) => {
+      const key = chars.length - index;
+      const digit = DIGITS.indexOf(char);
+      return digit < 0 ? <span key={`c${key}`} className={`dash-roll-char${fresh(key)}`}>{char}</span>
+        : <span key={`d${key}`} className={`dash-roll-digit${fresh(key)}`}><span className="dash-roll-sizer">{char}</span>
+          <span className="dash-roll-strip" style={{ transform: `translateY(${-digit * 10}%)` }}>{DIGITS.map(item => <span key={item}>{item}</span>)}</span></span>;
+    })}</span></span>;
+}
 
 /** Segmented meter: filled blocks on a track that ends at the target tick, followed by a hatched headroom zone. */
 function Meter({ segments, target, size = "large", label, valueNow }: {
@@ -62,7 +98,7 @@ function Gauge({ value }: { value: number }) {
   </svg>;
 }
 
-function Figure({ value, unit, caption }: { value: string; unit?: string; caption: string }) {
+function Figure({ value, unit, caption }: { value: ReactNode; unit?: string; caption: string }) {
   return <div className="dash-figure"><strong>{value}{unit && <sup>{unit}</sup>}</strong><span>{caption}</span></div>;
 }
 
@@ -84,6 +120,15 @@ export function SystemDashboard({ platformUrl, workspaceId, user, runtime, onNav
   useTabMotion(rangeRef, days, { pick: checkedRange });
   const reader = useSystemDashboard(platformUrl, workspaceId, user, days);
   const data = reader.data;
+  // Charts morph between ranges but do not replay an entrance each time the overview opens.
+  const [morph, setMorph] = useState(false);
+  const hasData = !!data;
+  useEffect(() => { if (hasData && !reducedMotion()) setMorph(true); }, [hasData]);
+  const dailyChartRef = useRef<HTMLDivElement>(null);
+  const morphing = useMemo(() => ({
+    start: () => dailyChartRef.current?.classList.add("is-morphing"),
+    end: () => dailyChartRef.current?.classList.remove("is-morphing"),
+  }), []);
   const healthy = runtime.checkedAt !== null && !runtime.healthError && runtime.health !== null;
   const refresh = () => { reader.refresh(); if ("refresh" in runtime && typeof runtime.refresh === "function") void runtime.refresh(); };
   const metadata = runtime.metadata && !runtime.metadataError ? runtime.metadata : null;
@@ -94,12 +139,17 @@ export function SystemDashboard({ platformUrl, workspaceId, user, runtime, onNav
   const coveredTotal = labels.reduce((sum, row) => sum + Math.min(row.count, row.target), 0);
   const reachedLabels = labels.filter(row => row.target > 0 && row.count >= row.target).length;
   const datasets = data ? data.totals.datasets_draft + data.totals.datasets_sealed : 0;
-  const daily = (data?.daily_samples ?? []).map((row, index, rows) => {
+  // Memoised so unrelated re-renders (runtime polling) do not restart a morph in progress.
+  const dailySamples = data?.daily_samples;
+  const daily = useMemo(() => (dailySamples ?? []).map((row, index, rows) => {
     const window = rows.slice(Math.max(0, index - 6), index + 1);
     return { ...row, average: Math.round((window.reduce((sum, item) => sum + item.count, 0) / window.length) * 10) / 10 };
-  });
+  }), [dailySamples]);
   const peak = daily.reduce<(typeof daily)[number] | null>((best, row) => row.count > 0 && (!best || row.count > best.count) ? row : best, null);
   const activeDays = daily.filter(row => row.count > 0).length;
+  const peakDate = peak?.date;
+  const dailyCells = useMemo(() => daily.map(row =>
+    <Cell key={row.date} fill={row.date === peakDate ? "var(--lime)" : "var(--black-20)"} />), [daily, peakDate]);
 
   // Range labels follow the data on screen, which can briefly be the previous range while a new one loads.
   const period = data?.days ?? days;
@@ -133,25 +183,25 @@ export function SystemDashboard({ platformUrl, workspaceId, user, runtime, onNav
         <section className="dash-kpis" aria-label="Số liệu toàn bộ thời gian">
           <button type="button" className="dash-card dash-kpi" onClick={() => onNavigate("data")}>
             <CardTitle icon={Database}>Tổng mẫu đã lưu</CardTitle>
-            {targetTotal > 0 ? <Figure value={decimal(percent(coveredTotal, targetTotal))} unit="%" caption="Hoàn thành hạn mức" />
-              : <Figure value={number(data.period.samples)} caption={`Mẫu trong ${period} ngày`} />}
-            <div className="dash-stats"><Stat value={number(data.totals.samples)} label="Đã lưu" />
-              <Stat value={targetTotal > 0 ? number(targetTotal) : "—"} label="Mục tiêu" align="end" /></div>
+            {targetTotal > 0 ? <Figure value={<Count value={percent(coveredTotal, targetTotal)} format={decimal} />} unit="%" caption="Hoàn thành hạn mức" />
+              : <Figure value={<Count value={data.period.samples} />} caption={`Mẫu trong ${period} ngày`} />}
+            <div className="dash-stats"><Stat value={<Count value={data.totals.samples} />} label="Đã lưu" />
+              <Stat value={targetTotal > 0 ? <Count value={targetTotal} /> : "—"} label="Mục tiêu" align="end" /></div>
             <Meter target={targetTotal} segments={[{ value: data.totals.samples - data.period.samples, tone: "ink" }, { value: data.period.samples, tone: "accent" }]} />
           </button>
           <button type="button" className="dash-card dash-kpi is-gauge" onClick={() => onNavigate("data")}>
             <CardTitle icon={Boxes}>Bộ dữ liệu</CardTitle>
-            <div className="dash-stats"><Stat value={number(data.totals.datasets_sealed)} label="Đã chốt" />
-              <Stat value={number(data.totals.datasets_draft)} label="Bản nháp" align="end" /></div>
+            <div className="dash-stats"><Stat value={<Count value={data.totals.datasets_sealed} />} label="Đã chốt" />
+              <Stat value={<Count value={data.totals.datasets_draft} />} label="Bản nháp" align="end" /></div>
             <div className="dash-gauge-wrap"><Gauge value={datasets ? data.totals.datasets_sealed / datasets : 0} />
-              {datasets ? <Figure value={decimal(percent(data.totals.datasets_sealed, datasets))} unit="%" caption={`Đã chốt · ${number(datasets)} bộ`} />
+              {datasets ? <Figure value={<Count value={percent(data.totals.datasets_sealed, datasets)} format={decimal} />} unit="%" caption={`Đã chốt · ${number(datasets)} bộ`} />
                 : <Figure value="0" caption="Chưa có bộ dữ liệu" />}</div>
           </button>
           <button type="button" className="dash-card dash-kpi" onClick={() => onNavigate("evaluation")}>
             <CardTitle icon={BarChart3}>Lượt đánh giá</CardTitle>
-            <Figure value={number(data.totals.evaluations)} caption="Toàn bộ thời gian" />
-            <div className="dash-stats"><Stat value={number(data.period.evaluations)} label={`Trong ${period} ngày`} />
-              <Stat value={number(data.totals.models)} label="Mô hình đăng ký" align="end" /></div>
+            <Figure value={<Count value={data.totals.evaluations} />} caption="Toàn bộ thời gian" />
+            <div className="dash-stats"><Stat value={<Count value={data.period.evaluations} />} label={`Trong ${period} ngày`} />
+              <Stat value={<Count value={data.totals.models} />} label="Mô hình đăng ký" align="end" /></div>
             <Meter target={data.totals.evaluations} segments={[{ value: data.period.evaluations, tone: "accent" }, { value: data.totals.evaluations - data.period.evaluations, tone: "ink" }]} />
           </button>
         </section>
@@ -160,23 +210,26 @@ export function SystemDashboard({ platformUrl, workspaceId, user, runtime, onNav
           <div className="dash-card-head"><CardTitle icon={Activity} id="daily-samples-title">Mẫu thu theo ngày</CardTitle>
             <span className="dash-card-note">{day(data.start_date)} – {day(data.generated_at)} · UTC</span></div>
           <div className="dash-chart-stats">
-            <div className="dash-stat-column"><Stat value={number(data.period.samples)} label="Mẫu trong kỳ" /><Stat value={`${number(activeDays)}/${number(daily.length)}`} label="Ngày có mẫu" /></div>
-            <Figure value={decimal(data.period.samples / Math.max(daily.length, 1))} caption="Mẫu mỗi ngày (TB)" />
-            <div className="dash-stat-column"><Stat value={peak ? number(peak.count) : "—"} label="Cao nhất" align="end" /><Stat value={peak ? day(peak.date) : "—"} label="Ngày cao nhất" align="end" /></div>
+            <div className="dash-stat-column"><Stat value={<Count value={data.period.samples} />} label="Mẫu trong kỳ" />
+              <Stat value={<><Count value={activeDays} />/<Count value={daily.length} /></>} label="Ngày có mẫu" /></div>
+            <Figure value={<Count value={data.period.samples / Math.max(daily.length, 1)} format={decimal} />} caption="Mẫu mỗi ngày (TB)" />
+            <div className="dash-stat-column"><Stat value={peak ? <Count value={peak.count} /> : "—"} label="Cao nhất" align="end" /><Stat value={peak ? day(peak.date) : "—"} label="Ngày cao nhất" align="end" /></div>
           </div>
-          <div className="dashboard-chart" role="img" aria-label={`Biểu đồ mẫu thu trong ${period} ngày: ${number(data.period.samples)} mẫu`}>
+          <div ref={dailyChartRef} className="dashboard-chart" role="img" aria-label={`Biểu đồ mẫu thu trong ${period} ngày: ${number(data.period.samples)} mẫu`}>
             <ResponsiveContainer width="100%" height="100%" minWidth={0} initialDimension={{ width: 600, height: 200 }}>
-              <ComposedChart data={daily} margin={{ top: 8, right: 4, left: -28, bottom: 0 }} barCategoryGap="30%" accessibilityLayer>
+              <ComposedChart data={daily} margin={dailyMargin} barCategoryGap="30%" accessibilityLayer>
                 <CartesianGrid vertical={false} stroke="var(--line)" />
                 <XAxis dataKey="date" tickFormatter={day} tickLine={false} axisLine={false} minTickGap={40} tick={chartTick} />
-                <YAxis allowDecimals={false} tickLine={false} axisLine={false} tick={chartTick} domain={[0, (max: number) => Math.max(4, max)]} />
-                <Tooltip cursor={{ fill: "var(--soft)" }} contentStyle={tooltipStyle} labelFormatter={value => `${day(String(value))} UTC`}
-                  formatter={(value, name) => [decimal(Number(value)), name === "average" ? "TB 7 ngày" : "Mẫu đã lưu"]} />
+                <YAxis allowDecimals={false} tickLine={false} axisLine={false} tick={chartTick} domain={dailyDomain} />
+                <Tooltip cursor={chartCursor} contentStyle={tooltipStyle} labelFormatter={dailyTooltipLabel}
+                  formatter={dailyTooltipValue} />
                 {peak && <ReferenceLine x={peak.date} stroke="var(--lime)" strokeWidth={2} />}
-                <Bar dataKey="count" maxBarSize={8} radius={[4, 4, 0, 0]} isAnimationActive={false}>
-                  {daily.map(row => <Cell key={row.date} fill={peak && row.date === peak.date ? "var(--lime)" : "var(--black-20)"} />)}
+                <Bar dataKey="count" maxBarSize={8} radius={dailyBarRadius} isAnimationActive={morph} animationDuration={MORPH_MS} animationEasing="ease-in-out"
+                  animationMatchBy={byDate} animationInterpolateFn={morphDateBars} onAnimationStart={morphing.start} onAnimationEnd={morphing.end}>
+                  {dailyCells}
                 </Bar>
-                <Line type="monotone" dataKey="average" stroke="var(--ink)" strokeWidth={2} dot={false} activeDot={{ r: 4 }} isAnimationActive={false} />
+                <Line type="monotone" dataKey="average" stroke="var(--ink)" strokeWidth={2} dot={false} activeDot={dailyActiveDot} isAnimationActive={morph}
+                  animationDuration={MORPH_MS} animationEasing="ease-in-out" animationMatchBy={byDate} animationInterpolateFn={morphDateLine} />
               </ComposedChart>
             </ResponsiveContainer>
           </div>
@@ -191,8 +244,8 @@ export function SystemDashboard({ platformUrl, workspaceId, user, runtime, onNav
           <div className="dash-card-head"><CardTitle icon={BarChart3} id="label-distribution-title">Phân bố ký hiệu</CardTitle>
             <LinkButton label="Xem dữ liệu" onClick={() => onNavigate("data")} /></div>
           <div className="dash-chart-stats">
-            <Stat value={number(labels.length)} label="Ký hiệu" />
-            <Figure value={labels.length ? `${number(reachedLabels)}/${number(labels.length)}` : "0"} caption="Đạt hạn mức" />
+            <Stat value={<Count value={labels.length} />} label="Ký hiệu" />
+            <Figure value={labels.length ? <><Count value={reachedLabels} />/<Count value={labels.length} /></> : "0"} caption="Đạt hạn mức" />
             <Stat value={chartLabels[0]?.label ?? "—"} label="Nhiều mẫu nhất" align="end" />
           </div>
           {chartLabels.length ? <>
@@ -254,7 +307,7 @@ export function SystemDashboard({ platformUrl, workspaceId, user, runtime, onNav
         <section className="dash-activity" aria-labelledby="recent-activity-title">
           <div className="dash-card-head"><CardTitle icon={Activity} id="recent-activity-title">Hoạt động hệ thống</CardTitle>
             <button className="dash-text-link" type="button" onClick={() => onNavigate("activity")}>Nhật ký<ArrowUpRight size={14} aria-hidden="true" /></button></div>
-          <p className="dash-card-note">{number(data.period.events)} sự kiện trong {period} ngày</p>
+          <p className="dash-card-note"><Count value={data.period.events} /> sự kiện trong {period} ngày</p>
           {data.recent_activity.length ? <ol className="dash-timeline">{data.recent_activity.map(row => <li key={row.id} className={row.outcome === "success" ? "is-success" : "is-failure"}>
             <div><strong>{eventNames[row.event_type] ?? row.event_type}</strong><time dateTime={row.occurred_at}>{time(row.occurred_at)} UTC</time></div>
             <span className={`dashboard-status status-${row.outcome}`}>{row.outcome === "success" ? "Thành công" : "Thất bại"}</span>

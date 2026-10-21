@@ -47,6 +47,31 @@ def _bool_env(name: str, default: bool) -> bool:
     raise RuntimeError(f"{name} phải là true hoặc false")
 
 
+def _ice_servers_env() -> Tuple[dict, ...]:
+    """WebRTC ICE servers for counter displays, as the JSON list RTCPeerConnection accepts.
+
+    The default STUN server is enough on one counter network; across networks set a TURN server here,
+    because the HTTPS tunnel does not carry the UDP media path.
+    """
+    raw = os.getenv("DISPLAY_ICE_SERVERS", "").strip()
+    if not raw:
+        return ({"urls": ["stun:stun.l.google.com:19302"]},)
+    import json
+    try:
+        value = json.loads(raw)
+    except json.JSONDecodeError as exc:
+        raise RuntimeError("DISPLAY_ICE_SERVERS phải là JSON list") from exc
+    if not isinstance(value, list) or not all(
+        isinstance(item, dict) and isinstance(item.get("urls"), (str, list))
+        and all(isinstance(url, str) and re.match(r"^(stun|stuns|turn|turns):", url)
+                for url in ([item["urls"]] if isinstance(item["urls"], str) else item["urls"]))
+        and set(item) <= {"urls", "username", "credential"}
+        for item in value
+    ):
+        raise RuntimeError("DISPLAY_ICE_SERVERS chỉ nhận urls (stun:/turn:), username và credential")
+    return tuple(value)
+
+
 def _workspace_id_env() -> str:
     value = os.getenv("WORKSPACE_ID", "local").strip() or "local"
     if re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9._-]{0,63}", value) is None:
@@ -132,6 +157,7 @@ class Settings:
     model_deployment_target: str = "production-local"
     model_deployment_runtime_url: str = "http://127.0.0.1:8002"
     integration_encryption_key: Optional[str] = field(default=None, repr=False)
+    display_ice_servers: Tuple[dict, ...] = ({"urls": ["stun:stun.l.google.com:19302"]},)
 
     def __post_init__(self) -> None:
         if self.local_admin_role not in {"admin", "system_admin"}:
@@ -238,4 +264,5 @@ class Settings:
             model_deployment_target=os.getenv("MODEL_DEPLOYMENT_TARGET", "production-local").strip(),
             model_deployment_runtime_url=os.getenv("MODEL_DEPLOYMENT_RUNTIME_URL", "http://127.0.0.1:8002").strip(),
             integration_encryption_key=_integration_key_env(),
+            display_ice_servers=_ice_servers_env(),
         )

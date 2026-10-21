@@ -161,17 +161,63 @@ def test_public_provisioning_is_explicit_and_never_overwrites_existing_accounts(
             "email": "vsignadmin", "password": "short-pass"}).status_code == 200
 
 
-def test_public_launcher_keeps_local_database_and_port_separate():
+def test_shared_launcher_rejects_insecure_or_old_public_overrides():
     import os
     import subprocess
     from pathlib import Path
 
     script = Path(__file__).resolve().parents[1] / "scripts/run_public_local.sh"
-    for overrides in ({"INFERENCE_PORT": "8000"}, {"LOCAL_ADMIN_ENABLED": "true"},
-                      {"DATABASE_URL": "sqlite:///./data/vsign-platform.db"},
+    for overrides in ({"INFERENCE_PORT": "8004"}, {"LOCAL_ADMIN_ENABLED": "true"},
+                      {"DATABASE_URL": "sqlite:///./data/vsign-public.db"},
                       {"AUTH_REQUIRED": "false"}, {"INFERENCE_HOST": "0.0.0.0"},
                       {"AUTH_COOKIE_SECURE": "false"}):
         result = subprocess.run(["bash", str(script)], env={**os.environ, **overrides},
                                 text=True, capture_output=True)
         assert result.returncode != 0
         assert "Public runtime" in result.stderr
+
+
+def test_shared_launcher_uses_authenticated_8000_and_existing_platform_database(tmp_path):
+    import os
+    import subprocess
+    from pathlib import Path
+
+    root = Path(__file__).resolve().parents[1]
+    project = tmp_path / "project"
+    (project / "scripts").mkdir(parents=True)
+    (project / "data").mkdir()
+    (project / "data/vsign-platform.db").touch()
+    script = project / "scripts/run_public_local.sh"
+    script.write_text((root / "scripts/run_public_local.sh").read_text())
+    (project / "scripts/run_coreml_local.sh").write_text("#!/bin/sh\nenv\n")
+    (project / "bin").mkdir()
+    lsof = project / "bin/lsof"
+    lsof.write_text("#!/bin/sh\nexit 1\n")
+    lsof.chmod(0o755)
+    env = {key: value for key, value in os.environ.items() if key in {"PATH", "HOME"}}
+    env["PATH"] = str(project / "bin") + os.pathsep + env["PATH"]
+    result = subprocess.run(["bash", str(script)], env=env, text=True, capture_output=True)
+    assert result.returncode == 0, result.stderr
+    exported = dict(line.split("=", 1) for line in result.stdout.splitlines() if "=" in line)
+    assert exported["INFERENCE_PORT"] == "8000"
+    assert exported["DATABASE_URL"] == f"sqlite:///{project}/data/vsign-platform.db"
+    assert exported["AUTH_REQUIRED"] == "true"
+    assert exported["LOCAL_ADMIN_ENABLED"] == "false"
+    assert exported["AUTH_COOKIE_SECURE"] == "true"
+    origins = exported["ALLOWED_ORIGINS"].split(",")
+    assert "https://vsign.io.vn" in origins
+    assert "http://127.0.0.1:5174" in origins
+    assert "http://localhost:5174" in origins
+    assert "*" not in origins
+
+
+def test_passwordless_launcher_cannot_take_the_shared_public_port():
+    import os
+    import subprocess
+    from pathlib import Path
+
+    script = Path(__file__).resolve().parents[1] / "scripts/run_system_admin_local.sh"
+    result = subprocess.run(["bash", str(script)], env={**os.environ, "INFERENCE_PORT": "8000"},
+                            text=True, capture_output=True, timeout=10)
+    assert result.returncode != 0
+    assert "8000" in result.stderr

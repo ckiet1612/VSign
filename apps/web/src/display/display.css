@@ -1,0 +1,66 @@
+/* Customer-facing counter screen: large type, no workspace chrome, readable from across the counter. */
+.customer-display {
+  min-height: 100dvh; display: grid; grid-template-rows: minmax(0, 1fr) auto;
+  color: #fff; background: #0d0d0f; font-family: var(--font-sans, inherit);
+}
+.customer-display.is-message { grid-template-rows: 1fr; place-items: center; padding: var(--space-24); }
+.customer-display.is-message > p { font-size: var(--text-18); color: rgba(255, 255, 255, 0.72); }
+
+.display-card {
+  width: min(520px, 100%); padding: var(--space-40) var(--space-32, 2rem); display: grid; gap: var(--space-16);
+  justify-items: center; text-align: center; border-radius: var(--radius-32); background: #1b1b1f;
+}
+.display-card h1 { margin: 0; font-size: var(--text-32); line-height: var(--leading-32); font-weight: 600; }
+.display-card p { margin: 0; color: rgba(255, 255, 255, 0.72); font-size: var(--text-16); line-height: var(--leading-16); }
+.display-eyebrow { color: rgba(255, 255, 255, 0.56); font-size: var(--text-14); letter-spacing: 0.04em; text-transform: uppercase; }
+.display-muted { font-size: var(--text-14) !important; }
+.display-notice { padding: var(--space-8) var(--space-12); border-radius: var(--radius-12); background: rgba(255, 196, 0, 0.14); color: #ffd666 !important; }
+.display-error { color: #ff8a80 !important; }
+.display-verification {
+  padding: var(--space-12) var(--space-28); border-radius: var(--radius-20); background: #fff; color: #0d0d0f;
+  font-size: 4.5rem; line-height: 1; font-weight: 700; letter-spacing: 0.24em; text-indent: 0.24em;
+}
+.display-code input {
+  width: 9ch; padding: var(--space-12) var(--space-16); border: 2px solid rgba(255, 255, 255, 0.24); border-radius: var(--radius-16);
+  color: #fff; background: transparent; font-size: var(--text-48); line-height: 1; text-align: center; letter-spacing: 0.18em;
+  font-variant-numeric: tabular-nums;
+}
+.display-code input:focus-visible { outline: none; border-color: #fff; }
+.display-primary {
+  min-height: 48px; padding: 0 var(--space-28); border: 0; border-radius: var(--radius-full);
+  color: #0d0d0f; background: #fff; font: inherit; font-size: var(--text-16); font-weight: 600; cursor: pointer;
+}
+.display-primary:disabled { opacity: 0.4; cursor: default; }
+
+.display-stage { position: relative; min-height: 0; overflow: hidden; background: #000; }
+.display-stage video, .display-guide { position: absolute; inset: 0; width: 100%; height: 100%; }
+/* The customer sees themselves as in a mirror; the staff side receives the camera's own orientation. */
+.display-stage video { object-fit: contain; transform: scaleX(-1); }
+.display-guide { pointer-events: none; }
+.display-guide rect { fill: none; stroke: rgba(255, 255, 255, 0.7); stroke-width: 3; stroke-dasharray: 14 10; vector-effect: non-scaling-stroke; }
+.display-overlay {
+  position: absolute; z-index: 2; inset: 0; display: grid; place-content: center; justify-items: center;
+  gap: var(--space-12); padding: var(--space-24); text-align: center; background: rgba(13, 13, 15, 0.82);
+}
+.display-overlay strong { font-size: clamp(var(--text-32), 5vw, var(--text-64)); line-height: 1.1; font-weight: 600; }
+.display-overlay span { color: rgba(255, 255, 255, 0.72); font-size: clamp(var(--text-18), 2vw, var(--text-24)); }
+.display-overlay.is-warning { background: rgba(60, 12, 8, 0.86); }
+.display-overlay.is-warning strong { color: #ffb4a8; }
+.display-hint {
+  position: absolute; z-index: 1; left: 50%; bottom: var(--space-24); margin: 0; transform: translateX(-50%);
+  padding: var(--space-8) var(--space-20); border-radius: var(--radius-full); background: rgba(0, 0, 0, 0.64);
+  font-size: var(--text-24); line-height: var(--leading-24); white-space: nowrap;
+}
+
+.display-captions {
+  min-height: 9rem; padding: var(--space-20) var(--space-40) var(--space-28); display: grid; align-content: center;
+  gap: var(--space-8); background: #0d0d0f;
+}
+.display-word { margin: 0; min-height: 1.1em; font-size: clamp(var(--text-48), 7vw, 6rem); line-height: 1.1; font-weight: 700; }
+.display-sentence { margin: 0; font-size: clamp(var(--text-24), 3vw, var(--text-48)); line-height: 1.25; overflow-wrap: anywhere; }
+.display-sentence.is-empty { color: rgba(255, 255, 255, 0.48); }
+
+@media (max-width: 720px) {
+  .display-captions { padding: var(--space-16) var(--space-20) var(--space-20); }
+  .display-hint { font-size: var(--text-16); white-space: normal; }
+}

@@ -17,7 +17,8 @@
 .dash-hero-side { min-width: 0; }
 
 .dash-toolbar { display: flex; flex-wrap: wrap; justify-content: flex-end; align-items: center; gap: var(--space-8); }
-.dash-dates { gap: var(--space-8); margin: 0; padding: 0 var(--space-12); }
+/* Tabular digits: every dd.mm.yyyy range is then the same width, so switching 7/30/90 days does not resize the pill. */
+.dash-dates { gap: var(--space-8); margin: 0; padding: 0 var(--space-12); font-variant-numeric: tabular-nums; }
 .dash-dates svg { color: var(--text-secondary); }
 .dash-pill { display: inline-flex; align-items: center; justify-content: center; height: 40px; box-sizing: border-box; padding: 0 var(--space-16);
   border: 1px solid var(--line); border-radius: var(--radius-12); background: var(--background-1); color: var(--ink); font-size: var(--text-14); white-space: nowrap; }
@@ -197,3 +198,26 @@
 .skeleton-region .dash-kpi { cursor: default; box-shadow: none; }
 .skeleton-arc { fill: none; stroke: rgb(0 0 0 / 7%); stroke-width: 10; stroke-linecap: round; animation: skeleton-pulse 1.4s ease-in-out infinite; }
 .skeleton-timeline li::after { background: var(--black-10); }
+
+/* Range morph: counted figures keep their width while counting; the peak marker waits for the bars to land. */
+.dash-figure strong, .dash-stat strong, .dash-activity > .dash-card-note { font-variant-numeric: tabular-nums; }
+/* Rolling digits: an invisible copy of the digit sizes the window; the 0–9 strip slides behind it. */
+.dash-roll { display: inline-flex; vertical-align: top; }
+/* Caption rules (.dash-figure span, .dash-stat span) must not reach the digits. */
+span.dash-roll, .dash-roll span { font: inherit; color: inherit; letter-spacing: inherit; }
+.dash-roll > [aria-hidden] { display: inline-flex; }
+/* Window and strip items both reach 0.15em past the line (margins cancel it): a rolling digit fades out instead of being cut, and a resting one shows no neighbour. */
+.dash-roll-digit { position: relative; display: inline-block; overflow: hidden; padding: 0.15em 0; margin: -0.15em 0;
+  mask-image: linear-gradient(transparent, #000 0.15em, #000 calc(100% - 0.15em), transparent); }
+.dash-roll-sizer { visibility: hidden; }
+.dash-roll-strip > span { padding: 0.15em 0; }
+.dash-roll-strip { position: absolute; inset: 0 0 auto; display: flex; flex-direction: column; transition: transform 700ms cubic-bezier(0.22, 1, 0.36, 1); }
+.dash-roll .is-new { animation: dash-roll-in 300ms ease-out; }
+@keyframes dash-roll-in { from { opacity: 0; } }
+.dash-meter-fill { transition: width 600ms cubic-bezier(0.65, 0, 0.35, 1); }
+.dashboard-chart .recharts-reference-line { transition: opacity 160ms ease-out; }
+.dashboard-chart.is-morphing .recharts-reference-line { opacity: 0; transition: none; }
+@media (prefers-reduced-motion: reduce) {
+  .dash-meter-fill, .dashboard-chart .recharts-reference-line, .dash-roll-strip { transition: none; }
+  .dash-roll .is-new { animation: none; }
+}
