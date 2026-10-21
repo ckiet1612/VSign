@@ -70,7 +70,7 @@ Nên tắt chế độ ngủ và trình bảo vệ màn hình. Thêm lệnh trê
    ```
 
    Sau đó khởi động lại port 8000 **chỉ bằng** `bash scripts/run_public_local.sh`.
-2. **Web (Vercel).** `apps/web/vercel.json` chuyển mọi đường dẫn không phải tệp tĩnh về `index.html`, để `/display` và `/invite` mở được trực tiếp. Nếu không có rewrite này, Vercel trả 404 cho cả hai đường dẫn.
+2. **Web (Vercel).** `vercel.json` (gốc repo) chuyển mọi đường dẫn không phải tệp tĩnh về `index.html`, để `/display` và `/invite` mở được trực tiếp. Nếu không có rewrite này, Vercel trả 404 cho cả hai đường dẫn.
 3. Các thao tác thay đổi đều dùng `POST`, vì CORS của API chỉ cho phép `GET` và `POST`.
 
 ## API
