@@ -40,4 +40,26 @@ describe("LoginGate", () => {
     await userEvent.click(screen.getByRole("button", { name: "Đăng nhập" }));
     expect(onLogin).toHaveBeenCalledWith("vsignadmin", "temporary-pass");
   });
+  it("reveals the password on request and warns when Caps Lock is on", async () => {
+    const user = userEvent.setup();
+    render(<LoginGate workspaceName="VSign" onLogin={async () => undefined} />);
+    const password = screen.getByLabelText("Mật khẩu");
+    expect(password).toHaveAttribute("type", "password");
+    await user.click(screen.getByRole("button", { name: "Hiện mật khẩu" }));
+    expect(password).toHaveAttribute("type", "text");
+    expect(screen.getByRole("button", { name: "Ẩn mật khẩu" })).toHaveAttribute("aria-pressed", "true");
+    await user.click(screen.getByRole("button", { name: "Ẩn mật khẩu" }));
+    expect(password).toHaveAttribute("type", "password");
+
+    await user.click(password);
+    await user.keyboard("{CapsLock}A");
+    expect(await screen.findByText("Caps Lock đang bật")).toBeInTheDocument();
+  });
+  it("shows the brand panel only on the standalone screen", () => {
+    const { unmount } = render(<LoginGate workspaceName="VSign" onLogin={async () => undefined} />);
+    expect(screen.getByRole("img", { name: "VSign" })).toBeInTheDocument();
+    unmount();
+    render(<LoginGate embedded workspaceName="VSign" onLogin={async () => undefined} />);
+    expect(screen.queryByRole("img", { name: "VSign" })).not.toBeInTheDocument();
+  });
 });
