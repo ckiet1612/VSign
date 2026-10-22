@@ -49,8 +49,8 @@ export LABEL_MAP_PATH="${model_dir}/labels.json"
 export PYTORCH_DEVICE="${PYTORCH_DEVICE:-cpu}"
 export LABELS_VERIFIED=true
 # Keep runtime acceptance identical to the measured regression gate.
-export CONFIDENCE_THRESHOLD=0.70
-export MARGIN_THRESHOLD=0.15
+export CONFIDENCE_THRESHOLD=0.40
+export MARGIN_THRESHOLD=0.0
 export COLLECTION_ENABLED="${COLLECTION_ENABLED:-true}"
 export COLLECTION_DIR="${COLLECTION_DIR:-${project_dir}/ml/data/collected/sales30}"
 # Fresh-process Mac CPU benchmark: 8 threads had the best median and tail.

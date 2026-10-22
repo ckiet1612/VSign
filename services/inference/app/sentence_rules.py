@@ -34,10 +34,11 @@ def _groups(words: list[str], nouns: frozenset[str]) -> Optional[str]:
         attributes = group[1:]
         if len(attributes) != len(set(attributes)) or {"mới", "cũ"} <= set(attributes) or {"rẻ", "đắt"} <= set(attributes):
             return None
-    # A trailing qualifier after multiple bare nouns has uncertain scope.
-    if len(groups) > 1 and len(groups[-1]) > 1 and any(len(group) == 1 for group in groups[:-1]):
-        return None
-    return ", ".join(" ".join(group) for group in groups)
+    # Qualifiers (mới, cũ, rẻ, đắt) stay with the noun right before them: "tivi mới và rẻ",
+    # but "laptop cũ, rẻ và tủ lạnh mới" so "và" only links the nouns.
+    link = " và " if len(groups) == 1 else ", "
+    phrases = [" ".join([group[0], link.join(group[1:])]) if len(group) > 1 else group[0] for group in groups]
+    return phrases[0] if len(phrases) == 1 else ", ".join(phrases[:-1]) + " và " + phrases[-1]
 
 
 def _canonical(words: list[str]) -> Optional[str]:
@@ -85,7 +86,8 @@ def _canonical(words: list[str]) -> Optional[str]:
         return None
     if "có" in prefix:
         return None
-    return " ".join(prefix + [", ".join(clauses)])
+    linked = clauses[0] if len(clauses) == 1 else ", ".join(clauses[:-1]) + " và " + clauses[-1]
+    return " ".join(prefix + [linked])
 
 
 def _single_phrase(words: list[str]) -> Optional[str]:
@@ -111,6 +113,36 @@ def _single_phrase(words: list[str]) -> Optional[str]:
     return " ".join(subjects + desires + actions + objects + qualities)
 
 
+def _clauses(words: list[str]) -> list[list[str]]:
+    """Split a running transcript where a new sentence clearly starts.
+
+    - "tôi" (not after "cho") starts a sentence when the current one already has its
+      own "tôi", or opens with a subject and ends on a noun phrase; a scrambled phrase
+      such as "tủ lạnh tôi rẻ muốn mua" stays whole.
+    - "cho tôi <verb/noun>" starts a sentence after a clean subject sentence.
+    - A later "chào", and anything after "cảm ơn", start a sentence.
+    A broken sentence keeps its warning without swallowing the ones after it.
+    """
+    clauses: list[list[str]] = [[]]
+    for index, word in enumerate(words):
+        current = clauses[-1]
+        following = words[index + 1:index + 3]
+        content = any(item not in SUBJECTS for item in current)
+        opened = [item for item in current if item != "chào"][:1] in ([subject] for subject in SUBJECTS)
+        noun_end = bool(current) and current[-1] in PRODUCTS | INSTITUTIONS | QUALITIES
+        if current and (
+            (word == "tôi" and current[-1] != "cho" and content
+             and ("tôi" in current or (opened and noun_end)))
+            or (word == "cho" and following[:1] == ["tôi"] and following[1:] and following[1] in ACTIONS | PRODUCTS
+                and opened and noun_end and not _clause_sentence(current)[1])
+            or (word == "chào" and content)
+            or (current[-1] == "cảm ơn" and any(item not in SUBJECTS | {"cảm ơn"} for item in current))
+        ):
+            clauses.append([])
+        clauses[-1].append(word)
+    return clauses
+
+
 def expanded_sentence(words: Sequence[str]) -> tuple[str, tuple[str, ...]]:
     normalized = [unicodedata.normalize("NFC", word.strip()).lower() for word in words if word.strip()]
     warnings: list[str] = []
@@ -119,6 +151,16 @@ def expanded_sentence(words: Sequence[str]) -> tuple[str, tuple[str, ...]]:
         normalized = [word for word in normalized if word != "không ký hiệu"]
     if not normalized:
         raise ValueError("Cần ít nhất một từ để hoàn thiện câu")
+    sentences: list[str] = []
+    for clause in _clauses(normalized):
+        sentence, clause_warnings = _clause_sentence(clause)
+        sentences.append(sentence)
+        warnings.extend(warning for warning in clause_warnings if warning not in warnings)
+    return " ".join(sentences), tuple(warnings)
+
+
+def _clause_sentence(normalized: list[str]) -> tuple[str, tuple[str, ...]]:
+    warnings: list[str] = []
     if any(count > 1 for count in Counter(normalized).values()):
         return _sentence(" ".join(normalized)), tuple(warnings + [REPEATED])
     core = list(normalized)

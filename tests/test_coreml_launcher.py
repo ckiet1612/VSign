@@ -137,9 +137,9 @@ def test_coreml_launcher_pins_measured_settings_and_falls_back_to_original(tmp_p
     assert result.returncode == 0, result.stderr
     lines = result.stdout.splitlines()
     if failure is None:
-        assert lines == ["coreml:verified-personal:ALL:0.70:0.15"]
+        assert lines == ["coreml:verified-personal:ALL:0.40:0.0"]
     elif failure == "startup":
-        assert lines == ["coreml:verified-personal:ALL:0.70:0.15", "pytorch:verified-personal:0.70:0.15"]
+        assert lines == ["coreml:verified-personal:ALL:0.40:0.0", "pytorch:verified-personal:0.40:0.0"]
     else:
-        assert lines == ["pytorch:verified-personal:0.70:0.15"]
+        assert lines == ["pytorch:verified-personal:0.40:0.0"]
     assert (original / "best.pt").read_bytes() == b"original-model"

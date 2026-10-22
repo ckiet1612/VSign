@@ -269,7 +269,7 @@ def test_launcher_exports_the_same_absolute_model_path_it_verifies(tmp_path: Pat
     result = subprocess.run(["bash", str(script)], cwd=caller,
         env={**os.environ, "PERSONAL_MODEL_DIR": "models", **threshold_overrides}, capture_output=True, text=True, timeout=20)
     assert result.returncode == 0, result.stderr
-    assert result.stdout.splitlines() == [str(model / "best.pt"), str(model / "labels.json"), "verified-version", "0.70", "0.15"]
+    assert result.stdout.splitlines() == [str(model / "best.pt"), str(model / "labels.json"), "verified-version", "0.40", "0.0"]
 
 
 def test_gate_rejects_lost_runtime_acceptance_even_when_argmax_is_unchanged() -> None:
