@@ -1,7 +1,15 @@
 import { describe, expect, it } from "vitest";
-import { AutomaticSentence, SENTENCE_PAUSE_MS, SENTENCE_CONTINUATION_MS } from "./automaticSentence";
+import { AutomaticSentence, SENTENCE_PAUSE_MS } from "./automaticSentence";
 
 describe("automatic sentence drafts", () => {
+  it("skips an unrecognized capture without a warning and still composes the words", () => {
+    const sentence = new AutomaticSentence();
+    sentence.sync(["Mua"], 0);
+    const capture = sentence.activity(100);
+    sentence.skip(capture, 200);
+    expect(sentence.drafts[0].warning).toBe("");
+    expect(sentence.prepare(200 + SENTENCE_PAUSE_MS, false)?.words).toEqual(["Mua"]);
+  });
   it("does not erase a capture gap when composition fails and later recovers", () => {
     const sentence = new AutomaticSentence();
     sentence.sync(["Mua"], 0);
@@ -35,56 +43,41 @@ describe("automatic sentence drafts", () => {
     expect(sentence.drafts[0].warning).toBe("Có đoạn chưa nhận dạng");
     expect(sentence.drafts[0].status).toBe("review");
   });
-  it("continues with a new sentence after a missing segment without clearing the session", () => {
+  it("keeps a capture gap on the single draft and normalizes every word together", () => {
     const sentence = new AutomaticSentence();
     sentence.sync(["Tôi", "Muốn", "Mua"], 0);
     sentence.missing("Có đoạn chưa nhận dạng", 100);
     const capture = sentence.activity(6000);
     sentence.finish(capture, 7000);
     sentence.accept(capture, ["Tôi", "Muốn", "Mua", "Tủ lạnh"], 8000);
-    const reviewed = sentence.prepare(10000, false)!;
-    expect(reviewed.words).toEqual(["Tôi", "Muốn", "Mua"]);
-    sentence.resolve(reviewed, "Tôi muốn mua.");
     const request = sentence.prepare(10000, false)!;
-    expect(request.words).toEqual(["Tủ lạnh"]);
-    sentence.resolve(request, "Tủ lạnh.");
-    expect(sentence.drafts.map(item => item.status)).toEqual(["review", "draft"]);
+    expect(request.words).toEqual(["Tôi", "Muốn", "Mua", "Tủ lạnh"]);
+    sentence.resolve(request, "Tôi muốn mua tủ lạnh.");
+    expect(sentence.drafts).toHaveLength(1);
     expect(sentence.drafts[0].warning).toBe("Có đoạn chưa nhận dạng");
   });
 
-  it("uses capture boundaries even when the previous sentence has no model reply yet", () => {
+  it("keeps captures separated by a long pause in one draft, in capture order", () => {
     const sentence = new AutomaticSentence();
     const first = sentence.activity(0);
     sentence.finish(first, 1000);
     const second = sentence.activity(6100);
     sentence.finish(second, 7000);
     sentence.accept(first, ["Mua"], 8000);
-    expect(sentence.prepare(10000, false)?.words).toEqual(["Mua"]);
-    sentence.accept(second, ["Mua", "Tủ lạnh"], 12000);
-    expect(sentence.drafts.map(item => item.words)).toEqual([["Mua"], ["Tủ lạnh"]]);
+    sentence.accept(second, ["Mua", "Tủ lạnh"], 8100);
+    expect(sentence.drafts.map(item => item.words)).toEqual([["Mua", "Tủ lạnh"]]);
+    expect(sentence.prepare(10100, false)?.words).toEqual(["Mua", "Tủ lạnh"]);
   });
 
-  it("does not move the boundary when a delayed model result arrives just before new signing", () => {
-    const sentence = new AutomaticSentence();
-    const first = sentence.activity(0);
-    sentence.finish(first, 1000);
-    sentence.accept(first, ["Mua"], 9000);
-    const second = sentence.activity(9100);
-    sentence.finish(second, 10000);
-    sentence.accept(second, ["Mua", "Tủ lạnh"], 11000);
-    expect(sentence.drafts.map(item => item.words)).toEqual([["Mua"], ["Tủ lạnh"]]);
-  });
-
-  it("keeps a delayed composition for the previous sentence when a new sentence starts", () => {
+  it("drops a pending composition when signing resumes and normalizes the extended word set", () => {
     const sentence = new AutomaticSentence();
     sentence.sync(["Mua"], 0);
     const request = sentence.prepare(SENTENCE_PAUSE_MS, false)!;
     const capture = sentence.activity(6000);
     sentence.finish(capture, 7000);
-    expect(sentence.resolve(request, "Mua.")).toBe(true);
+    expect(sentence.resolve(request, "Mua.")).toBe(false);
     sentence.accept(capture, ["Mua", "Tủ lạnh"], 8000);
-    expect(sentence.drafts[0].sentence).toBe("Mua.");
-    expect(sentence.prepare(10000, false)?.words).toEqual(["Tủ lạnh"]);
+    expect(sentence.prepare(10000, false)?.words).toEqual(["Mua", "Tủ lạnh"]);
   });
 
   it("waits for the end of a long capture before measuring the inter-sentence pause", () => {
@@ -142,23 +135,23 @@ describe("automatic sentence drafts", () => {
     sentence.sync(["Tôi", "Muốn", "Mua", "Tủ lạnh"], 0);
     const request = sentence.prepare(SENTENCE_PAUSE_MS, false)!;
     sentence.resolve(request, "Tôi muốn mua tủ lạnh.");
-    const capture = sentence.activity(SENTENCE_CONTINUATION_MS - 1);
-    sentence.finish(capture, SENTENCE_CONTINUATION_MS + 1000);
-    sentence.accept(capture, [...request.words, "Rẻ"], SENTENCE_CONTINUATION_MS + 5000);
+    const capture = sentence.activity(4999);
+    sentence.finish(capture, 6000);
+    sentence.accept(capture, [...request.words, "Rẻ"], 10000);
     expect(sentence.drafts).toHaveLength(1);
     expect(sentence.drafts[0].sentence).toBe("");
     expect(sentence.drafts[0].words.at(-1)).toBe("Rẻ");
   });
 
-  it("keeps the displayed sentence and starts a new draft after the continuation window", () => {
+  it("re-normalizes the whole word set after a long pause instead of starting a new sentence", () => {
     const sentence = new AutomaticSentence();
     sentence.sync(["Chào"], 0);
-    const request = sentence.prepare(SENTENCE_PAUSE_MS, false)!;
-    sentence.resolve(request, "Chào.");
-    const capture = sentence.activity(SENTENCE_CONTINUATION_MS + 1);
-    sentence.finish(capture, SENTENCE_CONTINUATION_MS + 500);
-    sentence.accept(capture, ["Chào", "Tôi", "Muốn", "Mua"], SENTENCE_CONTINUATION_MS + 1000);
-    expect(sentence.drafts.map(item => item.words)).toEqual([["Chào"], ["Tôi", "Muốn", "Mua"]]);
+    sentence.resolve(sentence.prepare(SENTENCE_PAUSE_MS, false)!, "Chào.");
+    const capture = sentence.activity(60000);
+    sentence.finish(capture, 60500);
+    sentence.accept(capture, ["Chào", "Tôi", "Muốn", "Mua"], 61000);
+    expect(sentence.drafts.map(item => item.words)).toEqual([["Chào", "Tôi", "Muốn", "Mua"]]);
+    expect(sentence.prepare(61000 + SENTENCE_PAUSE_MS, false)?.words).toEqual(["Chào", "Tôi", "Muốn", "Mua"]);
   });
 
   it("composes the recognized words once after an uncertain segment while retaining review", () => {
@@ -199,15 +192,14 @@ describe("automatic sentence drafts", () => {
     expect(sentence.drafts[0].status).toBe("review");
   });
 
-  it("recognizes repeated words in a later sentence without treating them as restored old text", () => {
+  it("keeps a repeated word signed after a pause as a new word of the same draft", () => {
     const sentence = new AutomaticSentence();
     sentence.sync(["Mua"], 0);
     sentence.resolve(sentence.prepare(1800, false)!, "Mua.");
     const capture = sentence.activity(6000);
     sentence.finish(capture, 7000);
     sentence.accept(capture, ["Mua", "Mua"], 7500);
-    expect(sentence.prepare(9500, false)?.words).toEqual(["Mua"]);
-    expect(sentence.drafts.map(item => item.words)).toEqual([["Mua"], ["Mua"]]);
+    expect(sentence.prepare(9500, false)?.words).toEqual(["Mua", "Mua"]);
   });
 
   it("ignores old capture tokens after clearing, even when the new words are identical", () => {
@@ -225,7 +217,7 @@ describe("automatic sentence drafts", () => {
     expect(sentence.prepare(10500, false)?.words).toEqual(["Mua"]);
   });
 
-  it("undo changes only the affected sentence and leaves earlier sentences intact", () => {
+  it("undo invalidates the pending composition and re-normalizes the remaining words", () => {
     const sentence = new AutomaticSentence();
     sentence.sync(["Mua"], 0);
     sentence.resolve(sentence.prepare(1800, false)!, "Mua.");
@@ -234,8 +226,8 @@ describe("automatic sentence drafts", () => {
     sentence.accept(capture, ["Mua", "Tủ lạnh", "Rẻ"], 7500);
     const request = sentence.prepare(9500, false)!;
     sentence.sync(["Mua", "Tủ lạnh"], 10000);
-    expect(sentence.resolve(request, "Tủ lạnh rẻ.")).toBe(false);
-    expect(sentence.drafts[0].sentence).toBe("Mua.");
-    expect(sentence.drafts[1].words).toEqual(["Tủ lạnh"]);
+    expect(sentence.resolve(request, "Mua tủ lạnh rẻ.")).toBe(false);
+    expect(sentence.prepare(12000, false)?.words).toEqual(["Mua", "Tủ lạnh"]);
   });
+
 });

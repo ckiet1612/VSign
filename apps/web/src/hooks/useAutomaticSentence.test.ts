@@ -136,12 +136,11 @@ describe("automatic sentence coordinator", () => {
     expect(compose.mock.calls[0][1].aborted).toBe(true);
   });
 
-  it("keeps the previous composition alive when capture starts in a different sentence", async () => {
-    let resolve!: (sentence: string) => void;
+  it("recomposes every word after signing resumes instead of starting a new sentence", async () => {
     let capturing = false;
     const compose = vi.fn<(words: string[], signal: AbortSignal) => Promise<string>>()
-      .mockImplementationOnce(() => new Promise(yes => { resolve = yes; }))
-      .mockResolvedValueOnce("Tủ lạnh.");
+      .mockImplementationOnce(() => new Promise(() => {}))
+      .mockResolvedValueOnce("Mua tủ lạnh.");
     const { result, rerender } = renderHook(({ words }) => useAutomaticSentence({
       enabled: true, contextKey: "server", words, blocked: () => capturing, compose,
     }), { initialProps: { words: ["Mua"] } });
@@ -149,9 +148,7 @@ describe("automatic sentence coordinator", () => {
     capturing = true;
     let capture!: NonNullable<ReturnType<typeof result.current.activity>>;
     act(() => { capture = result.current.activity()!; });
-    expect(compose.mock.calls[0][1].aborted).toBe(false);
-    await act(async () => resolve("Mua."));
-    expect(result.current.drafts[0].sentence).toBe("Mua.");
+    expect(compose.mock.calls[0][1].aborted).toBe(true);
     act(() => {
       result.current.finish(capture);
       result.current.accept(capture, ["Mua", "Tủ lạnh"]);
@@ -159,26 +156,28 @@ describe("automatic sentence coordinator", () => {
     rerender({ words: ["Mua", "Tủ lạnh"] });
     capturing = false;
     await act(async () => vi.advanceTimersByTimeAsync(2000));
-    expect(result.current.drafts.map(item => item.sentence)).toEqual(["Mua.", "Tủ lạnh."]);
+    expect(compose.mock.calls[1][0]).toEqual(["Mua", "Tủ lạnh"]);
+    expect(result.current.drafts.map(item => item.sentence)).toEqual(["Mua tủ lạnh."]);
   });
 
-  it("does not let a timed-out sentence composition block subsequent sentences forever", async () => {
+  it("does not let a timed-out composition block later recompositions forever", async () => {
     const compose = vi.fn<(words: string[], signal: AbortSignal) => Promise<string>>()
       .mockImplementationOnce(() => new Promise(() => {}))
-      .mockResolvedValueOnce("Tủ lạnh.");
+      .mockResolvedValueOnce("Mua tủ lạnh.");
     const { result, rerender } = renderHook(({ words }) => useAutomaticSentence({
       enabled: true, contextKey: "server", words, blocked: () => false, compose,
     }), { initialProps: { words: ["Mua"] } });
-    await act(async () => vi.advanceTimersByTimeAsync(6100));
+    await act(async () => vi.advanceTimersByTimeAsync(22000));
+    expect(result.current.drafts[0].compositionWarning).toBe("Ghép câu quá thời gian · cần kiểm tra");
     act(() => {
       const capture = result.current.activity()!;
       result.current.finish(capture);
       result.current.accept(capture, ["Mua", "Tủ lạnh"]);
     });
     rerender({ words: ["Mua", "Tủ lạnh"] });
-    await act(async () => vi.advanceTimersByTimeAsync(20000));
-    expect(result.current.drafts.map(item => item.status)).toEqual(["review", "draft"]);
-    expect(result.current.drafts[1].sentence).toBe("Tủ lạnh.");
+    await act(async () => vi.advanceTimersByTimeAsync(2000));
+    expect(result.current.drafts.map(item => item.status)).toEqual(["draft"]);
+    expect(result.current.drafts[0].sentence).toBe("Mua tủ lạnh.");
   });
 
   it("cancels a wordless capture on context change and recovers without a clear action", async () => {

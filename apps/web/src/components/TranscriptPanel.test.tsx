@@ -44,13 +44,14 @@ describe("TranscriptPanel", () => {
     expect(onCopy).toHaveBeenCalledOnce();
   });
 
-  it("shows both capture and grammar warnings beside the automatic draft", () => {
+  it("shows capture warnings but keeps grammar notes out of the automatic draft", () => {
     render(<TranscriptPanel words={["Laptop", "Mới", "Cũ"]} notice="" composedSentence=""
       composing={false} composeAvailable composeWithAi={false} automatic
       sentenceDrafts={[{ id: 0, words: ["Laptop", "Mới", "Cũ"], sentence: "Laptop mới cũ.",
         status: "review", warning: "Có đoạn chưa nhận dạng", compositionWarning: "Thuộc tính chưa rõ" }]}
       onCompose={vi.fn()} onUndo={vi.fn()} onClear={vi.fn()} onCopy={vi.fn()} />);
-    expect(screen.getByText(/Có đoạn chưa nhận dạng.*Thuộc tính chưa rõ/)).toBeInTheDocument();
+    expect(screen.getByText("Có đoạn chưa nhận dạng")).toBeInTheDocument();
+    expect(screen.queryByText(/Thuộc tính chưa rõ/)).not.toBeInTheDocument();
     expect(screen.getByText("Laptop mới cũ.")).toBeInTheDocument();
   });
 

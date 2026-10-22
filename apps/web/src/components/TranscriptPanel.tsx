@@ -54,9 +54,10 @@ export function TranscriptPanel({
       </div>
       {automatic && <div className="sentence-drafts" aria-live="polite">
         {sentenceDrafts.filter(item => item.words.length || item.warning).map(item => (
-          <div key={item.id} className={`sentence-draft sentence-draft-${item.status}`}>
-            <span>{[item.warning, item.compositionWarning].filter(Boolean).join(" · ") || (item.status === "composing" ? "Đang ghép câu dự thảo"
-              : item.status === "draft" ? "Dự thảo · chưa xác nhận" : "Đang nhận ký hiệu")}</span>
+          // Composition notes ("Cấu trúc chưa rõ"...) stay out of the live draft; only capture problems are shown.
+          <div key={item.id} className={`sentence-draft sentence-draft-${item.warning ? "review" : item.status === "review" ? "draft" : item.status}`}>
+            <span>{item.warning || (item.status === "composing" ? "Đang ghép câu dự thảo"
+              : item.status === "draft" || item.status === "review" ? "Dự thảo · chưa xác nhận" : "Đang nhận ký hiệu")}</span>
             {(item.sentence || (item.words.length > 0 && item.words.length < words.length)) &&
               <p>{item.sentence || item.words.join(" ")}</p>}
           </div>

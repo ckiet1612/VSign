@@ -52,6 +52,18 @@ export function useAutomaticSentence(options: Options) {
     abortStale();
     publish();
   }, [abortStale, publish]);
+  const skip = useCallback((capture: SentenceCapture) => {
+    if (!latest.current.enabled) return;
+    machine.current.skip(capture, performance.now());
+    abortStale();
+    publish();
+  }, [abortStale, publish]);
+  const skipPending = useCallback(() => {
+    if (!latest.current.enabled) return;
+    machine.current.skipPending(performance.now());
+    abortStale();
+    publish();
+  }, [abortStale, publish]);
   const cancelPending = useCallback((message: string) => {
     if (!latest.current.enabled) return;
     machine.current.cancelPending(message, performance.now());
@@ -111,5 +123,5 @@ export function useAutomaticSentence(options: Options) {
     }, 100);
     return () => window.clearInterval(timer);
   }, [abort, options.enabled, publish]);
-  return { drafts, activity, finish, accept, missing, cancelPending, reset };
+  return { drafts, activity, finish, accept, skip, skipPending, missing, cancelPending, reset };
 }

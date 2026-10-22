@@ -1,5 +1,4 @@
 export const SENTENCE_PAUSE_MS = 1800;
-export const SENTENCE_CONTINUATION_MS = 5000;
 
 export interface SentenceDraft {
   id: number;
@@ -22,7 +21,6 @@ export interface SentenceCapture {
 
 interface DraftTiming {
   revision: number;
-  lastSignAt: number;
   lastChangeAt: number;
   canCompose: boolean;
 }
@@ -52,7 +50,7 @@ export class AutomaticSentence {
     };
     this.drafts.push(draft);
     this.timing.set(draft.id, {
-      revision: 0, lastSignAt: now, lastChangeAt: now, canCompose: false,
+      revision: 0, lastChangeAt: now, canCompose: false,
     });
     return draft;
   }
@@ -72,15 +70,11 @@ export class AutomaticSentence {
   }
 
   activity(now: number): SentenceCapture {
-    let current = this.current(now);
-    const signing = [...this.captures.values()].some(item => item.draftId === current.id && !item.ended);
-    // Boundaries follow the customer's capture clock, never inference/HTTP latency.
-    if (this.forceNewDraft || (!signing && now - this.timing.get(current.id)!.lastSignAt >= SENTENCE_CONTINUATION_MS)) {
-      current = this.create(now);
-    }
+    // Pauses never split the draft: every recognized word so far is normalized together.
+    // Only a recognition context change starts a new one.
+    const current = this.forceNewDraft ? this.create(now) : this.current(now);
     this.forceNewDraft = false;
     this.changed(current, now);
-    this.timing.get(current.id)!.lastSignAt = now;
     const capture = { id: this.nextCaptureId++ };
     this.captures.set(capture.id, { draftId: current.id, ended: false });
     return capture;
@@ -91,7 +85,6 @@ export class AutomaticSentence {
     if (!owner || owner.ended) return;
     owner.ended = true;
     const timing = this.timing.get(owner.draftId)!;
-    timing.lastSignAt = Math.max(timing.lastSignAt, now);
     timing.lastChangeAt = Math.max(timing.lastChangeAt, now);
   }
 
@@ -124,8 +117,17 @@ export class AutomaticSentence {
     this.owners.push(...words.slice(this.words.length).map(() => current.id));
     this.words = [...words];
     current.words = words.filter((_, index) => this.owners[index] === current.id);
-    if (draftId === undefined) this.timing.get(current.id)!.lastSignAt = now;
     this.changed(current, now, current.words.length > 0);
+  }
+
+  /** Close a capture that produced no word, without flagging its draft. */
+  skip(capture: SentenceCapture, now: number): void {
+    const owner = this.captures.get(capture.id);
+    if (!owner) return;
+    if (!owner.ended) this.finish(capture, now);
+    this.captures.delete(capture.id);
+    const draft = this.drafts.find(item => item.id === owner.draftId);
+    if (draft) this.changed(draft, now, draft.words.length > 0);
   }
 
   missing(message: string, now: number, capture?: SentenceCapture): void {
@@ -136,6 +138,10 @@ export class AutomaticSentence {
     current.warning = message;
     this.changed(current, now, current.words.length > 0);
     if (capture) this.captures.delete(capture.id);
+  }
+
+  skipPending(now: number): void {
+    for (const id of [...this.captures.keys()]) this.skip({ id }, now);
   }
 
   cancelPending(message: string, now: number): void {

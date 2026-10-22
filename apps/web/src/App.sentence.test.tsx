@@ -53,12 +53,12 @@ describe("hands-free sentence integration", () => {
   });
   afterEach(() => { vi.useRealTimers(); vi.unstubAllGlobals(); vi.restoreAllMocks(); });
 
-  async function open() {
+  async function open(insertion: "automatic" | "manual" = "automatic") {
     render(<App />);
     await act(async () => { await Promise.resolve(); });
     fireEvent.click(screen.getByText("Cách thêm từ", { exact: true }));
     fireEvent.click(screen.getByRole("button", { name: "Tự động beta" }));
-    fireEvent.click(screen.getByRole("radio", { name: "Thêm từ tự động" }));
+    if (insertion === "automatic") fireEvent.click(screen.getByRole("radio", { name: "Thêm từ tự động" }));
   }
   function tracking() {
     controls.tracking?.({ features: null, baselineFeatures: null, crop: null, handCount: 0, updatedAt: performance.now() });
@@ -100,7 +100,19 @@ describe("hands-free sentence integration", () => {
     expect(screen.getByText("Dự thảo · chưa xác nhận")).toBeInTheDocument();
   });
 
-  it("shows a best-effort draft after an uncertain sign and retains the warning", async () => {
+  it("composes confirmed words on its own while hands-free capture runs in confirm mode", async () => {
+    await open("manual");
+    for (let i = 0; i < 2; i++) {
+      capture(); reply(i, labels[i]);
+      fireEvent.click(screen.getByRole("button", { name: "Thêm vào câu" }));
+    }
+    await waitQuiet();
+    expect(compositions()).toHaveLength(1);
+    expect(JSON.parse(String(compositions()[0][1]?.body)).words).toEqual(labels.slice(0, 2));
+    expect(screen.getByText("Tôi Muốn.")).toBeInTheDocument();
+  });
+
+  it("drops an uncertain sign silently and still composes the recognized words", async () => {
     await open();
     for (let i = 0; i < 4; i++) { capture(); reply(i, labels[i]); }
     capture(); reply(4, "Rẻ", "uncertain");
@@ -108,11 +120,11 @@ describe("hands-free sentence integration", () => {
     expect(compositions()).toHaveLength(1);
     expect(JSON.parse(String(compositions()[0][1]?.body)).words).toEqual(labels.slice(0, 4));
     const transcript = screen.getByRole("region", { name: "Câu của bạn" });
-    expect(within(transcript).getByText("Có đoạn chưa nhận dạng · cần kiểm tra")).toBeInTheDocument();
+    expect(within(transcript).queryByText(/chưa nhận dạng/)).not.toBeInTheDocument();
     expect(within(transcript).getByText("Tôi Muốn Mua Tủ lạnh.")).toBeInTheDocument();
   });
 
-  it("passes backend grammar warnings to the automatic draft without erasing a capture gap", async () => {
+  it("keeps backend grammar warnings and uncertain signs out of the automatic draft", async () => {
     const previousFetch = fetch;
     vi.stubGlobal("fetch", vi.fn(async (url: string, init?: RequestInit) => url.endsWith("/sentence/compose")
       ? { ok: true, json: async () => ({ sentence: "Tôi muốn mua tủ lạnh.", provider: "local", model: null,
@@ -122,12 +134,9 @@ describe("hands-free sentence integration", () => {
     for (let i = 0; i < 4; i++) { capture(); reply(i, labels[i]); }
     capture(); reply(4, "Rẻ", "uncertain");
     await waitQuiet();
-    expect(screen.getByText(/Có đoạn chưa nhận dạng.*Cấu trúc chưa rõ/)).toBeInTheDocument();
+    expect(screen.queryByText(/chưa nhận dạng|Cấu trúc chưa rõ/)).not.toBeInTheDocument();
     expect(screen.getByText("Tôi muốn mua tủ lạnh.")).toBeInTheDocument();
-    const writeText = vi.fn(async () => {});
-    vi.stubGlobal("navigator", { clipboard: { writeText } });
-    await act(async () => fireEvent.click(screen.getByRole("button", { name: "Sao chép câu" })));
-    expect(writeText).toHaveBeenCalledWith(expect.stringContaining("Có đoạn chưa nhận dạng · cần kiểm tra · Cấu trúc chưa rõ"));
+    expect(screen.getByText("Dự thảo · chưa xác nhận")).toBeInTheDocument();
   });
 
   it("clear starts a clean customer transcript and ignores the old pending reply", async () => {
@@ -153,19 +162,16 @@ describe("hands-free sentence integration", () => {
     expect(screen.getByText("Hàng đợi đầy · có thể thiếu đoạn ký")).toBeInTheDocument();
   });
 
-  it("staff can clear a session even when the first gesture was uncertain", async () => {
+  it("an uncertain first gesture leaves the transcript clean for the next sign", async () => {
     await open();
     capture(); reply(0, "Rẻ", "uncertain");
-    const clear = screen.getByRole("button", { name: "Xóa toàn bộ câu" });
-    expect(clear).toBeEnabled();
-    fireEvent.click(clear);
-    expect(screen.queryByText("Có đoạn chưa nhận dạng · cần kiểm tra")).not.toBeInTheDocument();
+    expect(screen.queryByText(/chưa nhận dạng/)).not.toBeInTheDocument();
     capture(); reply(1, "Mua");
     await waitQuiet();
     expect(compositions()).toHaveLength(1);
   });
 
-  it("recognizes three separate sentences without further web actions, including one after uncertainty", async () => {
+  it("re-normalizes all recognized words after each pause, skipping an uncertain sign", async () => {
     await open();
     capture(); reply(0, "Mua");
     await waitQuiet();
@@ -175,35 +181,32 @@ describe("hands-free sentence integration", () => {
     await waitQuiet(); await waitQuiet(); await waitQuiet();
     capture(); reply(2, "Tủ lạnh");
     await waitQuiet();
-    expect(compositions()).toHaveLength(2);
-    expect(screen.getByText("Mua.")).toBeInTheDocument();
-    expect(screen.getByText("Tủ lạnh.")).toBeInTheDocument();
-    expect(screen.getByText("Có đoạn chưa nhận dạng · cần kiểm tra")).toBeInTheDocument();
+    expect(compositions().map(call => JSON.parse(String(call[1]?.body)).words).at(-1)).toEqual(["Mua", "Tủ lạnh"]);
+    expect(screen.getByText("Mua Tủ lạnh.")).toBeInTheDocument();
+    expect(screen.queryByText("Mua.")).not.toBeInTheDocument();
+    expect(screen.queryByText(/chưa nhận dạng/)).not.toBeInTheDocument();
   });
 
-  it("assigns queued results to separate sentences even when neither has been composed", async () => {
+  it("normalizes queued results from separate captures as one word set", async () => {
     await open();
     capture();
     await waitQuiet(); await waitQuiet(); await waitQuiet();
     capture();
     reply(0, "Mua"); reply(1, "Tủ lạnh");
     await waitQuiet();
-    expect(compositions().map(call => JSON.parse(String(call[1]?.body)).words))
-      .toEqual([["Mua"], ["Tủ lạnh"]]);
-    expect(screen.getByText("Mua.")).toBeInTheDocument();
-    expect(screen.getByText("Tủ lạnh.")).toBeInTheDocument();
+    expect(compositions().map(call => JSON.parse(String(call[1]?.body)).words)).toEqual([["Mua", "Tủ lạnh"]]);
+    expect(screen.getByText("Mua Tủ lạnh.")).toBeInTheDocument();
   });
 
-  it("keeps a repeated word signed in another sentence when both predictions arrive together", async () => {
+  it("keeps a repeated word signed after a pause when both predictions arrive together", async () => {
     await open();
     capture();
     await waitQuiet(); await waitQuiet(); await waitQuiet();
     capture();
     reply(0, "Mua"); reply(1, "Mua");
     await waitQuiet();
-    expect(compositions().map(call => JSON.parse(String(call[1]?.body)).words))
-      .toEqual([["Mua"], ["Mua"]]);
-    expect(screen.getAllByText("Mua.")).toHaveLength(2);
+    expect(compositions().map(call => JSON.parse(String(call[1]?.body)).words)).toEqual([["Mua", "Mua"]]);
     expect(screen.queryByText("Có đoạn chưa nhận dạng · cần kiểm tra")).not.toBeInTheDocument();
   });
+
 });

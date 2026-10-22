@@ -126,8 +126,8 @@ function framesForRuntime(
 }
 
 const AUTOMATIC_PREDICTION_THRESHOLDS = {
-  confidence: 0.66,
-  margin: 0.24,
+  confidence: 0.40,
+  margin: 0,
 } as const;
 
 const DATA_TABS: readonly DataTab[] = ["collect", "sessions", "datasets", "labels"];
@@ -218,8 +218,8 @@ function WorkspaceApp({ platform }: { platform: WorkspacePlatform }) {
   const [composedWarning, setComposedWarning] = useState("");
   const [composingSentence, setComposingSentence] = useState(false);
   const composeRevisionRef = useRef(0);
-  const sentenceEventsRef = useRef<Pick<ReturnType<typeof useAutomaticSentence>, "activity" | "finish" | "accept" | "missing" | "cancelPending">>({
-    activity: () => null, finish: () => undefined, accept: () => undefined,
+  const sentenceEventsRef = useRef<Pick<ReturnType<typeof useAutomaticSentence>, "activity" | "finish" | "accept" | "skip" | "missing" | "cancelPending">>({
+    activity: () => null, finish: () => undefined, accept: () => undefined, skip: () => undefined,
     missing: () => undefined, cancelPending: () => undefined,
   });
   const sentenceSequencesRef = useRef(new Map<number, { capture: SentenceCapture; at: number }>());
@@ -395,7 +395,8 @@ function WorkspaceApp({ platform }: { platform: WorkspacePlatform }) {
       if (sentenceCapture) sentenceEventsRef.current.accept(sentenceCapture.capture, transcriptRef.current.words);
       setAutomaticAddedSequence(prediction.sequence);
     } else if (sentenceCapture) {
-      sentenceEventsRef.current.missing("Có đoạn chưa nhận dạng · cần kiểm tra", sentenceCapture.capture);
+      // An unrecognized sign is dropped silently; a warning here only clutters the draft.
+      sentenceEventsRef.current.skip(sentenceCapture.capture);
     }
   }, [appendWord]);
 
@@ -634,8 +635,9 @@ function WorkspaceApp({ platform }: { platform: WorkspacePlatform }) {
     },
   });
   const automaticPhase = automaticCapture.phase;
+  // Hands-free capture composes sentences on its own, whether words are added automatically or confirmed by staff.
   const automaticSentenceEnabled = automaticEnabled && autoTranscriptAvailable &&
-    wordInsertionMode === "automatic" && !config.publicDemo && metadata !== null;
+    !config.publicDemo && metadata !== null;
   const automaticSentence = useAutomaticSentence({
     enabled: automaticSentenceEnabled,
     contextKey: `${recognitionContextKey}:${transcriptModelVersion}`,
@@ -1692,7 +1694,7 @@ function WorkspaceApp({ platform }: { platform: WorkspacePlatform }) {
               onCompose={() => void completeSentence()}
               onUndo={() => {
                 autoTranscriptRef.current.invalidate();
-                automaticSentence.cancelPending("Đã hoàn tác khi còn đoạn đang xử lý · cần kiểm tra");
+                automaticSentence.skipPending();
                 sentenceSequencesRef.current.clear();
                 sentenceCaptureRef.current = null;
                 automaticTranscriptCaptureRef.current = null;

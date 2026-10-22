@@ -11,8 +11,8 @@ export const BASELINE_MODEL_VERSION = "landmark-keyframe-v3-personalized";
 export const V5_MODEL_VERSION = "guarded-landmark-v5-bootstrap";
 export type LandmarkRuntime = "v3" | "v4_2" | "v5";
 export const DEFAULT_LANDMARK_RUNTIME: LandmarkRuntime = "v3";
-export const LOCAL_CONFIDENCE_THRESHOLD = 0.56;
-export const LOCAL_MARGIN_THRESHOLD = 0.18;
+export const LOCAL_CONFIDENCE_THRESHOLD = 0.40;
+export const LOCAL_MARGIN_THRESHOLD = 0;
 export const MINIMUM_DETECTED_FRAMES = 4;
 export const IDLE_LABEL = "Không ký hiệu";
 
