@@ -41,6 +41,7 @@ export type PredictionAdjustment = "calibrated" | "context";
 
 export interface InferenceMetadata {
   backend: string;
+  gpu_name?: string | null;
   model_version: string;
   protocol_version: string;
   frame_count: number;

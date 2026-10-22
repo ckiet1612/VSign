@@ -32,6 +32,7 @@ import {
 import { AppSidebar } from "./components/AppSidebar";
 import { SidebarResizer } from "./components/SidebarResizer";
 import { LoginGate } from "./components/LoginGate";
+import { BackendLocationBadge } from "./components/BackendLocationBadge";
 import type { HandTrackingFrame } from "./components/HandTrackingOverlay";
 import { BodyBoxTracker } from "./lib/bodyFraming";
 import {
@@ -62,7 +63,8 @@ import { useAutomaticSignCapture } from "./hooks/useAutomaticSignCapture";
 import { useAutomaticInferenceQueue } from "./hooks/useAutomaticInferenceQueue";
 import { useAutomaticSentence } from "./hooks/useAutomaticSentence";
 import { useAutomaticCollectionCycle } from "./hooks/useAutomaticCollectionCycle";
-import { useInferenceSocket } from "./hooks/useInferenceSocket";
+import { useInferenceSocket, type ConnectionStatus } from "./hooks/useInferenceSocket";
+import { useInferenceEndpoint } from "./hooks/useInferenceEndpoint";
 import { useServerModel } from "./hooks/useServerModel";
 import { useLandmarkInference } from "./hooks/useLandmarkInference";
 import { useSignCapture } from "./hooks/useSignCapture";
@@ -155,11 +157,14 @@ export default function App() {
   if (platform.user?.role === "system_admin") void loadSystemDashboard();
   if (platform.authRequired && !platform.user) {
     return (
-      <LoginGate
-        workspaceName="VSign"
-        busy={platform.submitting}
-        onLogin={platform.login}
-      />
+      <>
+        <LoginGate
+          workspaceName="VSign"
+          busy={platform.submitting}
+          onLogin={platform.login}
+        />
+        <BackendLocationBadge location={null} floating requiresLogin />
+      </>
     );
   }
   return <WorkspaceApp platform={platform} />;
@@ -412,16 +417,37 @@ function WorkspaceApp({ platform }: { platform: WorkspacePlatform }) {
     }
     acceptPrediction(prediction);
   }, [acceptPrediction]);
+  // Recognition prefers the Modal GPU runtime and falls back to the Mac; metadata, login and
+  // sentence composition always stay on the Mac.
+  const endpointBusyRef = useRef<() => boolean>(() => false);
+  const [inferenceSocketStatus, setInferenceSocketStatus] = useState<ConnectionStatus>("connecting");
+  const inferenceEndpoint = useInferenceEndpoint({
+    gpu: config.gpuRuntime,
+    macWsUrl: config.publicDemo ? null : serverModel.active.wsUrl,
+    platformUrl: config.platformHttpUrl,
+    macMetadata: metadata,
+    enabled: !config.publicDemo && serverModel.active.id === "current" && !serverModel.switching,
+    socketStatus: inferenceSocketStatus,
+    isBusy: () => endpointBusyRef.current(),
+  });
+  const noteRecognitionActivity = inferenceEndpoint.noteActivity;
   const socket = useInferenceSocket(
-    config.publicDemo ? null : serverModel.active.wsUrl,
+    inferenceEndpoint.wsUrl,
     handlePrediction,
+    serverModel.active.id,
   );
+  useEffect(() => { setInferenceSocketStatus(socket.status); }, [socket.status]);
   const localModel = useLandmarkInference(landmarkRuntime);
   const inferenceRoute = chooseInferenceRoute({
     publicDemo: config.publicDemo,
     serverConnected: socket.status === "connected",
     localReady: localModel.status === "ready" && serverModel.active.id === "current",
   });
+  const backendLocation = inferenceRoute === "local" ? "browser"
+    : socket.status === "connected" && socket.activeUrl
+      ? config.gpuRuntime && socket.activeUrl.split("?")[0] === config.gpuRuntime.wsUrl.split("?")[0]
+        ? "modal" : "mac"
+      : null;
   const capturePipeline = chooseCapturePipeline({
     purpose: mode,
     inferenceRoute,
@@ -448,6 +474,10 @@ function WorkspaceApp({ platform }: { platform: WorkspacePlatform }) {
     onApply: setCaptureInputMode });
   const recognitionModelVersion = inferenceRoute === "local" ? localModel.modelVersion : metadata?.model_version ?? "";
   const recognitionContextKey = `${mode}:${captureInputMode}:${camera.status}:${inferenceRoute}:${landmarkRuntime}:${serverModel.active.id}:${recognitionModelVersion}`;
+  // Turning the camera on for recognition is the cue to wake the GPU runtime.
+  useEffect(() => {
+    if (camera.status === "ready" && mode === "recognize") noteRecognitionActivity();
+  }, [camera.status, mode, noteRecognitionActivity]);
   const recognitionContextRef = useRef(recognitionContextKey);
   const previousRecognitionContextRef = useRef(recognitionContextKey);
   recognitionContextRef.current = recognitionContextKey;
@@ -511,6 +541,7 @@ function WorkspaceApp({ platform }: { platform: WorkspacePlatform }) {
       if (job.rgbFrames?.length !== 16) {
         throw new Error("Ảnh ký hiệu chưa đủ 16 frame. Hãy thử lại.");
       }
+      noteRecognitionActivity();
       socket.sendFrames({
         type: "frames", session_id: sessionIdRef.current,
         sequence: job.sequence, captured_at: job.capturedAt, frames: job.rgbFrames,
@@ -522,7 +553,7 @@ function WorkspaceApp({ platform }: { platform: WorkspacePlatform }) {
       framesForRuntime(landmarkRuntime, job.landmarkFrames, job.baselineLandmarkFrames),
       job.sequence, AUTOMATIC_PREDICTION_THRESHOLDS,
     );
-  }, [landmarkRuntime, predictLandmarks, sentenceContextWords, socket]);
+  }, [landmarkRuntime, noteRecognitionActivity, predictLandmarks, sentenceContextWords, socket]);
   const automaticQueue = useAutomaticInferenceQueue({
     enabled: automaticEnabled,
     contextKey: recognitionContextKey,
@@ -541,6 +572,8 @@ function WorkspaceApp({ platform }: { platform: WorkspacePlatform }) {
     },
   });
   automaticPredictionRef.current = automaticQueue.receive;
+  // Only a sign awaiting its prediction pins the runtime; capture itself does not use the socket.
+  endpointBusyRef.current = () => manualRequestRef.current !== null || automaticQueue.isPending();
   const enqueueAutomaticJob = automaticQueue.enqueue;
   const confirmAutomaticJob = automaticQueue.confirm;
   const retractAutomaticJob = automaticQueue.retract;
@@ -967,6 +1000,7 @@ function WorkspaceApp({ platform }: { platform: WorkspacePlatform }) {
         };
         try {
           manualRequestRef.current = { sequence, route: "server", contextKey: recognitionContextKey };
+          noteRecognitionActivity();
           socket.sendFrames(message);
         } catch {
           autoTranscriptRef.current.discard(sequence);
@@ -1606,6 +1640,8 @@ function WorkspaceApp({ platform }: { platform: WorkspacePlatform }) {
           videoRef={videoRef}
           camera={camera}
           connection={connectionState}
+          runtimeLabel={config.gpuRuntime && inferenceRoute === "server"
+            ? inferenceEndpoint.kind === "gpu" ? "GPU" : "Mac" : undefined}
           captureStatus={capture.status}
           canCapture={canCapture}
           purpose={mode}
@@ -1814,6 +1850,7 @@ function WorkspaceApp({ platform }: { platform: WorkspacePlatform }) {
             </div>
           </details>}
         </div>
+        <BackendLocationBadge location={backendLocation} gpuName={socket.gpuName} connecting={socket.status === "connecting"} />
       </div>
       </div>
     </div>

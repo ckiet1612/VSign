@@ -28,6 +28,8 @@ interface CameraPanelProps {
   videoRef: RefObject<HTMLVideoElement | null>;
   camera: CameraController;
   connection: ConnectionStatus;
+  /** Where recognition runs when a GPU runtime is configured ("GPU" or "Mac"). */
+  runtimeLabel?: string;
   captureStatus: CaptureStatus;
   canCapture: boolean;
   purpose: "recognize" | "collect";
@@ -85,6 +87,7 @@ export function CameraPanel({
   videoRef,
   camera,
   connection,
+  runtimeLabel,
   captureStatus,
   canCapture,
   purpose,
@@ -247,7 +250,7 @@ export function CameraPanel({
             <i aria-hidden="true" />{cameraStatusText[camera.status]}
           </span>
           <span className={`camera-state status-chip connection-${connection}`}>
-            <i aria-hidden="true" />AI: {connectionText[connection]}
+            <i aria-hidden="true" />AI: {connectionText[connection]}{connection === "connected" && runtimeLabel ? ` · ${runtimeLabel}` : ""}
           </span>
         </div>
       </div>

@@ -40,6 +40,7 @@ from app.platform_auth import (
     revoke_session,
     verify_password,
 )
+from app.inference_token import issue_inference_token
 from app.platform_db import AuditEvent, Database, Membership, User, Workspace, hash_session_token, utc_now
 
 
@@ -201,6 +202,18 @@ def create_platform_router(
         current = principal(request, required=True)
         assert current is not None
         return AuthSessionResponse(user=user_response(current), auth_mode="local_admin" if settings.local_admin_enabled else "session")
+
+    @router.post("/inference/token")
+    def inference_token(request: Request, response: Response) -> dict:
+        """A short-lived token for recognition runtimes that cannot read this database (Modal GPU)."""
+        if not settings.inference_token_secret:
+            raise HTTPException(status_code=404, detail="Runtime GPU chưa được cấu hình")
+        validate_origin(request)
+        current = require_permission(request, "recognize:use")
+        assert current is not None
+        token, expires_at = issue_inference_token(settings.inference_token_secret, settings.workspace_id, current.user.id)
+        response.headers["Cache-Control"] = "no-store"
+        return {"token": token, "expires_at": expires_at}
 
     @router.get("/workspace", response_model=WorkspaceContextResponse)
     def workspace_context(request: Request) -> WorkspaceContextResponse:

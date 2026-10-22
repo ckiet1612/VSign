@@ -19,5 +19,10 @@ export APP_ENV=production AUTH_REQUIRED=true LOCAL_ADMIN_ENABLED=false AUTH_COOK
 export INFERENCE_HOST=127.0.0.1 INFERENCE_PORT=8000 DATABASE_URL="${shared_database}"
 export DATABASE_AUTO_CREATE=false MODEL_DEPLOYMENT_WORKER=false COLLECTION_ENABLED=false DEV_TEST_ENABLED=false
 export ALLOWED_ORIGINS="https://vsign.io.vn,http://localhost:5173,http://127.0.0.1:5173,http://localhost:5174,http://127.0.0.1:5174,http://localhost:5175,http://127.0.0.1:5175,http://localhost:5176,http://127.0.0.1:5176"
+# Shared with the Modal GPU runtime (scripts/deploy_modal.sh); without it the Mac serves recognition alone.
+if [[ -f "${project_dir}/data/inference-token-secret" ]]; then
+  export INFERENCE_TOKEN_SECRET_FILE="${project_dir}/data/inference-token-secret"
+fi
+unset INFERENCE_TOKEN_SECRET RUNTIME_ROLE
 unset BOOTSTRAP_ADMIN_EMAIL BOOTSTRAP_ADMIN_PASSWORD BOOTSTRAP_ADMIN_NAME
 exec bash "${project_dir}/scripts/run_coreml_local.sh"

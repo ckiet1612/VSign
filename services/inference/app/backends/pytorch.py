@@ -56,6 +56,7 @@ class PyTorchInferenceBackend:
         if device not in {"cpu", "cuda"}:
             raise RuntimeError("PYTORCH_DEVICE chỉ hỗ trợ auto, cpu hoặc cuda")
         self.device = device
+        self.gpu_name = torch.cuda.get_device_name(0) if device == "cuda" else None
         resolved_device = torch.device(device)
 
         try:
@@ -80,8 +81,8 @@ class PyTorchInferenceBackend:
         self._model = model.to(resolved_device).eval()
         self._device = resolved_device
         self.last_timings_ms: dict[str, float] = {}
-        if device == "cpu":
-            self._warmup()
+        # On CUDA this also pays kernel selection before the first real clip.
+        self._warmup()
 
     def _warmup(self) -> None:
         # Pay lazy operator initialization before the server accepts requests.

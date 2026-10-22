@@ -42,6 +42,7 @@ from app.models import (
 from app.model_manifest import load_model_manifest
 from app.platform_db import create_database
 from app.platform_auth import SESSION_COOKIE_NAME, bootstrap_platform, resolve_principal
+from app.inference_token import verify_inference_token
 from app.platform_router import create_platform_router
 from app.display_hub import DisplayHub
 from app.display_router import create_display_socket
@@ -146,11 +147,17 @@ def create_app(
             margin_threshold=resolved_settings.margin_threshold,
         )
     password_hasher = PasswordHasher()
+    inference_only = resolved_settings.runtime_role == "inference_only"
 
     @asynccontextmanager
     async def lifespan(application: FastAPI):
         database = None
         deployment_worker = None
+        if inference_only:
+            # No platform database here: sockets are authorized by signed inference tokens.
+            application.state.platform_database = None
+            yield
+            return
         try:
             try:
                 database = create_database(resolved_settings.database_url)
@@ -186,12 +193,13 @@ def create_app(
     app.state.platform_database = None
     app.state.password_hasher = password_hasher
     app.state.display_hub = DisplayHub()
-    app.include_router(
-        create_platform_router(
-            resolved_settings,
-            app.state.password_hasher,
+    if not inference_only:
+        app.include_router(
+            create_platform_router(
+                resolved_settings,
+                app.state.password_hasher,
+            )
         )
-    )
 
     async def authorize_runtime(token: Optional[str], permission: str) -> None:
         if not resolved_settings.auth_required:
@@ -204,6 +212,12 @@ def create_app(
             raise HTTPException(401, "Đăng nhập để tiếp tục")
         if not current.can(permission):
             raise HTTPException(403, "Bạn không có quyền thực hiện thao tác này")
+
+    @app.middleware("http")
+    async def limit_inference_only_routes(request: Request, call_next: Any) -> Any:
+        if inference_only and request.url.path not in {"/health", "/metadata"}:
+            return JSONResponse(status_code=404, content={"detail": "Not Found"})
+        return await call_next(request)
 
     @app.middleware("http")
     async def protect_runtime_requests(request: Request, call_next: Any) -> Any:
@@ -303,6 +317,7 @@ def create_app(
         runtime_settings = app.state.runtime_settings
         return MetadataResponse(
             backend=active_backend.name,
+            gpu_name=getattr(active_backend, "gpu_name", None),
             model_version=active_backend.model_version,
             supported_image_formats=list(SUPPORTED_MIME_TYPES),
             confidence_threshold=runtime_settings.confidence_threshold,
@@ -468,12 +483,27 @@ def create_app(
             await websocket.close(code=1008, reason="Origin không được phép")
             return
         token = websocket.cookies.get(SESSION_COOKIE_NAME)
+        # The Mac issues signed tokens (POST /api/v1/inference/token) so a GPU runtime without
+        # the platform database can still require a signed-in user.
+        signed_token = websocket.query_params.get("token")
+        token_claims = None
+        if signed_token and resolved_settings.inference_token_secret:
+            token_claims = verify_inference_token(
+                resolved_settings.inference_token_secret, signed_token, resolved_settings.workspace_id
+            )
+        if token_claims is None and (inference_only or signed_token):
+            await websocket.close(code=1008, reason="Đăng nhập để tiếp tục")
+            return
         try:
-            await authorize_runtime(token, "recognize:use")
+            if token_claims is None:
+                await authorize_runtime(token, "recognize:use")
         except HTTPException:
             await websocket.close(code=1008, reason="Đăng nhập để tiếp tục")
             return
         await websocket.accept()
+        gpu_name = getattr(app.state.backend, "gpu_name", None)
+        if gpu_name:
+            await websocket.send_json({"type": "runtime_info", "gpu_name": gpu_name})
         try:
             while True:
                 packet = await websocket.receive()
@@ -481,7 +511,10 @@ def create_app(
                     break
                 # An open socket must not outlive a revoked or expired login session.
                 try:
-                    await authorize_runtime(token, "recognize:use")
+                    if token_claims is None:
+                        await authorize_runtime(token, "recognize:use")
+                    elif token_claims.expired():
+                        raise HTTPException(401, "Phiên nhận dạng đã hết hạn")
                 except HTTPException:
                     await websocket.close(code=1008, reason="Phiên đăng nhập đã hết hạn")
                     break
@@ -554,9 +587,10 @@ def create_app(
         except WebSocketDisconnect:
             return
 
-    app.add_api_websocket_route("/ws/display/{display_id}", create_display_socket(resolved_settings))
+    if not inference_only:
+        app.add_api_websocket_route("/ws/display/{display_id}", create_display_socket(resolved_settings))
 
-    if resolved_settings.app_environment == "development" and resolved_settings.dev_test_enabled:
+    if not inference_only and resolved_settings.app_environment == "development" and resolved_settings.dev_test_enabled:
         from app.dev_test import create_dev_test_router
         app.include_router(create_dev_test_router(app))
 

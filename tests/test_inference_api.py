@@ -55,6 +55,17 @@ def test_metadata_reports_body_framing_for_models_trained_on_it(monkeypatch) -> 
         raise AssertionError("invalid INPUT_FRAMING accepted")
 
 
+def test_gpu_identity_matches_metadata_and_the_connected_runtime() -> None:
+    backend = MockInferenceBackend()
+    backend.gpu_name = "NVIDIA T4"
+    with TestClient(create_app(Settings(), backend=backend)) as client:
+        assert client.get("/metadata").json()["gpu_name"] == "NVIDIA T4"
+        with client.websocket_connect("/ws/inference") as socket:
+            assert socket.receive_json() == {"type": "runtime_info", "gpu_name": "NVIDIA T4"}
+            socket.send_json(valid_payload())
+            assert socket.receive_json()["type"] == "prediction"
+
+
 def test_health_and_metadata() -> None:
     with TestClient(create_app(Settings())) as client:
         health = client.get("/health")

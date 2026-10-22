@@ -77,6 +77,7 @@ class HealthResponse(BaseModel):
 
 class MetadataResponse(BaseModel):
     backend: str
+    gpu_name: Optional[str] = None
     model_version: str
     protocol_version: str = PROTOCOL_VERSION
     frame_count: int = FRAME_COUNT

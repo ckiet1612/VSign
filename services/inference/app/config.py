@@ -102,6 +102,24 @@ def _integration_key_env() -> Optional[str]:
         return None
 
 
+def _inference_token_secret_env() -> Optional[str]:
+    value = os.getenv("INFERENCE_TOKEN_SECRET", "").strip()
+    path = os.getenv("INFERENCE_TOKEN_SECRET_FILE", "").strip()
+    if not value and path:
+        try:
+            target = Path(path).expanduser()
+            if target.is_symlink() or not target.is_file() or target.stat().st_size > 256:
+                raise RuntimeError("INFERENCE_TOKEN_SECRET_FILE không hợp lệ")
+            value = target.read_text(encoding="ascii").strip()
+        except (OSError, UnicodeError) as exc:
+            raise RuntimeError("Không đọc được INFERENCE_TOKEN_SECRET_FILE") from exc
+    if not value:
+        return None
+    if len(value) < 32:
+        raise RuntimeError("INFERENCE_TOKEN_SECRET phải dài ít nhất 32 ký tự")
+    return value
+
+
 @dataclass(frozen=True)
 class Settings:
     inference_backend: str = "mock"
@@ -158,8 +176,16 @@ class Settings:
     model_deployment_runtime_url: str = "http://127.0.0.1:8002"
     integration_encryption_key: Optional[str] = field(default=None, repr=False)
     display_ice_servers: Tuple[dict, ...] = ({"urls": ["stun:stun.l.google.com:19302"]},)
+    # "inference_only" serves just /health, /metadata and /ws/inference, authorized by signed
+    # inference tokens instead of the platform database (used by the Modal GPU runtime).
+    runtime_role: str = "full"
+    inference_token_secret: Optional[str] = field(default=None, repr=False)
 
     def __post_init__(self) -> None:
+        if self.runtime_role not in {"full", "inference_only"}:
+            raise RuntimeError("RUNTIME_ROLE chỉ hỗ trợ full hoặc inference_only")
+        if self.runtime_role == "inference_only" and not self.inference_token_secret:
+            raise RuntimeError("RUNTIME_ROLE=inference_only cần INFERENCE_TOKEN_SECRET")
         if self.local_admin_role not in {"admin", "system_admin"}:
             raise RuntimeError("LOCAL_ADMIN_ROLE chỉ hỗ trợ admin hoặc system_admin")
         if self.local_admin_enabled and (self.app_environment != "development" or self.auth_required):
@@ -265,4 +291,6 @@ class Settings:
             model_deployment_runtime_url=os.getenv("MODEL_DEPLOYMENT_RUNTIME_URL", "http://127.0.0.1:8002").strip(),
             integration_encryption_key=_integration_key_env(),
             display_ice_servers=_ice_servers_env(),
+            runtime_role=os.getenv("RUNTIME_ROLE", "full").strip().lower() or "full",
+            inference_token_secret=_inference_token_secret_env(),
         )

@@ -3,8 +3,11 @@
 .env.local
 .env.*
 !.env.example
+!apps/web/.env.production
 data/*.db
 data/*.db-*
+data/inference-token-secret
+data/display-ice-servers.json
 *.db
 *.db-*
 *.sqlite
@@ -25,6 +28,7 @@ __pycache__/
 .ruff_cache/
 .venv/
 .venv-coreml/
+.venv-modal/
 venv/
 
 # JavaScript
