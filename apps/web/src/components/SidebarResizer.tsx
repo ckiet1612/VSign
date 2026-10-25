@@ -33,6 +33,7 @@ function previewWidth(raw: number): number {
 
 export function SidebarResizer({ shellRef, width, collapsed, onResize, onCollapse, onReset }: SidebarResizerProps) {
   const drag = useRef<{ startX: number; startWidth: number; raw: number } | null>(null);
+  const resizing = useRef(false);
 
   const setPreview = (raw: number) => {
     const shell = shellRef.current;
@@ -47,15 +48,19 @@ export function SidebarResizer({ shellRef, width, collapsed, onResize, onCollaps
     event.currentTarget.setPointerCapture(event.pointerId);
     const startWidth = collapsed ? SIDEBAR_RAIL_WIDTH : width;
     drag.current = { startX: event.clientX, startWidth, raw: startWidth };
-    shellRef.current?.classList.add("sidebar-resizing");
-    // Expanded geometry while dragging out of the rail, so the edge tracks the pointer 1:1.
-    shellRef.current?.classList.remove("sidebar-collapsed");
-    setPreview(startWidth);
+    resizing.current = false;
   };
 
   const handlePointerMove = (event: PointerEvent<HTMLDivElement>) => {
     if (!drag.current) return;
     drag.current.raw = drag.current.startWidth + event.clientX - drag.current.startX;
+    if (!resizing.current && Math.abs(drag.current.raw - drag.current.startWidth) <= 3) return;
+    if (!resizing.current) {
+      resizing.current = true;
+      shellRef.current?.classList.add("sidebar-resizing");
+      // Expanded geometry while dragging out of the rail, so the edge tracks the pointer 1:1.
+      shellRef.current?.classList.remove("sidebar-collapsed");
+    }
     setPreview(drag.current.raw);
   };
 
@@ -64,8 +69,9 @@ export function SidebarResizer({ shellRef, width, collapsed, onResize, onCollaps
     const shell = shellRef.current;
     if (!current || !shell) return;
     drag.current = null;
-    shell.classList.remove("sidebar-resizing", "sidebar-will-collapse");
     const moved = Math.abs(current.raw - current.startWidth) > 3;
+    resizing.current = false;
+    shell.classList.remove("sidebar-resizing", "sidebar-will-collapse");
     if (!moved) {
       // A click without movement restores the committed layout untouched.
       shell.style.setProperty("--sidebar-width", `${width}px`);

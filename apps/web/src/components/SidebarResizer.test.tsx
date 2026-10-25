@@ -66,4 +66,17 @@ describe("SidebarResizer", () => {
     expect(first.onCollapse).toHaveBeenCalledWith(true);
     expect(first.shellRef.current).toHaveClass("sidebar-collapsed");
   });
+
+  it("không làm sidebar đang thu gọn nhảy ra khi chỉ click vào ranh giới", () => {
+    const { handle, shellRef, onCollapse, onResize } = renderResizer({ collapsed: true });
+    shellRef.current?.classList.add("sidebar-collapsed");
+
+    fireEvent.pointerDown(handle, { button: 0, clientX: 68, pointerId: 1 });
+    fireEvent.pointerUp(handle, { clientX: 68, pointerId: 1 });
+
+    expect(shellRef.current).toHaveClass("sidebar-collapsed");
+    expect(shellRef.current).not.toHaveClass("sidebar-resizing");
+    expect(onCollapse).not.toHaveBeenCalled();
+    expect(onResize).not.toHaveBeenCalled();
+  });
 });
