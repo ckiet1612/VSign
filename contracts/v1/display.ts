@@ -31,7 +31,12 @@ export interface SignalMessage {
 export interface DisplayStateMessage {
   type: "display_state"; conversation_id: string; revision: number; phase: DisplayPhase;
   word: string | null; words: string[]; sentence: string; guide: "fixed" | "adaptive";
+  /** The staff member's latest answer to the customer; empty until they reply. */
+  reply?: string;
 }
+export const REPLY_MAX = 300;
+/** A button pressed on the counter screen; the staff recognizer owns the transcript and applies it. */
+export interface CustomerActionMessage { type: "customer_action"; action: "undo_word"; conversation_id: string }
 export interface CommandMessage { type: "command"; name: "new_conversation" | "end_session"; conversation_id: string }
 
 export type ServerDisplayMessage =
@@ -43,9 +48,9 @@ export type ServerDisplayMessage =
   | { type: "revoked" }
   | { type: "pong" }
   | { type: "error"; detail: string }
-  | SignalMessage | DisplayStateMessage | CommandMessage;
+  | SignalMessage | DisplayStateMessage | CommandMessage | CustomerActionMessage;
 
-export type ClientDisplayMessage = SignalMessage | DisplayStateMessage | CommandMessage | { type: "ping" };
+export type ClientDisplayMessage = SignalMessage | DisplayStateMessage | CommandMessage | CustomerActionMessage | { type: "ping" };
 
 /** Close codes the server uses on /ws/display; reconnecting after these would only repeat the refusal. */
 export const DISPLAY_CLOSE = {
@@ -53,7 +58,7 @@ export const DISPLAY_CLOSE = {
 } as const;
 
 const SERVER_TYPES = new Set(["welcome", "peer", "occupied", "taken_over", "revoked", "pong", "error",
-  "signal", "display_state", "command"]);
+  "signal", "display_state", "command", "customer_action"]);
 
 export function parseServerDisplayMessage(raw: unknown): ServerDisplayMessage | null {
   if (typeof raw !== "string") return null;

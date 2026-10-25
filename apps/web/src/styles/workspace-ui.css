@@ -86,7 +86,7 @@
 .page-tabs [role="tab"]:hover:not(:disabled, [aria-selected="true"]) { background: var(--black-4); color: var(--ink); }
 .page-tabs [role="tab"][aria-selected="true"] { background: var(--black-100); color: var(--white-100); }
 .page-tabs[data-indicator] [role="tab"][aria-selected="true"] { background: transparent; }
-.page-tabs [role="tab"]:active:not(:disabled) { transform: scale(0.97); }
+html[data-pointer-down] .page-tabs [role="tab"]:active:not(:disabled) { transform: scale(0.97); }
 .page-tabs [role="tab"]:disabled { opacity: .4; cursor: not-allowed; }
 .page-tabs [role="tab"]:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
 

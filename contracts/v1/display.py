@@ -6,6 +6,7 @@ from pydantic import BaseModel, ConfigDict, Field, StringConstraints, TypeAdapte
 DISPLAY_COOKIE_NAME = 'vsign_display'
 DISPLAY_NAME_MAX = 60
 DISPLAY_MESSAGE_MAX_BYTES = 65536
+REPLY_MAX = 300
 
 DisplayName = Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=DISPLAY_NAME_MAX)]
 Word = Annotated[str, StringConstraints(min_length=1, max_length=64)]
@@ -70,6 +71,8 @@ class DisplayState(Strict):
     words: List[Word] = Field(default_factory=list, max_length=200)
     sentence: Annotated[str, StringConstraints(max_length=600)] = ''
     guide: Literal['fixed', 'adaptive'] = 'fixed'
+    # The staff member's latest answer to the customer, typed or dictated on the staff side.
+    reply: Annotated[str, StringConstraints(max_length=REPLY_MAX)] = ''
 
 
 class CommandMessage(Strict):
@@ -78,9 +81,16 @@ class CommandMessage(Strict):
     conversation_id: Token
 
 
+class CustomerAction(Strict):
+    """A button pressed on the counter screen; the staff recognizer owns the transcript and applies it."""
+    type: Literal['customer_action']
+    action: Literal['undo_word']
+    conversation_id: Token
+
+
 class PingMessage(Strict):
     type: Literal['ping']
 
 
 StaffMessage = TypeAdapter(Annotated[Union[SignalMessage, DisplayState, CommandMessage, PingMessage], Field(discriminator='type')])
-DeviceMessage = TypeAdapter(Annotated[Union[SignalMessage, PingMessage], Field(discriminator='type')])
+DeviceMessage = TypeAdapter(Annotated[Union[SignalMessage, CustomerAction, PingMessage], Field(discriminator='type')])

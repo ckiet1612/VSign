@@ -5,11 +5,20 @@ import { describe, expect, it, vi } from "vitest";
 import { LoginGate } from "./LoginGate";
 
 describe("LoginGate", () => {
+  it("starts from the email an accepted invitation links with", () => {
+    window.history.replaceState(null, "", "/?login=new%40example.com");
+    try {
+      render(<LoginGate embedded workspaceName="VSign" onLogin={async () => undefined} />);
+      expect(screen.getByLabelText("Email hoặc tên đăng nhập")).toHaveValue("new@example.com");
+    } finally {
+      window.history.replaceState(null, "", "/");
+    }
+  });
   it("embeds in an existing page and recovers after a StrictMode login failure", async () => {
     render(<StrictMode><LoginGate embedded workspaceName="VSign" onLogin={async () => { throw new Error("Sai mật khẩu"); }} /></StrictMode>);
     expect(screen.queryByRole("main")).not.toBeInTheDocument();
     expect(screen.getByRole("heading", { level: 2 })).toBeInTheDocument();
-    await userEvent.type(screen.getByLabelText("Tên đăng nhập"), "test@example.com");
+    await userEvent.type(screen.getByLabelText("Email hoặc tên đăng nhập"), "test@example.com");
     await userEvent.type(screen.getByLabelText("Mật khẩu"), "wrong");
     await userEvent.click(screen.getByRole("button", { name: "Đăng nhập" }));
     await screen.findByText("Sai mật khẩu");
@@ -21,7 +30,7 @@ describe("LoginGate", () => {
     const onLogin = vi.fn(() => new Promise<void>(complete => { resolve = complete; }));
     render(<LoginGate workspaceName="VSign workspace" onLogin={onLogin} />);
 
-    await user.type(screen.getByLabelText("Tên đăng nhập"), "admin@example.com");
+    await user.type(screen.getByLabelText("Email hoặc tên đăng nhập"), "admin@example.com");
     await user.type(screen.getByLabelText("Mật khẩu"), "password");
     const submit = screen.getByRole("button", { name: "Đăng nhập" });
     await user.click(submit);
@@ -35,7 +44,7 @@ describe("LoginGate", () => {
     const onLogin = vi.fn(async () => undefined);
     render(<LoginGate workspaceName="VSign" onLogin={onLogin} />);
     expect(screen.getByRole("main")).toBeInTheDocument();
-    await userEvent.type(screen.getByLabelText("Tên đăng nhập"), "vsignadmin");
+    await userEvent.type(screen.getByLabelText("Email hoặc tên đăng nhập"), "vsignadmin");
     await userEvent.type(screen.getByLabelText("Mật khẩu"), "temporary-pass");
     await userEvent.click(screen.getByRole("button", { name: "Đăng nhập" }));
     expect(onLogin).toHaveBeenCalledWith("vsignadmin", "temporary-pass");

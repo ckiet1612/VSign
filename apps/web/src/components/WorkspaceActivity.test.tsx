@@ -47,7 +47,7 @@ describe("WorkspaceActivity", () => {
     expect(screen.getByRole("heading", { name: "Hoạt động", level: 1 })).toHaveAttribute("id", "workspace-page-title");
     expect(container.querySelector(".workspace-page")).not.toBeNull();
     expect(container.querySelectorAll("main")).toHaveLength(1);
-    await userEvent.type(screen.getByLabelText("Tên đăng nhập"), "owner@example.com");
+    await userEvent.type(screen.getByLabelText("Email hoặc tên đăng nhập"), "owner@example.com");
     await userEvent.type(screen.getByLabelText("Mật khẩu"), "password");
     await userEvent.click(screen.getByRole("button", { name: "Đăng nhập" }));
     expect(onLogin).toHaveBeenCalledWith("owner@example.com", "password");
@@ -206,7 +206,7 @@ describe("WorkspaceActivity", () => {
     vi.stubGlobal("fetch", fetcher);
     render(<WorkspaceActivity {...props} onLogin={onLogin} />);
     await screen.findByLabelText("Mật khẩu");
-    await userEvent.type(screen.getByLabelText("Tên đăng nhập"), "owner@example.com");
+    await userEvent.type(screen.getByLabelText("Email hoặc tên đăng nhập"), "owner@example.com");
     await userEvent.type(screen.getByLabelText("Mật khẩu"), "password");
     await userEvent.click(screen.getByRole("button", { name: "Đăng nhập" }));
     expect(await screen.findByText("model.selected")).toBeInTheDocument();

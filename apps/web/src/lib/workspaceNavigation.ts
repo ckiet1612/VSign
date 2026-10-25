@@ -3,6 +3,7 @@ import {
   Activity,
   BarChart3,
   Boxes,
+  ChartPie,
   Database,
   LayoutDashboard,
   Plug,
@@ -15,6 +16,7 @@ import {
 export type WorkspaceView =
   | "overview"
   | "recognize"
+  | "reports"
   | "data"
   | "evaluation"
   | "monitoring"
@@ -33,6 +35,7 @@ export interface WorkspaceNavigationItem {
 export const PRIMARY_NAVIGATION: readonly WorkspaceNavigationItem[] = [
   { id: "overview", label: "Tổng quan", icon: LayoutDashboard },
   { id: "recognize", label: "Nhận dạng", icon: ScanLine },
+  { id: "reports", label: "Báo cáo sử dụng", icon: ChartPie },
   { id: "data", label: "Dữ liệu", icon: Database },
   { id: "evaluation", label: "Đánh giá", icon: BarChart3 },
   { id: "monitoring", label: "Giám sát", icon: Radar },
@@ -47,7 +50,7 @@ export const ADMIN_NAVIGATION: readonly WorkspaceNavigationItem[] = [
 ];
 
 const SYSTEM_LABELS: Record<WorkspaceView, string> = {
-  overview: "Tổng quan hệ thống", recognize: "Nhận dạng", data: "Dữ liệu & thu mẫu",
+  overview: "Tổng quan hệ thống", recognize: "Nhận dạng", reports: "Báo cáo sử dụng", data: "Dữ liệu & thu mẫu",
   evaluation: "Đánh giá mô hình", monitoring: "Giám sát dịch vụ", models: "Mô hình & triển khai",
   activity: "Nhật ký hệ thống", integrations: "Tích hợp & API", team: "Tài khoản & quyền", settings: "Cấu hình hệ thống",
 };

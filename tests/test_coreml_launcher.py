@@ -55,11 +55,11 @@ def test_coreml_launcher_pins_measured_settings_and_falls_back_to_original(tmp_p
     python.write_text(f'#!/bin/sh\nexec "{sys.executable}" "$@"\n')
     python.chmod(0o755)
     old_uvicorn = project / ".venv/bin/uvicorn"
-    old_uvicorn.write_text('#!/bin/sh\nprintf "pytorch:%s:%s:%s\\n" "$MODEL_VERSION" "$CONFIDENCE_THRESHOLD" "$MARGIN_THRESHOLD"\n')
+    old_uvicorn.write_text('#!/bin/sh\nprintf "pytorch:%s:%s:%s:%s\\n" "$MODEL_VERSION" "$CONFIDENCE_THRESHOLD" "$MARGIN_THRESHOLD" "$LEAD_THRESHOLD"\n')
     old_uvicorn.chmod(0o755)
     coreml_uvicorn = project / ".venv-coreml/bin/uvicorn"
     if failure != "missing_runtime":
-        coreml_uvicorn.write_text('#!/bin/sh\nprintf "coreml:%s:%s:%s:%s\\n" "$MODEL_VERSION" "$COREML_COMPUTE_UNITS" "$CONFIDENCE_THRESHOLD" "$MARGIN_THRESHOLD"\n'
+        coreml_uvicorn.write_text('#!/bin/sh\nprintf "coreml:%s:%s:%s:%s:%s\\n" "$MODEL_VERSION" "$COREML_COMPUTE_UNITS" "$CONFIDENCE_THRESHOLD" "$MARGIN_THRESHOLD" "$LEAD_THRESHOLD"\n'
                                  + ('exit 50\n' if failure in {"startup", "managed_startup"} else 'exit 0\n'))
         coreml_uvicorn.chmod(0o755)
     if failure in {"terminate", "interrupt", "repeated_stop"}:
@@ -137,9 +137,9 @@ def test_coreml_launcher_pins_measured_settings_and_falls_back_to_original(tmp_p
     assert result.returncode == 0, result.stderr
     lines = result.stdout.splitlines()
     if failure is None:
-        assert lines == ["coreml:verified-personal:ALL:0.40:0.0"]
+        assert lines == ["coreml:verified-personal:ALL:0.40:0.0:0.15"]
     elif failure == "startup":
-        assert lines == ["coreml:verified-personal:ALL:0.40:0.0", "pytorch:verified-personal:0.40:0.0"]
+        assert lines == ["coreml:verified-personal:ALL:0.40:0.0:0.15", "pytorch:verified-personal:0.40:0.0:0.15"]
     else:
-        assert lines == ["pytorch:verified-personal:0.40:0.0"]
+        assert lines == ["pytorch:verified-personal:0.40:0.0:0.15"]
     assert (original / "best.pt").read_bytes() == b"original-model"

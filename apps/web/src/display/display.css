@@ -76,6 +76,9 @@
 .display-guide rect { fill: none; stroke: var(--static-white-80); stroke-width: 3; stroke-dasharray: 14 10; vector-effect: non-scaling-stroke; }
 
 .display-overlay { position: absolute; z-index: 2; inset: 0; display: grid; place-items: center; padding: var(--space-24); animation: page-reveal 200ms ease-out; }
+.display-overlay-card { animation: display-card-fade 180ms var(--ease-out) both, display-card-grow 450ms var(--ease-spring) both; }
+@keyframes display-card-fade { from { opacity: 0; } }
+@keyframes display-card-grow { from { transform: scale(0.96); } }
 .display-stage.is-live .display-overlay { background: rgb(0 0 0 / 0.45); }
 .display-overlay-card {
   display: grid; justify-items: center; gap: var(--space-12); max-width: 560px; padding: var(--space-32, 2rem) var(--space-40); text-align: center;
@@ -100,11 +103,25 @@
 }
 
 .display-captions {
-  display: grid; grid-template-rows: auto minmax(0, 1fr); gap: var(--space-24); min-height: 0; overflow: hidden;
+  display: flex; flex-direction: column; gap: var(--space-24); min-height: 0; overflow: hidden;
   padding: var(--space-28) var(--space-28) var(--space-32, 2rem); border-radius: var(--radius-24); background: var(--background-1);
 }
 .display-caption { display: grid; align-content: start; gap: var(--space-8); min-width: 0; min-height: 0; }
-.display-caption.is-sentence { padding-top: var(--space-24); border-top: 1px solid var(--line); overflow-y: auto; }
+.display-caption.is-sentence { flex: 1 1 auto; grid-template-rows: auto auto 1fr; padding-top: var(--space-24); border-top: 1px solid var(--line); overflow-y: auto; }
+/* The staff member's answer is what the customer is waiting for: it sits first, on a tinted card. */
+.display-caption.is-reply { flex: 0 0 auto; padding: var(--space-16) var(--space-20); border: 0; border-radius: var(--radius-16); background: var(--info-soft);
+  animation: content-enter 260ms var(--page-ease) backwards; }
+.display-caption.is-reply .display-caption-label { display: inline-flex; align-items: center; gap: var(--space-8); color: var(--ink); font-weight: 500; }
+.display-reply { margin: 0; font-size: clamp(var(--text-24), 2.4vw, 2.5rem); line-height: 1.3; font-weight: 500; overflow-wrap: anywhere; }
+/* Large and low on the card, where a hand that just finished signing reaches it. */
+.display-undo {
+  justify-self: start; align-self: end; display: inline-flex; align-items: center; gap: var(--space-8); min-height: 56px; margin-top: var(--space-16);
+  padding: 0 var(--space-24); border: 1px solid var(--control-line); border-radius: var(--radius-full); background: var(--background-1);
+  color: var(--ink); font: inherit; font-size: var(--text-18); font-weight: 500; cursor: pointer; transition: background 160ms var(--page-ease);
+}
+.display-undo:hover:not(:disabled) { background: var(--black-4); }
+.display-undo:disabled { opacity: 0.5; cursor: default; }
+.display-undo:focus-visible { outline: 2px solid var(--focus); outline-offset: 3px; }
 .display-caption-label { color: var(--muted); font-size: var(--text-14); line-height: var(--leading-14); }
 .display-word { margin: 0; min-height: 1.1em; font-size: clamp(var(--text-48), 5.5vw, 5.5rem); line-height: 1.05; font-weight: 600; letter-spacing: -0.02em; overflow-wrap: anywhere; }
 .display-sentence { margin: 0; font-size: clamp(var(--text-24), 2.6vw, 2.75rem); line-height: 1.3; font-weight: 400; overflow-wrap: anywhere; }
@@ -115,7 +132,7 @@
 /* Portrait or narrow screens: the words go under the camera. */
 @media (max-width: 900px), (orientation: portrait) {
   .display-body:not(.is-idle) { grid-template-columns: minmax(0, 1fr); grid-template-rows: minmax(0, 1.4fr) minmax(0, 1fr); }
-  .display-captions { grid-template-rows: auto minmax(0, 1fr); padding: var(--space-20) var(--space-24); gap: var(--space-16); }
+  .display-captions { padding: var(--space-20) var(--space-24); gap: var(--space-16); }
   .display-caption.is-sentence { padding-top: var(--space-16); }
 }
 @media (max-width: 600px) {

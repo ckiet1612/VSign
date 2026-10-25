@@ -78,8 +78,11 @@ export function useAutomaticSentence(options: Options) {
 
   useEffect(() => {
     abort();
-    if (previousContext.current.key !== options.contextKey || previousContext.current.enabled !== options.enabled) {
+    // Only another model or mode starts a new sentence; pausing and resuming recognition continues the current one.
+    if (previousContext.current.key !== options.contextKey) {
       machine.current.contextChanged("Phiên nhận dạng thay đổi · cần kiểm tra", performance.now());
+    } else if (previousContext.current.enabled !== options.enabled) {
+      machine.current.interrupted("Có đoạn ký bị gián đoạn · cần kiểm tra", performance.now());
     }
     previousContext.current = { key: options.contextKey, enabled: options.enabled };
     publish();

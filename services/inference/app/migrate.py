@@ -18,9 +18,10 @@ from app import integration_db  # Register integration metadata.
 from app import team_db  # Register invitations and team metadata.
 from app import workspace_settings_db  # Register workspace and personal preferences.
 from app import display_db  # Register counter displays.
+from app import usage_db  # Register usage report summaries.
 
 
-CURRENT_SCHEMA_REVISION = "0012_display_devices"
+CURRENT_SCHEMA_REVISION = "0013_usage_conversations"
 
 
 def migration_config() -> Config:

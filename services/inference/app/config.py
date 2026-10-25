@@ -136,6 +136,8 @@ class Settings:
     labels_verified: bool = False
     confidence_threshold: float = 0.70
     margin_threshold: float = 0.15
+    # A winner this far ahead of the runner-up is accepted even below confidence_threshold; None disables the rule.
+    lead_threshold: Optional[float] = None
     allowed_origins: Tuple[str, ...] = (
         "http://localhost:5173",
         "http://127.0.0.1:5173",
@@ -256,6 +258,7 @@ class Settings:
             labels_verified=_bool_env("LABELS_VERIFIED", False),
             confidence_threshold=_float_env("CONFIDENCE_THRESHOLD", 0.70),
             margin_threshold=_float_env("MARGIN_THRESHOLD", 0.15),
+            lead_threshold=_float_env("LEAD_THRESHOLD", 0.0) or None,
             allowed_origins=origins,
             max_frame_bytes=_int_env("MAX_FRAME_BYTES", 256 * 1024),
             max_message_bytes=_int_env("MAX_MESSAGE_BYTES", 6 * 1024 * 1024),

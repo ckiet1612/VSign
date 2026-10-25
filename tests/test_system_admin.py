@@ -106,7 +106,7 @@ def test_system_role_migration_records_current_schema(monkeypatch, tmp_path):
     with TestClient(app) as client:
         assert client.get("/api/v1/auth/me").json()["user"]["role"] == "system_admin"
         with app.state.platform_database.engine.connect() as connection:
-            assert connection.execute(text("select version_num from alembic_version")).scalar() == "0012_display_devices"
+            assert connection.execute(text("select version_num from alembic_version")).scalar() == "0013_usage_conversations"
             assert connection.exec_driver_sql("PRAGMA foreign_key_check").fetchall() == []
 
 

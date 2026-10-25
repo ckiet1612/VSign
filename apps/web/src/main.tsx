@@ -2,6 +2,7 @@ import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import App from "./App";
 import { config } from "./config";
+import { trackInputModality } from "./lib/inputModality";
 import "./styles.css";
 import "./styles/workspace-ui.css";
 
@@ -15,6 +16,7 @@ const fontsReady = typeof document !== "undefined" && "fonts" in document
     ])
   : Promise.resolve();
 
+trackInputModality();
 const root = createRoot(document.getElementById("root")!);
 void fontsReady.then(render);
 

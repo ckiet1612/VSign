@@ -54,7 +54,7 @@ function isCapabilities(value: unknown): value is WorkspaceCapabilitiesResponse 
   if (record.api_version !== "1" || typeof record.workspace_id !== "string" ||
       !record.capabilities || typeof record.capabilities !== "object") return false;
   const flags = record.capabilities as Record<string, unknown>;
-  return ["overview", "recognize", "data", "evaluation", "monitoring", "models", "activity", "integrations", "team", "settings"]
+  return ["overview", "recognize", "data", "evaluation", "monitoring", "models", "activity", "reports", "integrations", "team", "settings"]
     .every(key => typeof flags[key] === "boolean");
 }
 
@@ -251,6 +251,7 @@ export function useWorkspacePlatform(platformUrl: string, enabled = true) {
       authRequired: serverConfirmed ? (current.context?.auth_required ?? true) : true,
       error,
     }));
+    window.history.replaceState(window.history.state, "", "/");
     if (serverConfirmed) {
       localLockRef.current = false;
       await load();

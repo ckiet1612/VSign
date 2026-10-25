@@ -84,18 +84,23 @@ export function useWorkspaceTeam({platformUrl,workspaceId,user,tab,search='',cur
   // A tab revisit resumes from the last good read; it stays busy (so actions stay locked) until revalidated.
   const resumed=useCallback(():State=>{const cached=access==='ready'?readViewCache<State>(cacheKey):undefined;return cached?{...cached,busy:true}:empty();},[access,cacheKey,empty]);
   const [stored,setStored]=useState<{scope:typeof scope;state:State}|null>(null);
-  const stateRef=useRef(stored),mounted=useRef(false),pending=useRef<AbortController|null>(null);
+  const stateRef=useRef(stored),mounted=useRef(false),pending=useRef<AbortController|null>(null),pendingPoll=useRef(false);
   // Last list shown for this tab, kept on screen while another search, filter or page loads.
   const identity=JSON.stringify([platformUrl,workspaceId,id,role,tab]);
   const shown=useRef<{identity:string;snapshot:TeamSnapshot}|null>(null);
-  const perform=useCallback(async(action?:TeamAction):Promise<{id:string|null;secret:string|null}|null>=>{
-    if(!mounted.current || current.current!==scope || access!=='ready' || pending.current) return null;
+  const perform=useCallback(async(action?:TeamAction,background=false):Promise<{id:string|null;secret:string|null}|null>=>{
+    if(!mounted.current || current.current!==scope || access!=='ready') return null;
+    // An action pre-empts a background poll instead of being dropped behind it.
+    if(pending.current && action && pendingPoll.current) pending.current.abort();
+    else if(pending.current) return null;
     const previous=stateRef.current?.scope===scope?stateRef.current.state:resumed();
     if(action && (!previous.snapshot?.overview.permissions.manage || previous.busy || previous.error || previous.stale || previous.updatedAt===null || Date.now()-previous.updatedAt>15000)) return null;
-    const controller=new AbortController();pending.current=controller;
+    const controller=new AbortController();pending.current=controller;pendingPoll.current=background;
     const valid=()=>mounted.current && current.current===scope && pending.current===controller;
     const publish=(state:State)=>{const next={scope,state};stateRef.current=next;setStored(next);};
-    publish({...previous,busy:true});let timer=0,abort=()=>{};
+    // A poll over rows already on screen revalidates silently: locking the page every 5 s dimmed buttons and blurred inputs.
+    if(!(background && previous.snapshot)) publish({...previous,busy:true});
+    let timer=0,abort=()=>{};
     try {
       const deadline=new Promise<never>((_,reject)=>{
         abort=()=>reject(new Error('cancelled'));controller.signal.addEventListener('abort',abort,{once:true});
@@ -136,9 +141,9 @@ export function useWorkspaceTeam({platformUrl,workspaceId,user,tab,search='',cur
         ? 'Phản hồi thành viên không hợp lệ.' : error instanceof WorkspaceApiError && [409,422,429,503].includes(error.status) ? error.message
         : action?'Chưa xác nhận thao tác. Làm mới rồi thử lại cùng yêu cầu.':'Không thể tải thành viên. Hãy làm mới.'});
       return null;
-    } finally {window.clearTimeout(timer);controller.signal.removeEventListener('abort',abort);if(pending.current===controller) pending.current=null;}
+    } finally {window.clearTimeout(timer);controller.signal.removeEventListener('abort',abort);if(pending.current===controller) {pending.current=null;pendingPoll.current=false;}}
   },[scope,access,empty,resumed,cacheKey,platformUrl,workspaceId,tab,search,cursor,memberId,actionFilter,fromAt,toAt,role]);
-  useEffect(()=>{mounted.current=true;void perform();const interval=window.setInterval(()=>void perform(),5000);
+  useEffect(()=>{mounted.current=true;void perform();const interval=window.setInterval(()=>void perform(undefined,true),5000);
     return ()=>{mounted.current=false;window.clearInterval(interval);const controller=pending.current;pending.current=null;controller?.abort();};},[perform]);
   const own=stored?.scope===scope && id?stored.state:resumed();
   // A new query keeps the previous rows of the same tab until its own read lands (or fails), instead of blanking the page.

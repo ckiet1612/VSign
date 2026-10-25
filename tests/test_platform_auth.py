@@ -159,6 +159,7 @@ def test_viewer_capabilities_are_read_only() -> None:
         "monitoring": True,
         "models": True,
         "activity": True,
+        "reports": True,
         "integrations": False,
         "team": False,
         "settings": True,
@@ -230,3 +231,13 @@ def test_expired_session_is_rejected() -> None:
             session.query(AuthSession).one().expires_at = utc_now() - timedelta(seconds=1)
             session.commit()
         assert client.get("/api/v1/auth/me").status_code == 401
+
+
+def test_every_role_permission_has_a_label_in_the_team_page():
+    """The Roles tab rejects a role list that names an unlabelled permission, so a new permission needs a label."""
+    import re
+    from pathlib import Path
+    from app.platform_auth import ROLE_PERMISSIONS
+
+    labels = set(re.findall(r"'([a-z_]+:[a-z_]+)'\s*:", Path('apps/web/src/lib/teamLabels.ts').read_text(encoding='utf-8')))
+    assert set().union(*ROLE_PERMISSIONS.values()) - labels == set()

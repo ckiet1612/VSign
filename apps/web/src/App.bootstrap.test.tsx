@@ -4,7 +4,7 @@ import App from "./App";
 import userEvent from "@testing-library/user-event";
 
 const capabilities = { overview: true, recognize: true, data: true, evaluation: true,
-  monitoring: true, models: true, activity: true, integrations: true, team: true, settings: true };
+  monitoring: true, models: true, activity: true, reports: true, integrations: true, team: true, settings: true };
 
 afterEach(() => vi.unstubAllGlobals());
 
@@ -29,7 +29,7 @@ it("keeps the workspace unmounted until login and returns to login after logout"
   render(<App />);
   await screen.findByRole("heading", { name: "Đăng nhập VSign" });
   expect(screen.queryByRole("navigation", { name: "Workspace" })).not.toBeInTheDocument();
-  await userEvent.type(screen.getByLabelText("Tên đăng nhập"), "vsignadmin");
+  await userEvent.type(screen.getByLabelText("Email hoặc tên đăng nhập"), "vsignadmin");
   await userEvent.type(screen.getByLabelText("Mật khẩu"), "temporary-pass");
   await userEvent.click(screen.getByRole("button", { name: "Đăng nhập" }));
   await screen.findByRole("navigation", { name: "Workspace" });

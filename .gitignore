@@ -6,6 +6,8 @@
 !apps/web/.env.production
 data/*.db
 data/*.db-*
+data/*.bak*
+data/benchmarks/
 data/inference-token-secret
 data/display-ice-servers.json
 *.db
@@ -17,6 +19,9 @@ data/display-ice-servers.json
 # Local verification output and private evidence
 tmp/
 output/
+scratch/
+marketing/
+.agents/
 docs/reports/
 
 # Python

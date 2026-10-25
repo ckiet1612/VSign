@@ -6,6 +6,7 @@ import json
 import logging
 import re
 import unicodedata
+from dataclasses import replace
 from typing import Any, Callable, Literal, Optional
 from threading import Lock
 from contextlib import asynccontextmanager
@@ -78,6 +79,7 @@ def _load_decision_policy(settings: Settings, backend: InferenceBackend):
 
     try:
         policy = DecisionPolicy.load(settings.decision_policy_path, backend.labels, backend.model_version)
+        policy = replace(policy, lead_threshold=settings.lead_threshold)
     except (OSError, ValueError, KeyError) as exc:
         # A stale or broken policy must never block recognition; fall back to fixed thresholds.
         logger.error("Decision policy rejected (%s): %s", type(exc).__name__, exc)
@@ -88,9 +90,20 @@ def _load_decision_policy(settings: Settings, backend: InferenceBackend):
 def _apply_decision_policy(app_state, backend: InferenceBackend, result: BackendPrediction,
                            context_words: list[str]) -> tuple[BackendPrediction, tuple[str, ...]]:
     loaded = getattr(app_state, "decision_policy", None)
-    if loaded is None or result.probabilities is None or loaded[0] != backend.model_version:
+    if result.probabilities is None:
         return result, ()
-    return loaded[1].decide(result.probabilities, context_words)
+    if loaded is not None and loaded[0] == backend.model_version:
+        return loaded[1].decide(result.probabilities, context_words)
+    # Without a fitted policy for this model the backend's fixed thresholds stand, plus the lead rule when configured.
+    settings = getattr(app_state, "runtime_settings", None)
+    lead = getattr(settings, "lead_threshold", None)
+    confidence, margin = getattr(backend, "confidence_threshold", None), getattr(backend, "margin_threshold", None)
+    if lead is None or confidence is None or margin is None:
+        return result, ()
+    from app.decision import DecisionPolicy
+
+    # No sentence context here: the fixed-threshold runtime never used it.
+    return DecisionPolicy.baseline(backend.labels, confidence, margin, lead).decide(result.probabilities)
 
 
 def _response_from_backend(

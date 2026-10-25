@@ -336,7 +336,7 @@ export function CameraPanel({
           )}
           {!remote && <button ref={startCameraButtonRef} type="button" className="camera-start-button"
             onClick={() => void camera.enable()} disabled={camera.status === "requesting"}>
-            <Camera size={18} aria-hidden="true" />{camera.status === "requesting" ? "Đang bật…" : "Bật camera"}
+            {camera.status === "requesting" ? "Đang bật…" : "Bật camera"}
           </button>}
         </div>
         {recording && (

@@ -55,10 +55,11 @@ export function InvitationAcceptance({platformUrl}:{platformUrl:string}) {
   };
   return <main className="team-page invitation-page" aria-labelledby="invitation-title"><header className="team-header"><h1 id="invitation-title">{accepted?'Đã tham gia workspace.':'Lời mời tham gia workspace'}</h1></header>
     {error && <p role="alert" className="team-warning">{error}</p>}
-    {accepted?<><p>{details?.workspace_name}</p><a href="/">Về workspace</a></>:details?<>
-      <dl className="invitation-details"><dt>Workspace</dt><dd>{details.workspace_name}</dd><dt>Email</dt><dd>{details.email}</dd><dt>Vai trò</dt><dd>{teamRoleLabels[details.role]}</dd><dt>Hết hạn</dt><dd>{new Date(details.expires_at).toLocaleString('vi-VN')}</dd></dl>
+    {accepted?<><p>{details?.workspace_name}</p>{details && <p className="team-muted">Đăng nhập bằng email <strong className="selectable">{details.email}</strong> và mật khẩu vừa đặt.</p>}
+      <a href={details ? `/?login=${encodeURIComponent(details.email)}` : '/'}>Đăng nhập</a></>:details?<>
+      <dl className="invitation-details"><dt>Workspace</dt><dd>{details.workspace_name}</dd><dt>Email</dt><dd className="selectable">{details.email}</dd><dt>Vai trò</dt><dd>{teamRoleLabels[details.role]}</dd><dt>Hết hạn</dt><dd>{new Date(details.expires_at).toLocaleString('vi-VN')}</dd></dl>
       <form className="team-form" onSubmit={e=>{e.preventDefault();void submit();}}><div className="team-fields">
-        {!details.existing_account && <label>Tên hiển thị<input required maxLength={120} autoComplete="name" value={name} disabled={busy} onChange={e=>setName(e.target.value)}/></label>}
+        {!details.existing_account && <label>Tên hiển thị<small className="team-muted">Chỉ để hiển thị; đăng nhập bằng email ở trên.</small><input required maxLength={120} autoComplete="name" value={name} disabled={busy} onChange={e=>setName(e.target.value)}/></label>}
         <label>{details.existing_account?'Mật khẩu hiện tại':'Mật khẩu'}<input type="password" required minLength={details.existing_account?1:12} maxLength={256} autoComplete={details.existing_account?'current-password':'new-password'} value={password} disabled={busy} onChange={e=>setPassword(e.target.value)}/></label>
       </div><button type="submit" className="team-primary" disabled={busy}>{busy?'Đang xác nhận...':'Chấp nhận lời mời'}</button></form>
     </>:busy?<p role="status">Đang kiểm tra lời mời...</p>:token?<button type="button" onClick={()=>setAttempt(n=>n+1)}>Kiểm tra lại</button>:<a href="/">Về workspace</a>}

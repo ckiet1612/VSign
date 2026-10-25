@@ -7,6 +7,8 @@ interface Props {
   display: CounterDisplayController;
   /** Clears the recognizer's own transcript and result; the counter is cleared by the same command. */
   onNewConversation: () => void;
+  /** Called before the session ends, so the conversation can be closed on this side. */
+  onEndSession?: () => void;
   /** Connecting swaps the camera source, so it waits while a capture is in progress. */
   locked: boolean;
 }
@@ -19,12 +21,13 @@ function statusText(display: CounterDisplayController): { text: string; tone: "o
 }
 
 /** Staff control in the recognition header: pick the camera source (this laptop or a counter), then serve from here. */
-export function CounterDisplayControl({ display, onNewConversation, locked }: Props) {
+export function CounterDisplayControl({ display, onNewConversation, onEndSession, locked }: Props) {
   const displays = display.overview?.displays ?? [];
   const [open, setOpen] = useState(false);
   const root = useRef<HTMLDivElement>(null);
   const trigger = useRef<HTMLButtonElement>(null);
   const keyboardOpen = useRef(false);
+  const menuRef = useRef<HTMLDivElement>(null);
   const { refresh } = display;
 
   // The list is refreshed on opening, so online dots and "in use" names are current when choosing.
@@ -36,6 +39,12 @@ export function CounterDisplayControl({ display, onNewConversation, locked }: Pr
     return () => document.removeEventListener("pointerdown", close);
   }, [open, refresh]);
   useEffect(() => { if (locked) setOpen(false); }, [locked]);
+  // Only a keyboard opening moves focus into the menu; preventScroll keeps the page still either way.
+  useEffect(() => {
+    if (!open || !keyboardOpen.current) return;
+    keyboardOpen.current = false;
+    menuRef.current?.querySelector<HTMLButtonElement>("[aria-checked=true]")?.focus({ preventScroll: true });
+  }, [open]);
 
   const onMenuKeys = (event: KeyboardEvent<HTMLDivElement>) => {
     const items = [...event.currentTarget.querySelectorAll<HTMLButtonElement>("[role=menuitemradio]:not(:disabled)")];
@@ -85,7 +94,7 @@ export function CounterDisplayControl({ display, onNewConversation, locked }: Pr
           disabled={display.channelStatus !== "open"} title="Xoá từ và câu trên cả hai máy, giữ kết nối">
           <MessageSquareText size={16} aria-hidden="true" />Cuộc hội thoại mới
         </button>
-        <button type="button" className="counter-action" onClick={display.endSession}
+        <button type="button" className="counter-action" onClick={() => { onEndSession?.(); display.endSession(); }}
           title="Ngắt khỏi quầy; máy khách về màn chờ và tắt camera">
           <LogOut size={16} aria-hidden="true" />Kết thúc phiên
         </button>
@@ -111,37 +120,31 @@ export function CounterDisplayControl({ display, onNewConversation, locked }: Pr
         <span className="setting-value">Máy này</span>
         <ChevronDown size={14} aria-hidden="true" />
       </button>
-      {open && (
-        <div className="counter-menu" role="menu" aria-label="Chọn nguồn camera" onKeyDown={onMenuKeys}
-          ref={menu => {
-            // Only a keyboard opening moves focus into the menu; preventScroll keeps the page still either way.
-            if (!menu || !keyboardOpen.current || menu.contains(document.activeElement)) return;
-            keyboardOpen.current = false;
-            menu.querySelector<HTMLButtonElement>("[aria-checked=true]")?.focus({ preventScroll: true });
-          }}>
-          <button type="button" role="menuitemradio" aria-checked="true" onClick={() => setOpen(false)}>
-            <span className="counter-menu-icon" aria-hidden="true"><Camera size={16} /></span>
-            <span className="counter-menu-text"><strong>Camera máy này</strong><small>Khách ký trước laptop nhân viên</small></span>
-            <Check size={16} aria-hidden="true" />
+      {/* Stays mounted while closed (hidden) so the stylesheet can fade it out. */}
+      <div ref={menuRef} className="counter-menu" role="menu" aria-label="Chọn nguồn camera" onKeyDown={onMenuKeys}
+        hidden={!open}>
+        <button type="button" role="menuitemradio" aria-checked="true" onClick={() => setOpen(false)}>
+          <span className="counter-menu-icon" aria-hidden="true"><Camera size={16} /></span>
+          <span className="counter-menu-text"><strong>Camera máy này</strong><small>Khách ký trước laptop nhân viên</small></span>
+          <Check size={16} aria-hidden="true" />
+        </button>
+        <p className="counter-menu-label">Màn hình khách</p>
+        {displays.map(row => (
+          <button key={row.id} type="button" role="menuitemradio" aria-checked="false"
+            onClick={() => { setOpen(false); display.connect(row.id); }}>
+            <span className="counter-menu-icon" aria-hidden="true"><Video size={16} /></span>
+            <span className="counter-menu-text">
+              <strong>{row.name}</strong>
+              <small className={row.online ? "is-online" : undefined}>
+                <i aria-hidden="true" />{row.online ? "Đang mở" : "Chưa mở"}{row.staff ? ` · ${row.staff} đang dùng` : ""}
+              </small>
+            </span>
           </button>
-          <p className="counter-menu-label">Màn hình khách</p>
-          {displays.map(row => (
-            <button key={row.id} type="button" role="menuitemradio" aria-checked="false"
-              onClick={() => { setOpen(false); display.connect(row.id); }}>
-              <span className="counter-menu-icon" aria-hidden="true"><Video size={16} /></span>
-              <span className="counter-menu-text">
-                <strong>{row.name}</strong>
-                <small className={row.online ? "is-online" : undefined}>
-                  <i aria-hidden="true" />{row.online ? "Đang mở" : "Chưa mở"}{row.staff ? ` · ${row.staff} đang dùng` : ""}
-                </small>
-              </span>
-            </button>
-          ))}
-          {!displays.length && (
-            <p className="counter-menu-empty">Chưa có màn hình quầy. Thêm trong Cài đặt → Màn hình khách.</p>
-          )}
-        </div>
-      )}
+        ))}
+        {!displays.length && (
+          <p className="counter-menu-empty">Chưa có màn hình quầy. Thêm trong Cài đặt → Màn hình khách.</p>
+        )}
+      </div>
     </div>
     {notes}
   </>;

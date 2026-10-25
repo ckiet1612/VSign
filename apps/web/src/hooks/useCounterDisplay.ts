@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
   DISPLAY_CLOSE,
+  type CustomerActionMessage,
   type DisplayOverview,
   type DisplayStateMessage,
   type ServerDisplayMessage,
@@ -36,13 +37,15 @@ interface Options {
   enabled: boolean;
   /** Per workspace and user, so a shared staff laptop does not reconnect someone else's counter. */
   storageKey: string | null;
+  /** A button the customer pressed on the counter, for the conversation this recognizer is serving. */
+  onCustomerAction?: (action: CustomerActionMessage["action"]) => void;
 }
 
 /**
  * Staff side of a counter display: which counter this recognizer serves, the customer's camera as a remote
  * stream, and the recognition results mirrored back to the counter.
  */
-export function useCounterDisplay({ platformUrl, enabled, storageKey }: Options) {
+export function useCounterDisplay({ platformUrl, enabled, storageKey, onCustomerAction }: Options) {
   const [overview, setOverview] = useState<DisplayOverview | null>(null);
   const [listError, setListError] = useState("");
   const [selectedId, setSelectedId] = useState<string | null>(() => readStored(storageKey));
@@ -55,6 +58,8 @@ export function useCounterDisplay({ platformUrl, enabled, storageKey }: Options)
   const [displayName, setDisplayName] = useState("");
   const conversation = useRef(conversationId());
   const revision = useRef(0);
+  const customerAction = useRef(onCustomerAction);
+  customerAction.current = onCustomerAction;
 
   const refresh = useCallback(async (signal?: AbortSignal) => {
     try {
@@ -101,6 +106,10 @@ export function useCounterDisplay({ platformUrl, enabled, storageKey }: Options)
         break;
       case "taken_over":
         setNotice(`${message.by || "Một nhân viên khác"} đã tiếp quản quầy này.`);
+        break;
+      case "customer_action":
+        // A press from the previous conversation, delivered late, must not undo the new customer's words.
+        if (message.conversation_id === conversation.current) customerAction.current?.(message.action);
         break;
       default:
         break;
@@ -178,7 +187,8 @@ export function useCounterDisplay({ platformUrl, enabled, storageKey }: Options)
   useEffect(() => {
     if (open && deviceOnline) { lastSent.current = ""; if (!timer.current) timer.current = window.setTimeout(flush, PUBLISH_DELAY_MS); }
   }, [open, deviceOnline, flush]);
-  useEffect(() => () => window.clearTimeout(timer.current), []);
+  // Forget the cancelled timer too: a remount (React's development double mount) would otherwise never publish again.
+  useEffect(() => () => { window.clearTimeout(timer.current); timer.current = 0; }, []);
 
   const connected = url !== null;
   return {

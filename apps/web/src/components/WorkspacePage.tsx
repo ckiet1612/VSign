@@ -208,7 +208,7 @@ export function WorkspacePage({
           <section className="workspace-list-surface" aria-label="Danh sách thành viên">
             <div className="workspace-list-heading"><span>Thành viên</span><span>Vai trò</span></div>
             {members.map(member => <div className="workspace-list-row" key={member.id}>
-              <div><strong>{member.display_name}</strong><span>{member.email} · {member.active ? "Đang hoạt động" : "Đã vô hiệu hóa"}</span></div>
+              <div><strong>{member.display_name}</strong><span><span className="selectable">{member.email}</span> · {member.active ? "Đang hoạt động" : "Đã vô hiệu hóa"}</span></div>
               <span className="workspace-role">{workspaceRoleLabels[member.role]}</span>
             </div>)}
           </section>}

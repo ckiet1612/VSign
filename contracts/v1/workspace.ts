@@ -43,6 +43,7 @@ export interface WorkspaceCapabilities {
   monitoring: boolean;
   models: boolean;
   activity: boolean;
+  reports: boolean;
   integrations: boolean;
   team: boolean;
   settings: boolean;

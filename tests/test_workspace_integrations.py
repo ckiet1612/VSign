@@ -488,7 +488,7 @@ def test_integration_migration_matches_models_and_roundtrips_empty_database():
             connection.commit()
         upgrade_database(database)
         with database.engine.connect() as connection:
-            assert MigrationContext.configure(connection).get_current_revision()=='0012_display_devices'
+            assert MigrationContext.configure(connection).get_current_revision()=='0013_usage_conversations'
     finally:
         database.dispose()
 

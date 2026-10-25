@@ -64,6 +64,13 @@
 .models-page .login-surface { max-width: 100%; }
 .models-confirm { width: min(480px, calc(100% - 32px)); max-height: calc(100dvh - 32px); box-sizing: border-box; overflow-y: auto; padding: var(--space-24); border: 0; border-radius: var(--radius-24); background: var(--background-1); color: var(--ink); box-shadow: var(--shadow-glass-1); font-family: var(--font-family); font-size: var(--text-14); letter-spacing: 0; }
 .models-confirm::backdrop { background: var(--static-black-40); }
+/* A modal is not anchored to a trigger, so it grows from its centre; the backdrop only fades. */
+.models-confirm[open] { transition: var(--popover-in); }
+.models-confirm[open]::backdrop { transition: opacity 240ms var(--ease-out); }
+@starting-style {
+  .models-confirm[open] { opacity: 0; transform: scale(0.96); }
+  .models-confirm[open]::backdrop { opacity: 0; }
+}
 .models-confirm p { overflow-wrap: anywhere; }
 .models-confirm .models-actions { justify-content: flex-end; }
 .models-page :is(button, input):focus-visible, .models-confirm button:focus-visible { outline: 2px solid var(--ink); outline-offset: 3px; }

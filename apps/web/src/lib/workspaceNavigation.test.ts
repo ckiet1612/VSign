@@ -11,6 +11,7 @@ describe("workspace navigation", () => {
     expect(PRIMARY_NAVIGATION.map(item => item.id)).toEqual([
       "overview",
       "recognize",
+      "reports",
       "data",
       "evaluation",
       "monitoring",

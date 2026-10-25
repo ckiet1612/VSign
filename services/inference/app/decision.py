@@ -8,7 +8,8 @@ The policy runs on the model's full probability vector:
    sentence (per ``sentence_rules``) is down-weighted by ``context_penalty``.
 3. Confusers: a winner with a known look-alike (e.g. Có vs Rẻ) is refused while that
    look-alike keeps more than its fitted probability, unless context rules it out.
-4. Acceptance: the winner needs its own word threshold and the global margin.
+4. Acceptance: the winner needs its own word threshold and the global margin, or,
+   when ``lead_threshold`` is set, a lead of at least that much over the runner-up.
    When context leaves it as the only grammatical candidate in the top 3, a lower
    ``context_floor`` is enough, so a low-confidence sign that fits the sentence
    can still be accepted.
@@ -76,10 +77,12 @@ class DecisionPolicy:
     context_penalty: float = 1.0
     context_floor: Optional[float] = None
     confusers: Mapping[str, Mapping[str, float]] = field(default_factory=dict)
+    lead_threshold: Optional[float] = None
 
     @classmethod
-    def baseline(cls, labels: Sequence[str], confidence: float, margin: float) -> "DecisionPolicy":
-        return cls(labels=tuple(labels), default_threshold=confidence, margin_threshold=margin)
+    def baseline(cls, labels: Sequence[str], confidence: float, margin: float,
+                 lead: Optional[float] = None) -> "DecisionPolicy":
+        return cls(labels=tuple(labels), default_threshold=confidence, margin_threshold=margin, lead_threshold=lead)
 
     @classmethod
     def load(cls, path: Path, labels: Sequence[str], model_version: str) -> "DecisionPolicy":
@@ -156,7 +159,10 @@ class DecisionPolicy:
         confidence = float(values[order[0]])
         margin = confidence - float(values[order[1]]) if len(order) > 1 else confidence
         threshold = self.thresholds.get(winner, self.default_threshold)
-        accepted = winner != IDLE_LABEL and confidence >= threshold and margin >= self.margin_threshold
+        confident = confidence >= threshold and margin >= self.margin_threshold
+        # A clear lead over the runner-up is as telling as a high score: the model is not torn between two signs.
+        leading = self.lead_threshold is not None and margin >= self.lead_threshold
+        accepted = winner != IDLE_LABEL and (confident or leading)
         vetoed = any(values[self.labels.index(other)] >= limit and not (fit is not None and fit.get(other) is False)
                      for other, limit in self.confusers.get(winner, {}).items())
         if vetoed:

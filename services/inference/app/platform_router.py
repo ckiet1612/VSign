@@ -368,4 +368,6 @@ def create_platform_router(
     router.include_router(create_workspace_settings_router(settings, get_database, require_permission, validate_origin))
     from app.display_router import create_display_router
     router.include_router(create_display_router(settings, get_database, require_permission, validate_origin))
+    from app.usage_router import create_usage_router
+    router.include_router(create_usage_router(settings, get_database, require_permission, validate_origin))
     return router

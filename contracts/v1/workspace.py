@@ -64,6 +64,7 @@ class WorkspaceCapabilities(BaseModel):
     monitoring: bool
     models: bool
     activity: bool
+    reports: bool
     integrations: bool
     team: bool
     settings: bool

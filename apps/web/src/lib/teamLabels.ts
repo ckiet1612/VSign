@@ -11,5 +11,5 @@ export const permissionLabels:Record<string,string> = {'workspace:read':'Xem wor
   'evaluation:create':'Tạo đánh giá','evaluation:cancel':'Hủy đánh giá','monitoring:read':'Xem giám sát',
   'models:read':'Xem mô hình','activity:read':'Xem hoạt động','integrations:manage':'Quản lý tích hợp',
   'members:read':'Xem thành viên','members:manage':'Quản lý thành viên và lời mời','settings:read':'Xem cài đặt',
-  'settings:manage':'Quản lý cài đặt workspace','settings:preferences':'Tùy chọn cá nhân',
+  'settings:manage':'Quản lý cài đặt workspace','settings:preferences':'Tùy chọn cá nhân','reports:read':'Xem báo cáo sử dụng',
   'models:register':'Đăng ký ứng viên','models:validate':'Nhập báo cáo đánh giá','models:approve':'Phê duyệt mô hình','models:deploy':'Triển khai và hoàn tác mô hình'};

@@ -120,3 +120,31 @@ it("returns to pairing when the screen is revoked", async () => {
   expect(await screen.findByLabelText("Mã 6 số", {}, { timeout: 2500 })).toBeInTheDocument();
   expect(screen.getByText(/đã bị huỷ/)).toBeInTheDocument();
 });
+
+it("shows the staff reply and asks the staff recognizer to undo one word", async () => {
+  vi.stubGlobal("fetch", vi.fn(async () => json(paired)));
+  render(<CustomerDisplay platformUrl={platformUrl} />);
+  await waitFor(() => expect(Socket.all).toHaveLength(1));
+  const socket = Socket.all[0];
+  act(() => {
+    socket.open();
+    socket.receive({ type: "welcome", role: "device", display: paired.display, ice_servers: [] });
+    socket.receive({ type: "peer", role: "staff", online: true, name: "Lan" });
+    socket.receive(state(1, { words: ["Tôi", "Muốn"], reply: "Mời bạn sang quầy 2." }));
+  });
+  expect(screen.getByText("Nhân viên trả lời")).toBeInTheDocument();
+  expect(screen.getByText("Mời bạn sang quầy 2.")).toBeInTheDocument();
+
+  const undo = screen.getByRole("button", { name: "Hoàn tác 1 từ: bỏ “Muốn”" });
+  fireEvent.click(undo);
+  fireEvent.click(undo);
+  const actions = socket.sent.map(raw => JSON.parse(raw)).filter(message => message.type === "customer_action");
+  // One press until the staff side answers; a second tap does not remove a second word.
+  expect(actions).toEqual([{ type: "customer_action", action: "undo_word", conversation_id: "c1" }]);
+  expect(undo).toBeDisabled();
+  act(() => socket.receive(state(2, { words: ["Tôi"], word: "Tôi", sentence: "", reply: "" })));
+  expect(screen.queryByText("Nhân viên trả lời")).not.toBeInTheDocument();
+  expect(screen.getByRole("button", { name: "Hoàn tác 1 từ: bỏ “Tôi”" })).toBeEnabled();
+  act(() => socket.receive(state(3, { words: [], word: null, sentence: "" })));
+  expect(screen.queryByRole("button", { name: /Hoàn tác 1 từ/ })).not.toBeInTheDocument();
+});

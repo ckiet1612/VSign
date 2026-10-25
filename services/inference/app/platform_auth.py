@@ -58,7 +58,7 @@ ROLE_PERMISSIONS = {
 for _role in ("operator", "reviewer", "viewer"):
     ROLE_PERMISSIONS[_role] |= frozenset({"models:read"})
 for _role in ("owner", "admin", "operator", "reviewer", "viewer"):
-    ROLE_PERMISSIONS[_role] |= frozenset({"data:read"})
+    ROLE_PERMISSIONS[_role] |= frozenset({"data:read", "reports:read"})
 for _role in ("owner", "admin"):
     ROLE_PERMISSIONS[_role] |= frozenset({"data:manage", "evaluation:create", "evaluation:cancel", "members:manage"})
     ROLE_PERMISSIONS[_role] |= frozenset({"settings:manage"})
@@ -96,6 +96,7 @@ def capabilities_for(
         "monitoring": role is None or "monitoring:read" in permissions,
         "models": role is None or "models:read" in permissions,
         "activity": role is not None and "activity:read" in permissions,
+        "reports": role is not None and "reports:read" in permissions,
         "integrations": role is not None and "integrations:manage" in permissions,
         "team": role is not None and "members:read" in permissions,
         "settings": role is not None and "settings:preferences" in permissions,

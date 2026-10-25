@@ -163,7 +163,7 @@ def test_staff_and_device_share_state_signals_and_commands(settings):
             assert welcome['ice_servers'][0]['urls']
             assert staff.receive_json() == {'type':'peer', 'role':'device', 'online':False}
             state = {'type':'display_state', 'conversation_id':'c1', 'revision':3, 'phase':'ok', 'word':'Xin chào',
-                     'words':['Xin chào'], 'sentence':'Xin chào.', 'guide':'fixed'}
+                     'words':['Xin chào'], 'sentence':'Xin chào.', 'guide':'fixed', 'reply':'Mời bạn vào quầy 2.'}
             staff.send_json(state)
             with client.websocket_connect(f'/ws/display/{display_id}?role=device', headers=device_headers(token)) as device:
                 assert device.receive_json()['role'] == 'device'
@@ -185,6 +185,16 @@ def test_staff_and_device_share_state_signals_and_commands(settings):
                 assert staff.receive_json()['type'] == 'error'
                 device.send_json({'type':'ping'})
                 assert device.receive_json() == {'type':'pong'}
+                # The counter's own buttons reach the staff recognizer, which owns the transcript.
+                undo = {'type':'customer_action', 'action':'undo_word', 'conversation_id':'c1'}
+                device.send_json(undo)
+                assert staff.receive_json() == undo
+                staff.send_json(undo)
+                assert staff.receive_json()['type'] == 'error'
+                device.send_json({**undo, 'action':'clear'})
+                assert device.receive_json()['type'] == 'error'
+                staff.send_json({**state, 'reply':'x' * 301})
+                assert staff.receive_json()['type'] == 'error'
                 command = {'type':'command', 'name':'new_conversation', 'conversation_id':'c2'}
                 staff.send_json(command)
                 assert device.receive_json() == command

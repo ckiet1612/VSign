@@ -54,6 +54,8 @@ export LABEL_MAP_PATH="${model_dir}/labels.json"
 export LABELS_VERIFIED=true
 export CONFIDENCE_THRESHOLD=0.40
 export MARGIN_THRESHOLD=0.0
+# Or a lead of 15 points over the second word, even below 40%.
+export LEAD_THRESHOLD=0.15
 export COLLECTION_ENABLED="${COLLECTION_ENABLED:-true}"
 export COLLECTION_DIR="${COLLECTION_DIR:-${project_dir}/ml/data/collected/sales30}"
 export OMP_NUM_THREADS="${OMP_NUM_THREADS:-8}"

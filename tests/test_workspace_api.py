@@ -40,6 +40,7 @@ def test_workspace_capabilities_report_only_backed_contracts() -> None:
             "monitoring": True,
             "models": True,
             "activity": False,
+            "reports": False,
             "integrations": False,
             "team": False,
             "settings": False,

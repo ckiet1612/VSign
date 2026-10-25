@@ -9,7 +9,7 @@ import { useCamera } from "../hooks/useCamera";
 import { displaySocketUrl, useDisplayChannel } from "../hooks/useDisplayChannel";
 import { useDisplaySender } from "../hooks/useDisplayPeer";
 import { centeredSquareRect } from "../lib/cameraGeometry";
-import { TriangleAlert, UsersRound, Video } from "../icons";
+import { MessageReply, TriangleAlert, Undo2, UsersRound, Video } from "../icons";
 import { WorkspaceApiError, workspaceRequest } from "../lib/workspaceApi";
 import "./display.css";
 
@@ -32,8 +32,10 @@ const unpairedText: Record<string, string> = {
   expired: "Mã đã hết hạn. Hãy xin nhân viên mã mới.",
 };
 
-type Content = Pick<DisplayStateMessage, "word" | "words" | "sentence" | "phase" | "guide">;
-const EMPTY: Content = { word: null, words: [], sentence: "", phase: "ready", guide: "fixed" };
+type Content = Pick<DisplayStateMessage, "word" | "words" | "sentence" | "phase" | "guide"> & { reply: string };
+const EMPTY: Content = { word: null, words: [], sentence: "", phase: "ready", guide: "fixed", reply: "" };
+// An undo the staff side never answered (it was busy or the message was lost) frees the button again after this long.
+const UNDO_TIMEOUT_MS = 2500;
 
 const MARK = `${import.meta.env.BASE_URL}brand/vsign-mark.svg`;
 
@@ -182,6 +184,7 @@ function CounterScreen({ platformUrl, display, onUnpaired }: {
   const [videoSize, setVideoSize] = useState({ width: 1280, height: 720 });
   const conversation = useRef("");
   const revision = useRef(-1);
+  const [undoPending, setUndoPending] = useState(false);
   const signalRef = useRef<(message: Extract<ServerDisplayMessage, { type: "signal" }>) => void>(() => undefined);
 
   const onMessage = useCallback((message: ServerDisplayMessage) => {
@@ -203,7 +206,9 @@ function CounterScreen({ platformUrl, display, onUnpaired }: {
         if (message.conversation_id !== conversation.current) { conversation.current = message.conversation_id; revision.current = -1; }
         if (message.revision <= revision.current) break;
         revision.current = message.revision;
-        setContent({ word: message.word, words: message.words, sentence: message.sentence, phase: message.phase, guide: message.guide });
+        setContent({ word: message.word, words: message.words, sentence: message.sentence, phase: message.phase, guide: message.guide,
+          reply: message.reply ?? "" });
+        setUndoPending(false);
         break;
       case "command":
         setContent(EMPTY);
@@ -254,6 +259,17 @@ function CounterScreen({ platformUrl, display, onUnpaired }: {
     const timer = window.setTimeout(() => setLost(false), RECONNECT_GRACE_MS);
     return () => window.clearTimeout(timer);
   }, [lost]);
+
+  useEffect(() => {
+    if (!undoPending) return;
+    const timer = window.setTimeout(() => setUndoPending(false), UNDO_TIMEOUT_MS);
+    return () => window.clearTimeout(timer);
+  }, [undoPending]);
+  // The staff recognizer owns the transcript: the counter asks, and shows the result once the new state arrives.
+  const undoWord = () => {
+    if (undoPending || !content.words.length || !conversation.current) return;
+    if (channel.send({ type: "customer_action", action: "undo_word", conversation_id: conversation.current })) setUndoPending(true);
+  };
 
   const stream = camera.status === "ready" ? videoRef.current?.srcObject as MediaStream | null ?? null : null;
   const sender = useDisplaySender({ stream, staffOnline: online && staff.online, iceServers, send: channel.send });
@@ -334,14 +350,22 @@ function CounterScreen({ platformUrl, display, onUnpaired }: {
           {serving && hint && camera.status === "ready" && <p className="display-hint" role="status">{hint}</p>}
         </section>
         {/* Nothing to read while nobody serves: the welcome takes the whole screen. */}
-        {serving && <section className="display-captions" aria-live="polite" aria-label="Kết quả nhận dạng">
-          <div className="display-caption">
+        {serving && <section className="display-captions" aria-label="Kết quả nhận dạng">
+          {content.reply && <div className="display-caption is-reply" aria-live="assertive">
+            <span className="display-caption-label"><MessageReply size={18} aria-hidden="true" />Nhân viên trả lời</span>
+            <p className="display-reply">{content.reply}</p>
+          </div>}
+          <div className="display-caption" aria-live="polite">
             <span className="display-caption-label">Từ vừa nhận</span>
             <p className="display-word">{content.word ?? " "}</p>
           </div>
-          <div className="display-caption is-sentence">
+          <div className="display-caption is-sentence" aria-live="polite">
             <span className="display-caption-label">Câu</span>
             <p className={`display-sentence${sentence ? "" : " is-empty"}`}>{sentence || "Hãy bắt đầu ký"}</p>
+            {content.words.length > 0 && <button type="button" className="display-undo" onClick={undoWord} disabled={undoPending}
+              aria-label={`Hoàn tác 1 từ: bỏ “${content.words.at(-1)}”`}>
+              <Undo2 size={22} aria-hidden="true" />{undoPending ? "Đang hoàn tác…" : "Hoàn tác 1 từ"}
+            </button>}
           </div>
         </section>}
       </div>

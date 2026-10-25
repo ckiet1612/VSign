@@ -72,3 +72,30 @@ it('resumes a revisited tab from its last read while it revalidates',async()=>{
   const other=renderHook(()=>useWorkspaceTeam({...options,user:{...teamUser,id:'someone-else'}}));
   expect(other.result.current.snapshot).toBeNull();
 });
+it('revalidates every 5 s without locking the page, and an action pre-empts a poll in flight',async()=>{
+  vi.useFakeTimers();let hold:((value:Response)=>void)|null=null;let polls=0;
+  vi.stubGlobal('fetch',vi.fn((_url:string,init:RequestInit)=>{
+    if(init.method==='POST') return Promise.resolve(new Response(JSON.stringify({...teamInvitations(),id:'one',secret:null})));
+    // The first read answers at once; later polls hang so the test can act while one is in flight.
+    if(polls++===0) return Promise.resolve(new Response(JSON.stringify(teamOverview())));
+    return new Promise<Response>(done=>{hold=done;});
+  }));
+  const {result}=renderHook(()=>useWorkspaceTeam(options));
+  await act(async()=>{await vi.advanceTimersByTimeAsync(10);});
+  expect(result.current.canMutate).toBe(true);
+  await act(async()=>{await vi.advanceTimersByTimeAsync(5000);});
+  expect(hold).not.toBeNull();
+  // A background poll neither marks the page busy nor disables actions.
+  expect(result.current.busy).toBe(false);expect(result.current.canMutate).toBe(true);
+  let reply:unknown;
+  await act(async()=>{reply=await result.current.mutate({path:'/invitations',body:{request_id:'one'}});});
+  expect(reply).toEqual({id:'one',secret:null});
+});
+it('shows roles that include the usage report permission',async()=>{
+  // Roles are validated against the labelled permissions; an unlabelled one used to reject the whole Roles tab.
+  vi.stubGlobal('fetch',vi.fn(async(url:string)=>new Response(JSON.stringify(url.includes('/team/roles')
+    ? {api_version:'1',workspace_id:'local',roles:[{id:'viewer',permissions:['workspace:read','reports:read']}]} : teamOverview()))));
+  const {result}=renderHook(()=>useWorkspaceTeam({...options,tab:'roles'}));
+  await waitFor(()=>expect(result.current.snapshot?.roles).toHaveLength(1));
+  expect(result.current.error).toBe('');
+});

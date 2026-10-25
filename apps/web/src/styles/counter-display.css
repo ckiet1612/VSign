@@ -22,9 +22,11 @@
   max-height: min(420px, 70dvh); overflow-y: auto; padding: var(--space-8);
   border: var(--border-1) solid var(--black-4); border-radius: var(--radius-16); background: var(--background-3);
   box-shadow: var(--shadow-glass-2); -webkit-backdrop-filter: var(--blur-40); backdrop-filter: var(--blur-40);
-  animation: counter-menu-in 160ms var(--page-ease);
+  transform-origin: top right; transition: var(--popover-in), display 160ms allow-discrete;
 }
-@keyframes counter-menu-in { from { opacity: 0; } }
+/* Kept mounted while hidden so it can fade out; display waits for the fade (allow-discrete). */
+.counter-menu[hidden] { display: none; opacity: 0; transform: scale(0.96); transition: var(--popover-out), display 160ms allow-discrete; }
+@starting-style { .counter-menu:not([hidden]) { opacity: 0; transform: scale(0.96); } }
 .counter-menu [role="menuitemradio"] {
   width: 100%; min-height: 48px; display: flex; align-items: center; gap: var(--space-12); padding: var(--space-8);
   border: 0; border-radius: var(--radius-12); background: transparent; color: var(--ink); font: inherit; text-align: left; cursor: pointer;
@@ -101,7 +103,7 @@
   .counter-picker, .counter-display.is-connected { flex: 1 1 100%; }
   .counter-trigger { width: 100%; }
   .counter-trigger > svg:last-child { margin-left: auto; }
-  .counter-menu { left: 0; right: auto; width: 100%; }
+  .counter-menu { left: 0; right: auto; width: 100%; transform-origin: top center; }
 }
 
 /* Settings → Màn hình khách */

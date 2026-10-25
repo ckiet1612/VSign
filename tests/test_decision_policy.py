@@ -155,3 +155,47 @@ def test_policy_for_another_model_is_ignored(tmp_path):
             socket.send_json(_frames_payload(1, ["Tôi", "Muốn"]))
             reply = socket.receive_json()
     assert reply["status"] == "uncertain" and reply["adjusted"] == []
+
+
+def test_lead_over_the_runner_up_accepts_below_the_confidence_threshold():
+    policy = DecisionPolicy(labels=LABELS, default_threshold=.4, margin_threshold=0, lead_threshold=.15)
+    # 32% but 17 points ahead of the second word: accepted on the lead.
+    assert policy.decide(vector(Mua=.32, Xem=.15, Cần=.14, Tivi=.13, Gạo=.12, Sữa=.12))[0].label == "Mua"
+    # 30% and only 5 points ahead: neither rule holds.
+    assert policy.decide(vector(Mua=.3, Xem=.25, Cần=.2, Tivi=.13, Gạo=.12))[0].status is PredictionStatus.UNCERTAIN
+    # 45% with a 3-point lead still passes on confidence alone.
+    assert policy.decide(vector(Mua=.45, Xem=.42, Cần=.13))[0].label == "Mua"
+    # A lead never accepts idle, and a confuser still vetoes a leading word.
+    assert policy.decide(vector(Không_ký_hiệu=.5, Mua=.2))[0].status is PredictionStatus.UNCERTAIN
+    vetoed = DecisionPolicy(labels=LABELS, default_threshold=.4, margin_threshold=0, lead_threshold=.15, confusers={"Có": {"Rẻ": .1}})
+    assert vetoed.decide(vector(Có=.35, Rẻ=.12, Mua=.1))[0].status is PredictionStatus.UNCERTAIN
+    # Without the rule the 32% winner stays uncertain, as before.
+    assert DecisionPolicy(labels=LABELS, default_threshold=.4, margin_threshold=0).decide(
+        vector(Mua=.32, Xem=.15, Cần=.14, Tivi=.13, Gạo=.12, Sữa=.12))[0].status is PredictionStatus.UNCERTAIN
+
+
+@pytest.mark.parametrize("with_policy", [True, False])
+def test_runtime_applies_the_configured_lead_with_or_without_a_policy_file(tmp_path, with_policy, monkeypatch):
+    from dataclasses import replace
+    from fastapi.testclient import TestClient
+    from app.config import Settings
+    from app.main import create_app
+
+    monkeypatch.setenv("LEAD_THRESHOLD", ".15")
+    assert Settings.from_env().lead_threshold == pytest.approx(.15)
+    monkeypatch.setenv("LEAD_THRESHOLD", "0")
+    assert Settings.from_env().lead_threshold is None
+    settings = replace(Settings(), lead_threshold=.15)
+    if with_policy:
+        policy = tmp_path / "calibration.json"
+        policy.write_text(json.dumps({"model_version": "policy-test-v1", "labels_sha256": labels_digest(LABELS),
+                                      "temperature": 1.0, "default_threshold": .4, "margin_threshold": 0,
+                                      "context_penalty": 1, "context_floor": None}), encoding="utf-8")
+        settings = replace(settings, decision_policy_path=policy)
+    backend = ProbabilityBackend(vector(Mua=.32, Xem=.15, Cần=.14, Tivi=.13, Gạo=.12, Sữa=.12))
+    backend.confidence_threshold, backend.margin_threshold = .4, 0.0
+    with TestClient(create_app(settings, backend=backend)) as client:
+        with client.websocket_connect("/ws/inference") as socket:
+            socket.send_json(_frames_payload(1))
+            reply = socket.receive_json()
+    assert reply["status"] == "ok" and reply["label"] == "Mua"

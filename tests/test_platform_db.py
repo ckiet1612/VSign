@@ -76,7 +76,7 @@ def test_create_schema_records_latest_revision_and_enables_sqlite_foreign_keys()
         revision = connection.exec_driver_sql("select version_num from alembic_version").scalar_one()
         foreign_keys = connection.exec_driver_sql("pragma foreign_keys").scalar_one()
 
-    assert revision == "0012_display_devices"
+    assert revision == "0013_usage_conversations"
     assert foreign_keys == 1
 
 

@@ -1,13 +1,13 @@
 import type { AuthenticatedUser } from "@workspace-contracts";
 import type { RuntimeSnapshot } from "../hooks/useRuntimeStatus";
 import type { WorkspaceView } from "../lib/workspaceNavigation";
-import type { ReactNode } from "react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Bar, BarChart, CartesianGrid, Cell, ComposedChart, Line, ReferenceLine, ResponsiveContainer, Tooltip, XAxis, YAxis, matchByDataKey } from "recharts";
 import { Activity, ArrowUpRight, BarChart3, Calendar, CircleAlert, CircleCheck, Clock, Database, FileCheck, Folder, Radar, RefreshCw, Robot, Stack, Tag } from "../icons";
 import { useSystemDashboard } from "../hooks/useSystemDashboard";
 import { useTabMotion } from "../hooks/useTabMotion";
 import { activityLabel } from "../lib/activityLabels";
+import { CardTitle, Count, Figure, Gauge, LinkButton, Meter, Stat } from "./DashboardParts";
 import { morphDateBars, morphDateLine } from "../lib/chartMorph";
 import { DashboardSkeleton } from "./SystemDashboardSkeleton";
 import "../styles/system-dashboard.css";
@@ -42,75 +42,6 @@ const dailyTooltipLabel = (value: unknown) => `${day(String(value))} UTC`;
 const dailyTooltipValue = (value: unknown, name: unknown) => [decimal(Number(value)), name === "average" ? "TB 7 ngày" : "Mẫu đã lưu"] as [string, string];
 const MORPH_MS = 600;
 const reducedMotion = () => typeof window !== "undefined" && !!window.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches;
-
-const DIGITS = ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9"];
-
-/**
- * A figure whose digits roll to their new value when the range or a refresh changes it: each digit
- * slides once, straight to its target, instead of the whole number flickering through every value.
- * Columns are keyed from the right so units stay put while the number gains or loses digits.
- */
-function Count({ value, format = number }: { value: number; format?: (value: number) => string }) {
-  const text = format(value);
-  const chars = [...text];
-  // Only columns a later value adds fade in; the first paint shows the number as is.
-  const columns = useRef(chars.length);
-  useEffect(() => { columns.current = chars.length; });
-  const fresh = (key: number) => key > columns.current ? " is-new" : "";
-  return <span className="dash-roll"><span className="sr-only">{text}</span>
-    <span aria-hidden="true">{chars.map((char, index) => {
-      const key = chars.length - index;
-      const digit = DIGITS.indexOf(char);
-      return digit < 0 ? <span key={`c${key}`} className={`dash-roll-char${fresh(key)}`}>{char}</span>
-        : <span key={`d${key}`} className={`dash-roll-digit${fresh(key)}`}><span className="dash-roll-sizer">{char}</span>
-          <span className="dash-roll-strip" style={{ transform: `translateY(${-digit * 10}%)` }}>{DIGITS.map(item => <span key={item}>{item}</span>)}</span></span>;
-    })}</span></span>;
-}
-
-/** Segmented meter: filled blocks on a track that ends at the target tick, followed by a hatched headroom zone. */
-function Meter({ segments, target, size = "large", label, valueNow }: {
-  segments: Array<{ value: number; tone: "ink" | "accent" }>; target: number; size?: "large" | "small"; label?: string; valueNow?: number;
-}) {
-  const filled = segments.reduce((sum, segment) => sum + segment.value, 0);
-  const scale = Math.max(target, filled, 1);
-  const a11y = label ? { role: "progressbar", "aria-label": label, "aria-valuenow": valueNow ?? filled, "aria-valuemin": 0, "aria-valuemax": Math.max(filled, target, 1) } : { "aria-hidden": true };
-  return <div className={`dash-meter is-${size}`} {...a11y}>
-    <div className="dash-meter-track">
-      {segments.filter(segment => segment.value > 0).map((segment, index) =>
-        <span key={index} className={`dash-meter-fill is-${segment.tone}`} style={{ width: `${(segment.value / scale) * 100}%` }} />)}
-    </div>
-    <i className="dash-meter-target" />
-    <span className="dash-meter-tail" />
-  </div>;
-}
-
-/** Semicircle gauge with an accent dot marking the current value. */
-function Gauge({ value }: { value: number }) {
-  const share = Math.min(Math.max(value, 0), 1);
-  const angle = Math.PI * (1 - share);
-  const dot = { x: 110 + 92 * Math.cos(angle), y: 106 - 92 * Math.sin(angle) };
-  return <svg className="dash-gauge" viewBox="0 0 220 116" aria-hidden="true">
-    <path d="M 18 106 A 92 92 0 0 1 202 106" className="dash-gauge-track" pathLength={100} />
-    {share > 0 && <path d="M 18 106 A 92 92 0 0 1 202 106" className="dash-gauge-value" pathLength={100} strokeDasharray={`${share * 100} 100`} />}
-    <circle cx={dot.x} cy={dot.y} r={7} className="dash-gauge-dot" />
-  </svg>;
-}
-
-function Figure({ value, unit, caption }: { value: ReactNode; unit?: string; caption: string }) {
-  return <div className="dash-figure"><strong>{value}{unit && <sup>{unit}</sup>}</strong><span>{caption}</span></div>;
-}
-
-function Stat({ value, label, align = "start" }: { value: ReactNode; label: string; align?: "start" | "end" }) {
-  return <div className={`dash-stat is-${align}`}><strong>{value}</strong><span>{label}</span></div>;
-}
-
-function CardTitle({ icon: Icon, id, children }: { icon: typeof Database; id?: string; children: ReactNode }) {
-  return <span className="dash-card-title"><Icon size={18} aria-hidden="true" />{id ? <h2 id={id}>{children}</h2> : children}</span>;
-}
-
-function LinkButton({ label, onClick }: { label: string; onClick: () => void }) {
-  return <button type="button" className="dash-link" aria-label={label} title={label} onClick={onClick}><ArrowUpRight size={16} aria-hidden="true" /></button>;
-}
 
 export function SystemDashboard({ platformUrl, workspaceId, user, runtime, onNavigate }: Props) {
   const [days, setDays] = useState<7 | 30 | 90>(30);

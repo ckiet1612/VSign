@@ -42,7 +42,7 @@ describe("WorkspaceModels", () => {
     render(<WorkspaceModels {...props} user={null} modelSelector={<select aria-label="Endpoint"><option>8003</option></select>} />);
     expect(screen.getByText(runtimeSnapshot.health.model_version)).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: /Dev\/Test/ })).toBeInTheDocument();
-    await userEvent.type(screen.getByLabelText("Tên đăng nhập"), "owner@example.com");
+    await userEvent.type(screen.getByLabelText("Email hoặc tên đăng nhập"), "owner@example.com");
     await userEvent.type(screen.getByLabelText("Mật khẩu"), "password");
     await userEvent.click(screen.getByRole("button", { name: "Đăng nhập" }));
     expect(props.onLogin).toHaveBeenCalledWith("owner@example.com", "password");
@@ -210,7 +210,7 @@ describe("WorkspaceModels", () => {
     vi.stubGlobal("fetch", fetcher);
     render(<WorkspaceModels {...props} />);
     await screen.findByRole("heading", { name: "Đăng nhập VSign" });
-    await userEvent.type(screen.getByLabelText("Tên đăng nhập"), "owner@example.com");
+    await userEvent.type(screen.getByLabelText("Email hoặc tên đăng nhập"), "owner@example.com");
     await userEvent.type(screen.getByLabelText("Mật khẩu"), "password");
     await userEvent.click(screen.getByRole("button", { name: "Đăng nhập" }));
     expect(await screen.findByRole("table", { name: "Sổ mô hình" })).toBeInTheDocument();

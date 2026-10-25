@@ -16,7 +16,7 @@ const capabilities = {
   workspace_id: "local",
   capabilities: {
     overview: true, recognize: true, data: true, evaluation: false, monitoring: false,
-    models: false, activity: true, integrations: false, team: true, settings: false,
+    models: false, activity: true, reports: true, integrations: false, team: true, settings: false,
   },
 };
 const user = { id: "user-1", email: "admin@example.com", display_name: "Admin", role: "owner" };
@@ -48,6 +48,7 @@ describe("useWorkspacePlatform", () => {
     await waitFor(() => expect(result.current.user?.email).toBe("admin@example.com"));
     expect(fetchMock).toHaveBeenCalledWith("http://localhost:8000/api/v1/auth/me", expect.objectContaining({ credentials: "include" }));
     expect(result.current.authRequired).toBe(false);
+    expect(result.current.capabilities?.reports).toBe(true);
   });
 
   it("exposes a submitting state and keeps the gate active if refresh fails", async () => {
@@ -118,6 +119,23 @@ describe("useWorkspacePlatform", () => {
     expect(result.current.authRequired).toBe(true);
   });
 
+  it("returns to the root URL after a confirmed logout", async () => {
+    window.history.pushState({}, "", "/workspace?view=settings");
+    const fetchMock = vi.fn(async (url: string) => new Response(JSON.stringify(
+      url.endsWith("/auth/me") ? { authenticated: true, user }
+        : url.endsWith("/capabilities") ? capabilities : context,
+    )));
+    vi.stubGlobal("fetch", fetchMock);
+
+    const { result } = renderHook(() => useWorkspacePlatform("http://localhost:8000"));
+    await waitFor(() => expect(result.current.user).toEqual(user));
+
+    await act(async () => { await result.current.logout(); });
+
+    expect(window.location.pathname).toBe("/");
+    expect(window.location.search).toBe("");
+  });
+
   it("locks locally before awaiting logout and does not restore an unconfirmed session", async () => {
     const fetcher=vi.fn(async (url:string) => url.endsWith('/auth/logout') ? new Promise<Response>(()=>{}) : new Response(JSON.stringify(
       url.endsWith('/auth/me') ? {authenticated:true,user} : url.endsWith('/capabilities') ? capabilities : context,
@@ -152,6 +170,17 @@ describe("useWorkspacePlatform", () => {
   it("rejects missing capability flags", async () => {
     vi.stubGlobal("fetch", async (url: string) => new Response(JSON.stringify(url.endsWith("/capabilities")
       ? { ...capabilities, capabilities: { overview: true } } : context)));
+    const { result } = renderHook(() => useWorkspacePlatform("http://localhost:8000"));
+    await waitFor(() => expect(result.current.loading).toBe(false));
+    expect(result.current.error).not.toBe("");
+    expect(result.current.capabilities).toBeNull();
+  });
+
+  it("rejects a capabilities response from a backend that cannot report usage", async () => {
+    const legacy = { ...capabilities, capabilities: { ...capabilities.capabilities } };
+    delete (legacy.capabilities as Partial<typeof legacy.capabilities>).reports;
+    vi.stubGlobal("fetch", async (url: string) => new Response(JSON.stringify(
+      url.endsWith("/capabilities") ? legacy : url.endsWith("/auth/me") ? { authenticated: true, user } : context)));
     const { result } = renderHook(() => useWorkspacePlatform("http://localhost:8000"));
     await waitFor(() => expect(result.current.loading).toBe(false));
     expect(result.current.error).not.toBe("");

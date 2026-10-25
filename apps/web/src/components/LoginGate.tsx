@@ -45,7 +45,8 @@ function BrandPanel() {
 }
 
 export function LoginGate({ workspaceName, busy = false, error = "", embedded = false, onLogin }: LoginGateProps) {
-  const [username, setUsername] = useState("");
+  // An accepted invitation links here with ?login=<email>, so the new member starts from the right identifier.
+  const [username, setUsername] = useState(() => new URLSearchParams(window.location.search).get("login")?.slice(0, 320) ?? "");
   const [password, setPassword] = useState("");
   const [submitError, setSubmitError] = useState("");
   const [errorCount, setErrorCount] = useState(0);
@@ -88,7 +89,7 @@ export function LoginGate({ workspaceName, busy = false, error = "", embedded = 
             }
           }}>
             <div className="login-field">
-              <label htmlFor={`${id}-user`}>Tên đăng nhập</label>
+              <label htmlFor={`${id}-user`}>Email hoặc tên đăng nhập</label>
               <div className="login-input">
                 <User size={18} aria-hidden="true" />
                 <input id={`${id}-user`} type="text" value={username} autoComplete="username" autoCapitalize="none" spellCheck={false}

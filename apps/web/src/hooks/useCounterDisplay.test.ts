@@ -1,4 +1,5 @@
 import { act, renderHook, waitFor } from "@testing-library/react";
+import { useEffect } from "react";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { useCounterDisplay, type DisplayContent } from "./useCounterDisplay";
 
@@ -73,6 +74,24 @@ it("remembers the counter and mirrors coalesced, de-duplicated results to it", a
   await waitFor(() => expect(socket.messages()[2]).toMatchObject({ conversation_id: command.conversation_id, revision: 1 }));
 });
 
+it("keeps publishing after React's development double mount cancels a pending update", async () => {
+  // Like App: the state is published from an effect, so a timer is already pending when Strict Mode remounts.
+  const hook = renderHook(() => {
+    const display = useCounterDisplay(options);
+    useEffect(() => { display.publish(content("a")); });
+    return display;
+  }, { reactStrictMode: true });
+  await waitFor(() => expect(hook.result.current.overview).not.toBeNull());
+  act(() => hook.result.current.connect("d1"));
+  const socket = Socket.all[0];
+  act(() => {
+    socket.open();
+    socket.receive({ type: "welcome", role: "staff", display: { id: "d1", name: "Quầy 1" }, ice_servers: [] });
+    socket.receive({ type: "peer", role: "device", online: true });
+  });
+  await waitFor(() => expect(socket.messages()).toContainEqual(expect.objectContaining({ type: "display_state", sentence: "a" })));
+});
+
 it("drops the frozen video when the counter goes away and ends the session cleanly", async () => {
   const { result, socket } = await connected();
   act(() => socket.receive({ type: "peer", role: "device", online: false }));
@@ -109,4 +128,20 @@ it("forgets a revoked counter and explains a takeover", async () => {
   expect(result.current.notice).toBe("Màn hình quầy này đã bị huỷ.");
   expect(result.current.selectedId).toBeNull();
   expect(window.localStorage.getItem(options.storageKey)).toBeNull();
+});
+
+it("passes the customer's undo through for the current conversation only", async () => {
+  const onCustomerAction = vi.fn();
+  const hook = renderHook(() => useCounterDisplay({ ...options, onCustomerAction }));
+  await waitFor(() => expect(hook.result.current.overview).not.toBeNull());
+  act(() => hook.result.current.connect("d1"));
+  const socket = Socket.all[0];
+  act(() => { socket.open(); socket.receive({ type: "peer", role: "device", online: true }); });
+  act(() => hook.result.current.publish(content("a")));
+  await waitFor(() => expect(socket.messages()).toHaveLength(1));
+  const conversation = socket.messages()[0].conversation_id;
+  act(() => socket.receive({ type: "customer_action", action: "undo_word", conversation_id: "stale" }));
+  expect(onCustomerAction).not.toHaveBeenCalled();
+  act(() => socket.receive({ type: "customer_action", action: "undo_word", conversation_id: conversation }));
+  expect(onCustomerAction).toHaveBeenCalledWith("undo_word");
 });

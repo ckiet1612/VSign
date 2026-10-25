@@ -29,7 +29,7 @@
 .integrations-webhook-title label { flex-direction:row; align-items:center; min-height:28px; }
 .integrations-page input[type=checkbox] { width:17px; height:17px; accent-color:var(--ink); }
 .integrations-url-field { grid-column:span 2; }
-.integrations-secret code { display:block; overflow-wrap:anywhere; user-select:all; margin-block:12px; padding:12px 16px; border-radius:var(--radius-12); background:var(--background-1); font-size:var(--text-14); }
+.integrations-secret code { display:block; overflow-wrap:anywhere; -webkit-user-select:all; user-select:all; margin-block:12px; padding:12px 16px; border-radius:var(--radius-12); background:var(--background-1); font-size:var(--text-14); }
 .integrations-confirm,.integrations-retry { display:flex; flex-wrap:wrap; align-items:center; gap:12px; }
 .integrations-retry { margin-block:0 12px; padding:12px 16px; border-radius:var(--radius-16); background:var(--caution-soft); color:var(--caution); }
 .integrations-retry > span { flex:1 1 200px; }

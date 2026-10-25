@@ -114,6 +114,41 @@ describe("automatic sentence coordinator", () => {
     expect(result.current.drafts[0].status).toBe("review");
   });
 
+  it("continues the same sentence when recognition pauses and resumes on the same model", async () => {
+    const compose = vi.fn(async (words: string[]) => words.join(" ") + ".");
+    const { result, rerender } = renderHook(({ enabled, words }) => useAutomaticSentence({
+      enabled, contextKey: "recognize:v1", words, blocked: () => false, compose,
+    }), { initialProps: { enabled: true, words: ["Mua"] } });
+    let pending!: NonNullable<ReturnType<typeof result.current.activity>>;
+    act(() => { pending = result.current.activity()!; });
+    rerender({ enabled: false, words: ["Mua"] });
+    rerender({ enabled: true, words: ["Mua"] });
+    act(() => result.current.accept(pending, ["Mua", "Rẻ"]));
+    rerender({ enabled: true, words: ["Mua", "Tivi"] });
+    await act(async () => vi.advanceTimersByTimeAsync(2000));
+    expect(result.current.drafts).toHaveLength(1);
+    expect(result.current.drafts[0].words).toEqual(["Mua", "Tivi"]);
+    expect(result.current.drafts[0].sentence).toBe("Mua Tivi.");
+    expect(result.current.drafts[0].warning).toBe("Có đoạn ký bị gián đoạn · cần kiểm tra");
+  });
+
+  it("recomposes a sentence whose composition was cut off by a pause", async () => {
+    const compose = vi.fn<(words: string[], signal: AbortSignal) => Promise<string>>()
+      .mockImplementationOnce(() => new Promise(() => undefined))
+      .mockResolvedValueOnce("Mua sữa.");
+    const { result, rerender } = renderHook(({ enabled }) => useAutomaticSentence({
+      enabled, contextKey: "recognize:v1", words: ["Mua", "Sữa"], blocked: () => false, compose,
+    }), { initialProps: { enabled: true } });
+    await act(async () => vi.advanceTimersByTimeAsync(2000));
+    expect(result.current.drafts[0].status).toBe("composing");
+    rerender({ enabled: false });
+    rerender({ enabled: true });
+    await act(async () => vi.advanceTimersByTimeAsync(2000));
+    expect(compose).toHaveBeenCalledTimes(2);
+    expect(result.current.drafts).toHaveLength(1);
+    expect(result.current.drafts[0].sentence).toBe("Mua sữa.");
+  });
+
   it("can reset a session containing only an unrecognized segment and no words", () => {
     const { result } = renderHook(() => useAutomaticSentence({
       enabled: true, contextKey: "server", words: [], blocked: () => false, compose: vi.fn(),

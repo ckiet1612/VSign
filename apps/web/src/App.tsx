@@ -43,6 +43,11 @@ import {
 import { ResultPanel } from "./components/ResultPanel";
 import { ServerModelSelector } from "./components/ServerModelSelector";
 import { TranscriptPanel } from "./components/TranscriptPanel";
+import { WorkspaceReports } from "./components/WorkspaceReports";
+import { StaffReplyPanel } from "./components/StaffReplyPanel";
+import { REPLY_MAX } from "../../../contracts/v1/display";
+import { useUsageTracker } from "./hooks/useUsageTracker";
+import type { UsageEvent } from "./lib/usageTracker";
 import { WorkspacePage } from "./components/WorkspacePage";
 import { WorkspaceActivity } from "./components/WorkspaceActivity";
 import { WorkspaceModels } from "./components/WorkspaceModels";
@@ -219,6 +224,11 @@ function WorkspaceApp({ platform }: { platform: WorkspacePlatform }) {
   });
   const [automaticAddedSequence, setAutomaticAddedSequence] = useState<number | null>(null);
   const [notice, setNotice] = useState("");
+  // The staff member's latest answer to the customer (F05); shown on the counter screen, or here without one.
+  const [staffReply, setStaffReply] = useState("");
+  // Usage report (F08): set once the tracker exists below; earlier callbacks reach it through this ref.
+  const usageRef = useRef<{ note: (event: UsageEvent) => void; end: () => void }>({ note: () => undefined, end: () => undefined });
+  const customerActionRef = useRef<(action: "undo_word") => void>(() => undefined);
   const [composedSentence, setComposedSentence] = useState("");
   const [composedWarning, setComposedWarning] = useState("");
   const [composingSentence, setComposingSentence] = useState(false);
@@ -234,6 +244,8 @@ function WorkspaceApp({ platform }: { platform: WorkspacePlatform }) {
   // Until the first connection attempt resolves, "disconnected" is only the initial state, not a lost connection.
   const [connectionSettled, setConnectionSettled] = useState(false);
   const [mode, setMode] = useState<AppMode>(workspaceView === "data" && platform.available ? "collect" : "recognize");
+  const recognizingRef = useRef(mode === "recognize");
+  recognizingRef.current = mode === "recognize";
   const managedData = platform.available && platform.context !== null && !config.publicDemo;
   const [dataTab, setDataTab] = useUrlTab(DATA_TABS, "collect", workspaceView === "data");
   const [datasetId, setDatasetId] = useState("");
@@ -380,12 +392,15 @@ function WorkspaceApp({ platform }: { platform: WorkspacePlatform }) {
       return false;
     }
     invalidateManualComposition();
+    if (recognizingRef.current) usageRef.current.note({ type: "word", label });
     setNotice(automatic ? `Đã tự thêm “${label}” vào câu.` : `Đã thêm “${label}” vào câu.`);
     return true;
   }, [applyTranscriptAction, invalidateManualComposition]);
 
   const acceptPrediction = useCallback((prediction: PredictionMessage) => {
     dispatchInference({ type: "prediction_received", prediction });
+    if (recognizingRef.current && prediction.status === "uncertain") usageRef.current.note({ type: "uncertain" });
+    else if (recognizingRef.current && prediction.status === "error") usageRef.current.note({ type: "failed" });
     const context = transcriptContextRef.current;
     const label = autoTranscriptRef.current.consume(
       prediction, context.contextKey, context.eligible &&
@@ -465,7 +480,15 @@ function WorkspaceApp({ platform }: { platform: WorkspacePlatform }) {
     enabled: !config.publicDemo && platform.available && platform.user !== null &&
       platform.capabilities?.recognize !== false && workspaceView === "recognize" && mode === "recognize",
     storageKey: platform.user ? `vsign.counterDisplay:${platform.context?.workspace_id ?? "local"}:${platform.user.id}` : null,
+    onCustomerAction: action => customerActionRef.current(action),
   });
+  const usage = useUsageTracker({
+    platformUrl: config.platformHttpUrl,
+    enabled: !config.publicDemo && platform.available && platform.user !== null && platform.capabilities?.recognize !== false,
+    channel: counterDisplay.connected ? "counter" : "same_screen",
+    displayId: counterDisplay.connected ? counterDisplay.selectedId : null,
+  });
+  usageRef.current = usage;
   const camera = useCamera(videoRef, counterDisplay.remoteStream);
   const captureModeTouched = useRef(false);
   useWorkspaceSessionDefaults({ platformUrl: config.platformHttpUrl, workspaceId: platform.context?.workspace_id ?? 'local',
@@ -673,7 +696,8 @@ function WorkspaceApp({ platform }: { platform: WorkspacePlatform }) {
     !config.publicDemo && metadata !== null;
   const automaticSentence = useAutomaticSentence({
     enabled: automaticSentenceEnabled,
-    contextKey: `${recognitionContextKey}:${transcriptModelVersion}`,
+    // Camera and connection state stay out: a brief reconnect to the same model keeps the sentence being signed.
+    contextKey: `${mode}:${captureInputMode}:${landmarkRuntime}:${serverModel.active.id}:${transcriptModelVersion}`,
     words: transcript.words,
     blocked: () => {
       const frame = trackingFrameRef.current;
@@ -1171,8 +1195,33 @@ function WorkspaceApp({ platform }: { platform: WorkspacePlatform }) {
     invalidateManualComposition();
   };
 
+  const undoLastWord = (by: "staff" | "customer") => {
+    const label = transcriptRef.current.words.at(-1);
+    if (!label) return;
+    autoTranscriptRef.current.invalidate();
+    automaticSentence.skipPending();
+    sentenceSequencesRef.current.clear();
+    sentenceCaptureRef.current = null;
+    automaticTranscriptCaptureRef.current = null;
+    manualTranscriptCaptureRef.current = null;
+    applyTranscriptAction({ type: "undo" });
+    setAutomaticAddedSequence(null);
+    invalidateManualComposition();
+    usageRef.current.note({ type: "undo", by, label });
+    setNotice(by === "customer" ? `Khách đã hoàn tác “${label}”.` : "Đã hoàn tác từ cuối.");
+  };
+  customerActionRef.current = action => { if (action === "undo_word") undoLastWord("customer"); };
+
+  const sendStaffReply = (text: string, voice: boolean) => {
+    setStaffReply(text);
+    usageRef.current.note({ type: "reply", voice });
+    setNotice(counterDisplay.connected ? "Đã gửi câu trả lời tới màn hình quầy." : "Câu trả lời đang hiển thị cho khách.");
+  };
+
   // Both screens start over; the counter connection and the camera stay as they are.
   const startNewConversation = () => {
+    usageRef.current.end();
+    setStaffReply("");
     clearSentence();
     dispatchInference({ type: "capture_cancelled", message: "" });
     counterDisplay.newConversation();
@@ -1386,9 +1435,9 @@ function WorkspaceApp({ platform }: { platform: WorkspacePlatform }) {
     publishToCounter({
       phase: visiblePhase, word: counterWord?.slice(0, 64) ?? null,
       words: transcript.words.slice(-200).map(word => word.slice(0, 64)),
-      sentence: counterSentence.slice(0, 600), guide: guideFraming,
+      sentence: counterSentence.slice(0, 600), guide: guideFraming, reply: staffReply.slice(0, REPLY_MAX),
     });
-  }, [counterConnected, publishToCounter, visiblePhase, counterWord, transcript.words, counterSentence, guideFraming]);
+  }, [counterConnected, publishToCounter, visiblePhase, counterWord, transcript.words, counterSentence, guideFraming, staffReply]);
   const collectionEnabled =
     managedData ? data.snapshot?.permissions.collect === true && data.snapshot.collection_enabled : !config.publicDemo &&
     metadata?.collection_enabled === true &&
@@ -1445,6 +1494,7 @@ function WorkspaceApp({ platform }: { platform: WorkspacePlatform }) {
     evaluation: false,
     monitoring: !config.publicDemo,
     activity: false,
+    reports: false,
     integrations: false,
     team: false,
     models: true,
@@ -1576,6 +1626,9 @@ function WorkspaceApp({ platform }: { platform: WorkspacePlatform }) {
           workspaceName={platform.context?.name} workspaceId={platform.context?.workspace_id ?? "local"}
           onLogin={platform.login} loginBusy={platform.submitting}
           sessionLoading={platform.loading} authMode={platform.authMode}
+        /> : activeWorkspaceView === "reports" && !config.publicDemo ? <WorkspaceReports
+          platformUrl={config.platformHttpUrl} workspaceId={platform.context?.workspace_id ?? "local"}
+          enabled={platform.capabilities?.reports === true}
         /> : activeWorkspaceView === "models" && !config.publicDemo ? <WorkspaceModels
           platformUrl={config.platformHttpUrl} user={platform.user}
           workspaceId={platform.context?.workspace_id ?? "local"} workspaceName={platform.context?.name}
@@ -1633,6 +1686,7 @@ function WorkspaceApp({ platform }: { platform: WorkspacePlatform }) {
           </h1>
           {mode === "recognize" && !config.publicDemo && platform.user && (
             <CounterDisplayControl display={counterDisplay} onNewConversation={startNewConversation}
+              onEndSession={() => { usageRef.current.end(); setStaffReply(""); }}
               locked={capture.status !== "idle" || automaticPhase === "capturing" || automaticPhase === "postroll"} />
           )}
         </header>}
@@ -1728,19 +1782,13 @@ function WorkspaceApp({ platform }: { platform: WorkspacePlatform }) {
               automatic={automaticSentenceEnabled}
               sentenceDrafts={automaticSentence.drafts}
               onCompose={() => void completeSentence()}
-              onUndo={() => {
-                autoTranscriptRef.current.invalidate();
-                automaticSentence.skipPending();
-                sentenceSequencesRef.current.clear();
-                sentenceCaptureRef.current = null;
-                automaticTranscriptCaptureRef.current = null;
-                manualTranscriptCaptureRef.current = null;
-                applyTranscriptAction({ type: "undo" });
-                setAutomaticAddedSequence(null);
-                invalidateManualComposition();
-                setNotice("Đã hoàn tác từ cuối.");
+              onUndo={() => undoLastWord("staff")}
+              onClear={() => {
+                // Without a counter there is no "new conversation" button; clearing everything starts one.
+                if (!counterDisplay.connected) { usageRef.current.end(); setStaffReply(""); }
+                clearSentence();
+                setNotice("Đã xóa toàn bộ câu.");
               }}
-              onClear={() => { clearSentence(); setNotice("Đã xóa toàn bộ câu."); }}
               onCopy={() => void copyTranscript()}
             />
           )}
@@ -1763,6 +1811,10 @@ function WorkspaceApp({ platform }: { platform: WorkspacePlatform }) {
               automaticInsertionAvailable={autoTranscriptAvailable}
               automaticAdded={automaticAddedSequence === inference.prediction?.sequence}
             />
+          )}
+          {mode === "recognize" && !config.publicDemo && platform.user && (
+            <StaffReplyPanel reply={staffReply} counter={counterDisplay.connected}
+              onSend={(text, source) => sendStaffReply(text, source === "voice")} onClear={() => setStaffReply("")} />
           )}
         </div>
         </>}

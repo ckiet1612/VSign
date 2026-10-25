@@ -24,5 +24,9 @@ if [[ -f "${project_dir}/data/inference-token-secret" ]]; then
   export INFERENCE_TOKEN_SECRET_FILE="${project_dir}/data/inference-token-secret"
 fi
 unset INFERENCE_TOKEN_SECRET RUNTIME_ROLE
+# TURN relay for counter displays on other networks; the HTTPS tunnel does not carry WebRTC's UDP media.
+if [[ -f "${project_dir}/data/display-ice-servers.json" ]]; then
+  export DISPLAY_ICE_SERVERS="$(cat "${project_dir}/data/display-ice-servers.json")"
+fi
 unset BOOTSTRAP_ADMIN_EMAIL BOOTSTRAP_ADMIN_PASSWORD BOOTSTRAP_ADMIN_NAME
 exec bash "${project_dir}/scripts/run_coreml_local.sh"

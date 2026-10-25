@@ -63,6 +63,8 @@ if modal.is_local():
         "LABELS_VERIFIED": "true",
         "CONFIDENCE_THRESHOLD": "0.40",
         "MARGIN_THRESHOLD": "0.0",
+        # Or a lead of 15 points over the second word, even below 40%.
+        "LEAD_THRESHOLD": "0.15",
         "ALLOWED_ORIGINS": os.getenv("MODAL_ALLOWED_ORIGINS", DEFAULT_ORIGINS),
         "WORKSPACE_ID": os.getenv("WORKSPACE_ID", "local"),
         "DATABASE_URL": "sqlite:///:memory:",

@@ -37,3 +37,16 @@ it('ignores an old clipboard result after a new link is shown',async()=>{
   await create('b@example.com');await act(async()=>finish());expect(screen.getByRole('button',{name:'Sao chép liên kết'})).toBeInTheDocument();
   expect(screen.queryByRole('button',{name:'Đã sao chép'})).not.toBeInTheDocument();
 });
+it('searches members as you type and clears audit filters in one step',async()=>{
+  reader();const spy=vi.mocked(hook.useWorkspaceTeam);render(<WorkspaceTeam {...props}/>);
+  expect(screen.queryByRole('button',{name:'Tìm'})).not.toBeInTheDocument();
+  fireEvent.change(screen.getByLabelText('Tìm thành viên'),{target:{value:'  ann '}});
+  await waitFor(()=>expect(spy).toHaveBeenLastCalledWith(expect.objectContaining({search:'ann'})));
+  fireEvent.click(screen.getByRole('tab',{name:'Nhật ký quyền'}));
+  expect(screen.queryByRole('button',{name:'Xóa bộ lọc'})).not.toBeInTheDocument();
+  fireEvent.change(screen.getByLabelText('Thao tác'),{target:{value:'permission.invitation_created'}});
+  fireEvent.click(screen.getByRole('button',{name:'Xóa bộ lọc'}));
+  expect(screen.getByLabelText('Thao tác')).toHaveValue('');
+  expect(screen.queryByRole('button',{name:'Xóa bộ lọc'})).not.toBeInTheDocument();
+  expect(spy).toHaveBeenLastCalledWith(expect.objectContaining({action:'',memberId:'',fromAt:'',toAt:''}));
+});

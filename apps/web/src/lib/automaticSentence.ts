@@ -148,6 +148,14 @@ export class AutomaticSentence {
     for (const id of [...this.captures.keys()]) this.missing(message, now, { id });
   }
 
+  /** Recognition paused without changing model, e.g. a dropped connection: keep the drafts and recompose the one cut off. */
+  interrupted(message: string, now: number): void {
+    this.cancelPending(message, now);
+    for (const draft of this.drafts) {
+      if (draft.status === "composing") this.changed(draft, now, draft.words.length > 0);
+    }
+  }
+
   contextChanged(message: string, now: number): void {
     this.cancelPending(message, now);
     for (const draft of this.drafts) {
