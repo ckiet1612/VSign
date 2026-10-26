@@ -1510,7 +1510,7 @@ function WorkspaceApp({ platform }: { platform: WorkspacePlatform }) {
   useEffect(() => {
     if (!systemAdmin || !platformUser || enteredSystemRef.current === platformUser.id) return;
     enteredSystemRef.current = platformUser.id;
-    if (!new URLSearchParams(window.location.search).has("view")) navigateWorkspaceView("overview");
+    if (window.location.pathname === "/") navigateWorkspaceView("overview");
   }, [systemAdmin, platformUser, navigateWorkspaceView]);
   const activeWorkspaceView = (workspaceView === "data" && !managedData && !collectionEnabled) || workspaceCapabilities[workspaceView] === false
     ? "recognize"
