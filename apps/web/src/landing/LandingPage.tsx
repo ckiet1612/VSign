@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { SignWordmark } from "../components/SignWordmark";
+import { workspaceHref } from "../lib/appRoutes";
 import { ArrowRight, Play } from "../icons";
 import { CounterShowcase } from "./CounterShowcase";
 import { FilmHero } from "./FilmHero";
@@ -75,18 +76,18 @@ function LandingNav() {
       <ul className="landing-nav-links">
         {NAV_LINKS.map(link => <li key={link.href}><a href={link.href}>{link.label}</a></li>)}
       </ul>
-      <a className="landing-button landing-button-primary landing-nav-cta" href="/">Đăng nhập</a>
+      <a className="landing-button landing-button-primary landing-nav-cta" href={workspaceHref()}>Đăng nhập</a>
     </nav>
   );
 }
 
 // The CTA strokes swing into the mark's own angles as the band scrolls into place.
 const CTA_STROKES = [
-  { color: "orange", angle: -64, x: "8%", y: "68%", length: 16 },
-  { color: "indigo", angle: 90, x: "20%", y: "22%", length: 9 },
-  { color: "blue", angle: 68, x: "78%", y: "16%", length: 12 },
-  { color: "blue", angle: 44, x: "88%", y: "50%", length: 9 },
-  { color: "green", angle: -22, x: "74%", y: "80%", length: 14 },
+  { color: "orange", angle: -64, x: "7%", y: "70%", length: 11 },
+  { color: "indigo", angle: 90, x: "11%", y: "20%", length: 6 },
+  { color: "blue", angle: 68, x: "90%", y: "16%", length: 8 },
+  { color: "blue", angle: 44, x: "93%", y: "48%", length: 6 },
+  { color: "green", angle: -22, x: "82%", y: "86%", length: 10 },
 ] as const;
 
 const ctaProgress = (rect: DOMRect, viewport: number) => (viewport - rect.top) / (viewport * 0.8);
@@ -106,7 +107,7 @@ function CtaBand() {
       <p className="landing-kicker">Bắt đầu</p>
       <h2 className="landing-cta-title">Mỗi cuộc trò chuyện<br />cần một nhịp cầu.</h2>
       <div className="landing-hero-actions">
-        <a className="landing-button landing-button-primary" href="/">Đăng nhập VSign<ArrowRight size={18} aria-hidden="true" /></a>
+        <a className="landing-button landing-button-primary" href={workspaceHref()}>Đăng nhập VSign<ArrowRight size={18} aria-hidden="true" /></a>
         <a className="landing-button landing-button-ghost" href="#phim"><Play size={18} aria-hidden="true" />Xem lại phim</a>
       </div>
     </section>
@@ -120,7 +121,7 @@ function LandingFooter() {
         <p className="landing-footer-tagline">Để mọi cử chỉ<br />đều được hiểu.</p>
         <ul className="landing-footer-links">
           {NAV_LINKS.map(link => <li key={link.href}><a href={link.href}>{link.label}</a></li>)}
-          <li><a href="/">Đăng nhập</a></li>
+          <li><a href={workspaceHref()}>Đăng nhập</a></li>
         </ul>
       </div>
       <div className="landing-footer-mark" data-reveal><Lockup className="landing-lockup-giant" /></div>

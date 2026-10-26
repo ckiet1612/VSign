@@ -24,5 +24,5 @@ it('submits explicit credentials and does not display a success before acknowled
   expect(await screen.findByText('Đã tham gia workspace.')).toBeInTheDocument();
   // The new member signs in with the invited email, not the display name.
   expect(screen.getByText('new@example.com')).toBeInTheDocument();
-  expect(screen.getByRole('link',{name:'Đăng nhập'})).toHaveAttribute('href','/?login=new%40example.com');
+  expect(screen.getByRole('link',{name:'Đăng nhập'})).toHaveAttribute('href','/workspace?login=new%40example.com');
 });

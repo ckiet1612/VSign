@@ -222,6 +222,7 @@ html[data-input="pointer"] input:is([type="radio"], [type="checkbox"]):focus-vis
 .sidebar-account-action { flex: 0 0 32px; width: 32px; height: 32px; padding: 0; display: inline-flex; align-items: center; justify-content: center; border: 0; border-radius: var(--radius-8); color: var(--ink); background: var(--black-4); cursor: pointer; }
 .sidebar-account-action:hover { background: var(--black-10); }
 .sidebar-account-action svg { flex-shrink: 0; }
+.mobile-sidebar-toggle, .mobile-header-logo, .mobile-sidebar-close, .mobile-sidebar-backdrop { display: none; }
 /* Boot and the empty pre-render page use the shell's frame colour, so the shell appears without a white-to-grey flash. */
 html:has(> body > #root:empty) { background: var(--background-2); }
 .platform-loading { min-height: 100dvh; display: grid; place-items: center; background: var(--background-2); }
@@ -1458,9 +1459,64 @@ button:disabled { cursor: not-allowed; opacity: 0.4; }
 }
 
 @media (max-width: 680px) {
-  .app-header { min-height: 60px; display: flex; padding: var(--space-8) max(16px, env(safe-area-inset-left)); gap: var(--space-12); }
-  .sidebar-brand { display: none; }
-  .app-sidebar { flex: 1; }
+  body.mobile-sidebar-lock { overflow: hidden; }
+  .app-header {
+    min-height: 60px; display: flex; flex-direction: row; align-items: center; justify-content: flex-start;
+    padding: var(--space-8) max(16px, env(safe-area-inset-left)) var(--space-8) max(16px, env(safe-area-inset-left));
+    gap: var(--space-12); z-index: 80;
+  }
+  .mobile-sidebar-toggle {
+    width: 40px; height: 40px; flex: 0 0 40px; display: grid; place-items: center;
+    padding: 0; border: 0; border-radius: var(--radius-8); color: var(--ink); background: transparent; cursor: pointer;
+    touch-action: manipulation; -webkit-tap-highlight-color: transparent;
+  }
+  .mobile-sidebar-toggle:active { background: var(--black-10); }
+  .mobile-header-logo { display: inline-flex; align-items: center; color: var(--ink); white-space: nowrap; }
+  .mobile-header-logo-mark { flex: none; width: 28px; height: 28px; margin-right: 2px; }
+  .mobile-header-logo > svg { flex: none; width: 52px; height: 30px; }
+  .app-header > .app-sidebar {
+    position: fixed; inset: 0 auto 0 0; z-index: 90; width: min(78vw, 264px); height: 100dvh;
+    flex: none; display: flex; flex-direction: column; align-items: stretch; gap: var(--space-8);
+    padding: max(var(--space-12), env(safe-area-inset-top)) var(--space-12) max(var(--space-12), env(safe-area-inset-bottom));
+    overflow-y: auto; overscroll-behavior: contain; background: var(--background-1);
+    box-shadow: 12px 0 32px rgb(0 0 0 / 14%); transform: translateX(calc(-100% - 20px));
+    transition: transform 300ms var(--ease-out), visibility 0s linear 300ms; visibility: hidden;
+  }
+  .app-header > .app-sidebar.mobile-open {
+    transform: translateX(0); visibility: visible;
+    transition: transform 450ms var(--ease-spring), visibility 0s;
+  }
+  .sidebar-brand { height: 40px; display: flex; align-items: center; justify-content: space-between; padding: 0 var(--space-4); }
+  .sidebar-logo-rest { opacity: 1; }
+  .mobile-sidebar-close {
+    width: 40px; height: 40px; display: grid; place-items: center; flex: 0 0 40px;
+    padding: 0; border: 0; border-radius: var(--radius-8); color: var(--ink); background: transparent; cursor: pointer;
+    touch-action: manipulation; -webkit-tap-highlight-color: transparent;
+  }
+  .mobile-sidebar-close:active { background: var(--black-10); }
+  .sidebar-navigation, .app-sidebar.is-system-admin .sidebar-navigation {
+    display: block; min-width: 0; padding: var(--space-8) 0; overflow: visible;
+  }
+  .sidebar-section-label, .sidebar-navigation ul:last-of-type { display: block; }
+  .sidebar-navigation ul, .app-sidebar.is-system-admin .sidebar-navigation ul { display: grid; flex: none; gap: var(--space-4); margin: var(--space-4) 0 0; }
+  .sidebar-nav-item { width: 100%; min-height: 44px; padding: var(--space-12); }
+  .sidebar-nav-item.active::before { left: var(--space-4); top: 50%; bottom: auto; width: 4px; height: var(--size-16); transform: translateY(-50%); }
+  .sidebar-account {
+    width: 100%; align-self: stretch; box-sizing: border-box; justify-content: flex-start; margin-top: auto;
+    padding: var(--space-8) var(--space-4); text-align: left;
+  }
+  .sidebar-account-copy { display: grid; }
+  .sidebar-account-action { display: inline-flex; }
+  .mobile-sidebar-backdrop {
+    position: fixed; inset: 0; z-index: 70; display: block; width: 100%; height: 100%; padding: 0;
+    border: 0; background: rgb(12 15 20 / 36%); cursor: pointer; opacity: 0; pointer-events: none;
+    visibility: hidden; transition: opacity 200ms var(--ease-out), visibility 0s linear 200ms;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .mobile-sidebar-backdrop.mobile-open {
+    opacity: 1; pointer-events: auto; visibility: visible;
+    transition: opacity 200ms var(--ease-out), visibility 0s;
+  }
   .workflow-actions { min-width: 0; display: flex; }
   .mock-banner, .ai-banner { align-items: center; flex-direction: column; gap: var(--space-4); }
   .workspace-notices { padding-inline: var(--space-16); }

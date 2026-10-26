@@ -8,12 +8,12 @@ it("reopens the section named in the URL and writes changes back", () => {
   window.history.replaceState(null, "", "/data?tab=second");
   const { result } = renderHook(() => useUrlTab(tabs, "first"));
   expect(result.current[0]).toBe("second");
-  expect(window.location.pathname).toBe("/data/second");
+  expect(window.location.pathname).toBe("/workspace/data/second");
   act(() => result.current[1]("third"));
-  expect(window.location.pathname).toBe("/data/third");
+  expect(window.location.pathname).toBe("/workspace/data/third");
   expect(window.location.search).toBe("");
   act(() => result.current[1]("first"));
-  expect(window.location.pathname).toBe("/data");
+  expect(window.location.pathname).toBe("/workspace/data");
   expect(window.location.search).toBe("");
 });
 
@@ -21,7 +21,7 @@ it("converts the legacy view and tab query into nested paths", () => {
   window.history.replaceState(null, "", "/?view=data&tab=second");
   const { result } = renderHook(() => useUrlTab(tabs, "first"));
   expect(result.current[0]).toBe("second");
-  expect(window.location.pathname).toBe("/data/second");
+  expect(window.location.pathname).toBe("/workspace/data/second");
   expect(window.location.search).toBe("");
 });
 

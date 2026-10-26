@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useLayoutEffect, useState } from "react";
+import { workspaceBasePath } from "../lib/appRoutes";
 import {
   isWorkspaceView,
   readWorkspaceView,
@@ -6,13 +7,13 @@ import {
 } from "../lib/workspaceNavigation";
 
 function basePath() {
-  if (typeof window === "undefined") return "";
-  return new URL(import.meta.env.BASE_URL || "/", window.location.origin).pathname.replace(/\/+$/, "");
+  return workspaceBasePath();
 }
 
 function relativePathname() {
   const base = basePath();
   const pathname = window.location.pathname;
+  if (pathname === base) return "";
   return (base && pathname.startsWith(`${base}/`) ? pathname.slice(base.length) : pathname)
     .replace(/^\/+|\/+$/g, "");
 }
@@ -56,8 +57,12 @@ export function useWorkspaceNavigation(landing: WorkspaceView = "recognize") {
       window.history.replaceState(window.history.state, "", url);
       return;
     }
-    if (isWorkspaceView(currentPathView) || landing === "recognize") return;
-    url.pathname = viewPath(landing);
+    if (isWorkspaceView(currentPathView)) {
+      url.pathname = `${basePath()}/${relativePathname()}`;
+    } else {
+      if (landing === "recognize") return;
+      url.pathname = viewPath(landing);
+    }
     window.history.replaceState(window.history.state, "", url);
     // Only the first render can land; later navigation owns the URL.
     // eslint-disable-next-line react-hooks/exhaustive-deps

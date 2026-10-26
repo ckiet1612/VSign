@@ -4,7 +4,7 @@ const SIGN_PATH = "M549 -189C549 -408 110 -357 110 -496C110 -560 197 -608 286 -6
 
 export function SignWordmark({ className }: { className?: string }) {
   return (
-    <svg className={className} viewBox="0 -851.5 1794 1000" aria-hidden="true" focusable="false">
+    <svg className={className} viewBox="0 -770 1794 1000" aria-hidden="true" focusable="false">
       <path fill="currentColor" d={SIGN_PATH} />
     </svg>
   );

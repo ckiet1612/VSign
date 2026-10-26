@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { ArrowRight, Pause, Play } from "../icons";
+import { workspaceHref } from "../lib/appRoutes";
 import { FILM_CHAPTERS, chapterAt, chapterFill } from "./filmChapters";
 import { cssVars, prefersReducedMotion, useInView, useScrollProgress } from "./landingMotion";
 
@@ -48,7 +49,7 @@ export function FilmHero() {
           quầy hiểu nhau ngay tại chỗ.
         </p>
         <div className="landing-hero-actions">
-          <a className="landing-button landing-button-primary" href="/">Bắt đầu với VSign<ArrowRight size={18} aria-hidden="true" /></a>
+          <a className="landing-button landing-button-primary" href={workspaceHref()}>Bắt đầu với VSign<ArrowRight size={18} aria-hidden="true" /></a>
           <a className="landing-button landing-button-ghost" href="#phim"><Play size={18} aria-hidden="true" />Xem phim 60 giây</a>
         </div>
       </header>
@@ -78,7 +79,7 @@ function FilmPlayer() {
     const element = video.current;
     if (!element) return;
     if (inView && !userPaused.current) element.play().catch(() => undefined);
-    else if (!inView) element.pause();
+    else if (!inView && !element.paused) element.pause();
   }, [inView]);
 
   useEffect(() => {

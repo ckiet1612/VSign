@@ -1,6 +1,6 @@
 import type { WorkspaceView } from "../lib/workspaceNavigation";
 import type { AuthenticatedUser } from "@workspace-contracts";
-import { LogOut } from "../icons";
+import { LogOut, X } from "../icons";
 import { SignWordmark } from "./SignWordmark";
 import { workspaceRoleLabels } from "../lib/workspaceRoles";
 import {
@@ -14,6 +14,8 @@ interface AppSidebarProps {
   user?: AuthenticatedUser | null;
   onLogout?: () => Promise<void>;
   onNavigate: (view: WorkspaceView) => void;
+  mobileOpen?: boolean;
+  onClose?: () => void;
 }
 
 export function AppSidebar({
@@ -22,6 +24,8 @@ export function AppSidebar({
   user = null,
   onLogout,
   onNavigate,
+  mobileOpen = false,
+  onClose,
 }: AppSidebarProps) {
   const systemAdmin = user?.role === "system_admin";
   const navigation = workspaceNavigation(systemAdmin);
@@ -38,7 +42,7 @@ export function AppSidebar({
           aria-label={item.label}
           title={item.label}
           disabled={!enabled}
-          onClick={() => onNavigate(item.id)}
+          onClick={() => { onNavigate(item.id); onClose?.(); }}
         >
           <Icon size={18} strokeWidth={1.9} aria-hidden="true" />
           <span>{item.label}</span>
@@ -48,11 +52,13 @@ export function AppSidebar({
   };
 
   return (
-    <aside className={`app-sidebar${systemAdmin ? " is-system-admin" : ""}`}>
+    <aside className={`app-sidebar${systemAdmin ? " is-system-admin" : ""}${mobileOpen ? " mobile-open" : ""}`}>
       <div className="sidebar-brand">
         {/* The hand mark stands in for the "V" of the Bingo wordmark; the collapsed rail keeps only the mark.
             "Sign" is Bingo outlined to paths (36px, line-height 1) so the logo never waits on a web font. */}
         <span className="sidebar-logo" role="img" aria-label="VSign"><img className="sidebar-logo-mark" src="/brand/vsign-mark.svg" alt="" draggable={false} /><SignWordmark className="sidebar-logo-rest" /></span>
+        {onClose && <button type="button" className="mobile-sidebar-close" onClick={onClose}
+          aria-label="Đóng menu" title="Đóng menu"><X size={20} aria-hidden="true" /></button>}
       </div>
 
       <nav className="sidebar-navigation" aria-label="Workspace">
@@ -71,7 +77,7 @@ export function AppSidebar({
             <strong title={user.display_name}>{user.display_name}</strong>
             <span title={workspaceRoleLabels[user.role]}>{workspaceRoleLabels[user.role]}</span>
           </div>
-          {onLogout && <button type="button" className="sidebar-account-action" onClick={() => void onLogout()}
+          {onLogout && <button type="button" className="sidebar-account-action" onClick={() => { onClose?.(); void onLogout(); }}
             aria-label="Đăng xuất" title="Đăng xuất">
             <LogOut size={16} aria-hidden="true" />
           </button>}

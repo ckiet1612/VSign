@@ -13,10 +13,10 @@
     <link rel="icon" type="image/png" sizes="32x32" href="/brand/favicon-32.png" />
     <link rel="apple-touch-icon" href="/brand/apple-touch-icon.png" />
     <style>
-      /* Boot frame: the shell's grey frame, white panel and top-bar line, painted before any script, font or app
-         stylesheet so a reload keeps the layout and its lines in place and only the content loads in.
-         Geometry mirrors .app-shell / .app-panel / .workspace-topbar (8px inset, 40px status strip, 52px bar). */
-      .boot-frame { position: fixed; inset: 0; background: #f9f9fa; pointer-events: none; }
+      /* Route and session are still unknown at first paint. */
+      html, body { margin: 0; background: #f9f9fa; }
+      .boot-frame { display: none; position: fixed; inset: 0; background: #f9f9fa; pointer-events: none; }
+      html[data-workspace-boot] .boot-frame { display: block; }
       .boot-frame::before, .boot-frame::after { content: ""; position: absolute; box-sizing: border-box; }
       .boot-frame::before {
         top: 8px; right: 8px; bottom: 40px; left: var(--boot-sidebar, 212px);
@@ -26,12 +26,16 @@
       @media (max-width: 1020px) { .boot-frame::before, .boot-frame::after { display: none; } }
     </style>
     <script>
-      // Same width the sidebar will open with (useSidebarLayout), so the panel edge does not move when the app mounts.
+      // Only a previously confirmed workspace in this tab may restore the shell before React loads.
       try {
-        var layout = JSON.parse(localStorage.getItem("vsign.sidebar") || "null") || {};
-        var width = layout.collapsed ? 68 : Math.round(Math.min(360, Math.max(212, typeof layout.width === "number" ? layout.width : 212)));
-        document.documentElement.style.setProperty("--boot-sidebar", width + "px");
-      } catch (error) { /* Default width. */ }
+        var workspacePath = /^\/(workspace|overview|recognize|data|evaluation|monitoring|models|activity|reports|integrations|team|settings)(\/|$)/.test(location.pathname);
+        if (workspacePath && !new URLSearchParams(location.search).has("login") && sessionStorage.getItem("vsign.workspace-boot") === "ready") {
+          var layout = JSON.parse(localStorage.getItem("vsign.sidebar") || "null") || {};
+          var width = layout.collapsed ? 68 : Math.round(Math.min(360, Math.max(212, typeof layout.width === "number" ? layout.width : 212)));
+          document.documentElement.style.setProperty("--boot-sidebar", width + "px");
+          document.documentElement.setAttribute("data-workspace-boot", "");
+        }
+      } catch (error) { /* Storage unavailable: keep a neutral first paint. */ }
     </script>
   </head>
   <body>

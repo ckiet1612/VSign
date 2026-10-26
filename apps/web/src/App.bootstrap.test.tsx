@@ -2,11 +2,64 @@ import { act, render, screen } from "@testing-library/react";
 import { afterEach, expect, it, vi } from "vitest";
 import App from "./App";
 import userEvent from "@testing-library/user-event";
+import { readFileSync } from "node:fs";
+import { runInNewContext } from "node:vm";
 
 const capabilities = { overview: true, recognize: true, data: true, evaluation: true,
   monitoring: true, models: true, activity: true, reports: true, integrations: true, team: true, settings: true };
 
-afterEach(() => vi.unstubAllGlobals());
+afterEach(() => {
+  vi.unstubAllGlobals();
+  sessionStorage.clear();
+  document.documentElement.removeAttribute("data-workspace-boot");
+});
+
+it.each([
+  ["/", "", true, false],
+  ["/landing", "", true, false],
+  ["/workspace", "", false, false],
+  ["/workspace", "?login=staff", true, false],
+  ["/workspace/models", "", true, true],
+  ["/workspace", "", true, true],
+  ["/display", "", true, false],
+])("restores the boot frame only for a confirmed workspace: %s %s %s", (pathname, search, ready, expected) => {
+  const html = readFileSync("index.html", "utf8");
+  const parsed = new DOMParser().parseFromString(html, "text/html");
+  const script = parsed.querySelector("script:not([src])")!.textContent!;
+  runInNewContext(script, {
+    document: parsed, location: { pathname, search }, URLSearchParams,
+    sessionStorage: { getItem: () => ready ? "ready" : null },
+    localStorage: { getItem: () => JSON.stringify({ collapsed: true }) },
+  });
+  expect(parsed.documentElement.hasAttribute("data-workspace-boot")).toBe(expected);
+  if (expected) expect(parsed.documentElement.style.getPropertyValue("--boot-sidebar")).toBe("68px");
+});
+
+it("keeps the cached frame while revalidating a workspace and removes it if login is required", async () => {
+  document.documentElement.setAttribute("data-workspace-boot", "");
+  sessionStorage.setItem("vsign.workspace-boot", "ready");
+  let respond!: (response: Response) => void;
+  vi.stubGlobal("fetch", vi.fn(() => new Promise<Response>(resolve => { respond = resolve; })));
+  const { container } = render(<App />);
+  expect(container.querySelector(".boot-frame")).not.toBeNull();
+  await act(async () => respond(Response.json({ detail: "Login required" }, { status: 401 })));
+  await screen.findByRole("heading", { name: "Đăng nhập VSign" });
+  expect(container.querySelector(".boot-frame")).toBeNull();
+  expect(sessionStorage.getItem("vsign.workspace-boot")).toBeNull();
+  expect(document.documentElement.hasAttribute("data-workspace-boot")).toBe(false);
+});
+
+it("shows a neutral loading state until the session is known", async () => {
+  let respond!: (response: Response) => void;
+  const response = new Promise<Response>(resolve => { respond = resolve; });
+  vi.stubGlobal("fetch", vi.fn(() => response));
+  const { container } = render(<App />);
+  expect(screen.getByRole("main", { name: "Đang tải workspace" })).toBeInTheDocument();
+  expect(container.querySelector(".boot-frame, .app-shell")).toBeNull();
+  await act(async () => respond(Response.json({ detail: "Login required" }, { status: 401 })));
+  await screen.findByRole("heading", { name: "Đăng nhập VSign" });
+  expect(container.querySelector(".boot-frame, .app-shell")).toBeNull();
+});
 
 it("keeps the workspace unmounted until login and returns to login after logout", async () => {
   let authenticated = false;
@@ -33,9 +86,13 @@ it("keeps the workspace unmounted until login and returns to login after logout"
   await userEvent.type(screen.getByLabelText("Mật khẩu"), "temporary-pass");
   await userEvent.click(screen.getByRole("button", { name: "Đăng nhập" }));
   await screen.findByRole("navigation", { name: "Workspace" });
+  expect(sessionStorage.getItem("vsign.workspace-boot")).toBe("ready");
+  history.replaceState(null, "", "/workspace/recognize");
   await userEvent.click(screen.getByRole("button", { name: /Đăng xuất/ }));
   await screen.findByRole("heading", { name: "Đăng nhập VSign" });
+  expect(window.location.pathname).toBe("/workspace");
   expect(screen.queryByRole("navigation", { name: "Workspace" })).not.toBeInTheDocument();
+  expect(sessionStorage.getItem("vsign.workspace-boot")).toBeNull();
 });
 
 it.each(["system_admin", "admin"])("waits for the real %s identity before mounting workspace navigation", async role => {

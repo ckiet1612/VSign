@@ -77,6 +77,18 @@ describe("App", () => {
     window.history.replaceState({}, "", "/");
   });
 
+  it("giữ backdrop sau khi đóng drawer để hoàn tất hiệu ứng thoát", async () => {
+    const user = userEvent.setup();
+    const { container } = render(<App />);
+
+    await user.click(screen.getByRole("button", { name: "Mở menu" }));
+    expect(container.querySelector(".mobile-sidebar-backdrop")).toHaveClass("mobile-open");
+
+    await user.click(container.querySelector<HTMLButtonElement>(".mobile-sidebar-close")!);
+    expect(container.querySelector(".mobile-sidebar-backdrop")).toBeInTheDocument();
+    expect(container.querySelector(".mobile-sidebar-backdrop")).not.toHaveClass("mobile-open");
+  });
+
   it("hiển thị cảnh báo mock và accessible names cho control chính", async () => {
     render(<App />);
     expect(

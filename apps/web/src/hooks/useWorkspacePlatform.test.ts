@@ -119,7 +119,7 @@ describe("useWorkspacePlatform", () => {
     expect(result.current.authRequired).toBe(true);
   });
 
-  it("returns to the root URL after a confirmed logout", async () => {
+  it("returns to the workspace login URL after a confirmed logout", async () => {
     window.history.pushState({}, "", "/workspace?view=settings");
     const fetchMock = vi.fn(async (url: string) => new Response(JSON.stringify(
       url.endsWith("/auth/me") ? { authenticated: true, user }
@@ -132,11 +132,12 @@ describe("useWorkspacePlatform", () => {
 
     await act(async () => { await result.current.logout(); });
 
-    expect(window.location.pathname).toBe("/");
+    expect(window.location.pathname).toBe("/workspace");
     expect(window.location.search).toBe("");
   });
 
   it("locks locally before awaiting logout and does not restore an unconfirmed session", async () => {
+    window.history.replaceState({}, "", "/workspace/models?tab=details#selected");
     const fetcher=vi.fn(async (url:string) => url.endsWith('/auth/logout') ? new Promise<Response>(()=>{}) : new Response(JSON.stringify(
       url.endsWith('/auth/me') ? {authenticated:true,user} : url.endsWith('/capabilities') ? capabilities : context,
     )));
@@ -146,6 +147,9 @@ describe("useWorkspacePlatform", () => {
     vi.useFakeTimers();
     let logout!:Promise<void>;
     act(()=>{logout=result.current.logout();});
+    expect(window.location.pathname).toBe('/workspace');
+    expect(window.location.search).toBe('');
+    expect(window.location.hash).toBe('');
     expect(result.current.user).toBeNull();
     expect(result.current.submitting).toBe(true);
     await act(async()=>{await result.current.reload();});

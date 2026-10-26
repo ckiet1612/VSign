@@ -72,4 +72,16 @@ describe("AppSidebar", () => {
     expect(screen.getByRole("button", { name: "Giám sát" })).toBeDisabled();
     expect(screen.getByRole("button", { name: "Tích hợp" })).toBeDisabled();
   });
+
+  it("đóng drawer mobile sau khi chọn mục điều hướng", async () => {
+    const onNavigate = vi.fn();
+    const onClose = vi.fn();
+    const user = userEvent.setup();
+    render(<AppSidebar activeView="overview" mobileOpen onClose={onClose} onNavigate={onNavigate} />);
+
+    expect(screen.getByRole("complementary")).toHaveClass("mobile-open");
+    await user.click(screen.getByRole("button", { name: "Nhận dạng" }));
+    expect(onNavigate).toHaveBeenCalledWith("recognize");
+    expect(onClose).toHaveBeenCalledOnce();
+  });
 });

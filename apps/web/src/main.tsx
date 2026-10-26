@@ -3,6 +3,7 @@ import { createRoot } from "react-dom/client";
 import App from "./App";
 import { config } from "./config";
 import { trackInputModality } from "./lib/inputModality";
+import { isLandingPath, landingHref } from "./lib/appRoutes";
 import "./styles.css";
 import "./styles/workspace-ui.css";
 
@@ -29,7 +30,10 @@ function render() {
     void import("./display/CustomerDisplay").then(({ CustomerDisplay }) => {
       root.render(<StrictMode><CustomerDisplay platformUrl={config.platformHttpUrl} /></StrictMode>);
     });
-  } else if (window.location.pathname === "/landing") {
+  } else if (!config.publicDemo && isLandingPath(window.location.pathname, window.location.search)) {
+    if (window.location.pathname.replace(/\/+$/, "") === "/landing") {
+      window.history.replaceState(window.history.state, "", `${landingHref()}${window.location.search}${window.location.hash}`);
+    }
     void import("./landing/LandingPage").then(({ LandingPage }) => {
       root.render(<StrictMode><LandingPage /></StrictMode>);
     });

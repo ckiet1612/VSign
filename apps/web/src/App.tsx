@@ -10,7 +10,7 @@ import {
   useRef,
   useState,
 } from "react";
-import { Database, FlaskConical, RefreshCw, Robot, Wrench } from "./icons";
+import { Database, FlaskConical, PanelLeft, RefreshCw, Robot, Wrench } from "./icons";
 import type { WorkspaceClientEventRequest } from "@workspace-contracts";
 import type {
   CaptureDistance,
@@ -31,6 +31,7 @@ import {
 } from "./components/CameraPanel";
 import { AppSidebar } from "./components/AppSidebar";
 import { SidebarResizer } from "./components/SidebarResizer";
+import { SignWordmark } from "./components/SignWordmark";
 import { LoginGate } from "./components/LoginGate";
 import { BackendLocationBadge } from "./components/BackendLocationBadge";
 import type { HandTrackingFrame } from "./components/HandTrackingOverlay";
@@ -107,6 +108,7 @@ import {
   type TranscriptAction,
 } from "./state/transcript";
 import type { WorkspaceView } from "./lib/workspaceNavigation";
+import { workspaceBasePath } from "./lib/appRoutes";
 import { DashboardPageSkeleton } from "./components/SystemDashboardSkeleton";
 
 function createSessionId(): string {
@@ -151,10 +153,21 @@ const SystemDashboard = lazy(() => loadSystemDashboard().then(module => ({ defau
 export default function App() {
   const platform = useWorkspacePlatform(config.platformHttpUrl, !config.publicDemo);
 
+  useLayoutEffect(() => {
+    if (platform.loading) return;
+    const ready = !platform.error && (!platform.authRequired || !!platform.user);
+    try {
+      if (ready) sessionStorage.setItem("vsign.workspace-boot", "ready");
+      else sessionStorage.removeItem("vsign.workspace-boot");
+    } catch { /* The shell hint is optional. */ }
+    if (!ready) document.documentElement.removeAttribute("data-workspace-boot");
+  }, [platform.loading, platform.error, platform.authRequired, platform.user]);
+
   if (platform.loading && !config.publicDemo) {
-    // The same frame index.html paints before the app loads (sidebar column, panel, top-bar line): it stays put
-    // until the shell replaces it, so a reload never blanks or moves the layout.
-    return <main className="platform-loading" aria-label="Đang tải workspace"><div className="boot-frame" aria-hidden="true" /><span aria-hidden="true" /></main>;
+    return <main className="platform-loading" aria-label="Đang tải workspace">
+      {document.documentElement.hasAttribute("data-workspace-boot") && <div className="boot-frame" aria-hidden="true" />}
+      <span aria-hidden="true" />
+    </main>;
   }
   if (platform.error) {
     return <main className="platform-failure"><p role="alert">{platform.error}</p><button type="button" onClick={() => void platform.reload()}>Thử lại</button></main>;
@@ -180,6 +193,7 @@ function WorkspaceApp({ platform }: { platform: WorkspacePlatform }) {
   const workspaceToolsRef = useRef<HTMLDetailsElement>(null);
   const { view: workspaceView, navigate: navigateWorkspaceView } = useWorkspaceNavigation(platform.user?.role === "system_admin" ? "overview" : "recognize");
   const sidebar = useSidebarLayout();
+  const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
   const panelRef = useRef<HTMLDivElement>(null);
   // A new view starts at the top; otherwise it opens mid-page and jumps when its data changes the page height.
   useLayoutEffect(() => {
@@ -187,6 +201,19 @@ function WorkspaceApp({ platform }: { platform: WorkspacePlatform }) {
     if (panel && panel.scrollTop > 0) panel.scrollTop = 0;
   }, [workspaceView]);
   const shellRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!mobileSidebarOpen) return;
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setMobileSidebarOpen(false);
+    };
+    document.body.classList.add("mobile-sidebar-lock");
+    document.addEventListener("keydown", closeOnEscape);
+    return () => {
+      document.body.classList.remove("mobile-sidebar-lock");
+      document.removeEventListener("keydown", closeOnEscape);
+    };
+  }, [mobileSidebarOpen]);
 
   useEffect(() => {
     if (!serverModel.error) return;
@@ -1510,7 +1537,7 @@ function WorkspaceApp({ platform }: { platform: WorkspacePlatform }) {
   useEffect(() => {
     if (!systemAdmin || !platformUser || enteredSystemRef.current === platformUser.id) return;
     enteredSystemRef.current = platformUser.id;
-    if (window.location.pathname === "/") navigateWorkspaceView("overview");
+    if (["/", workspaceBasePath(), `${workspaceBasePath()}/`].includes(window.location.pathname)) navigateWorkspaceView("overview");
   }, [systemAdmin, platformUser, navigateWorkspaceView]);
   const activeWorkspaceView = (workspaceView === "data" && !managedData && !collectionEnabled) || workspaceCapabilities[workspaceView] === false
     ? "recognize"
@@ -1535,6 +1562,14 @@ function WorkspaceApp({ platform }: { platform: WorkspacePlatform }) {
     <div ref={shellRef} className={`app-shell ${sidebar.collapsed ? "sidebar-collapsed" : ""}`}
       style={{ "--sidebar-width": `${sidebar.width}px` } as CSSProperties}>
       <header className="app-header">
+        <button type="button" className="mobile-sidebar-toggle" onClick={() => setMobileSidebarOpen(true)}
+          aria-label="Mở menu" aria-expanded={mobileSidebarOpen} title="Mở menu">
+          <PanelLeft size={20} aria-hidden="true" />
+        </button>
+        <span className="mobile-header-logo" role="img" aria-label="VSign">
+          <img className="mobile-header-logo-mark" src="/brand/vsign-mark.svg" alt="" draggable={false} />
+          <SignWordmark />
+        </span>
         <SidebarResizer shellRef={shellRef} width={sidebar.width} collapsed={sidebar.collapsed}
           onResize={sidebar.setWidth} onCollapse={sidebar.setCollapsed} onReset={sidebar.resetWidth} />
         <AppSidebar
@@ -1543,8 +1578,13 @@ function WorkspaceApp({ platform }: { platform: WorkspacePlatform }) {
           user={platform.user}
           onLogout={platform.user && platform.authMode !== "local_admin" ? platform.logout : undefined}
           onNavigate={navigateWorkspace}
+          mobileOpen={mobileSidebarOpen}
+          onClose={() => setMobileSidebarOpen(false)}
         />
       </header>
+      <button type="button" className={`mobile-sidebar-backdrop${mobileSidebarOpen ? " mobile-open" : ""}`}
+        onClick={() => setMobileSidebarOpen(false)} aria-label="Đóng menu"
+        aria-hidden={!mobileSidebarOpen} tabIndex={mobileSidebarOpen ? 0 : -1} />
 
       <div className="app-body">
       {/* The workspace lives in one rounded panel that scrolls on its own; the shell around it stays put. */}

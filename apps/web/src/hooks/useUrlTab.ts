@@ -1,15 +1,16 @@
 import { useEffect, useState } from "react";
+import { workspaceBasePath } from "../lib/appRoutes";
 
 const PARAM = "tab";
 
 function basePath() {
-  if (typeof window === "undefined") return "";
-  return new URL(import.meta.env.BASE_URL || "/", window.location.origin).pathname.replace(/\/+$/, "");
+  return workspaceBasePath();
 }
 
 function relativeSegments() {
   const base = basePath();
   const pathname = window.location.pathname;
+  if (pathname === base) return [];
   const relative = base && pathname.startsWith(`${base}/`) ? pathname.slice(base.length) : pathname;
   return relative.split("/").filter(Boolean);
 }

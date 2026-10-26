@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { ArrowUpRight, BarChart3, Lock, MessageReply, UsersRound } from "../icons";
+import { workspaceHref } from "../lib/appRoutes";
 import { cssVars, useInView, useReducedMotion } from "./landingMotion";
 
 const LINE_MS = 2400;
@@ -78,7 +79,7 @@ export function CounterShowcase() {
             <span className="landing-feature-icon"><Icon size={22} aria-hidden="true" /></span>
             <h3>{title}</h3>
             <p>{text}</p>
-            <a className="landing-pill-link" href="/">Mở VSign<ArrowUpRight size={16} aria-hidden="true" /></a>
+            <a className="landing-pill-link" href={workspaceHref()}>Mở VSign<ArrowUpRight size={16} aria-hidden="true" /></a>
           </article>
         ))}
       </div>

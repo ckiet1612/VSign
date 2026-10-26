@@ -186,7 +186,7 @@ html[data-pointer-down] .landing-button:active { transform: scale(0.97); transit
 .landing-hero-line { display: flex; flex-wrap: wrap; justify-content: center; column-gap: 0.24em; }
 .landing-hero-line + .landing-hero-line { color: var(--l-faint); }
 /* Each word rises out of its own clip; the padding keeps Vietnamese diacritics and descenders inside the clip. */
-.landing-word { display: inline-block; overflow: clip; padding: 0.12em 0.04em 0.08em; margin: -0.12em -0.04em -0.08em; }
+.landing-word { display: inline-block; overflow: clip; padding: 0.14em 0.04em 0.12em; margin: -0.14em -0.04em -0.12em; }
 .landing-word > span { display: inline-block; animation: landing-word-rise 1100ms var(--l-spring-soft) both calc(var(--i) * 85ms + 180ms); }
 
 .landing-hero-lede { max-width: 620px; margin: 28px 0 0; color: var(--l-muted); font-size: clamp(17px, 1.4vw, 20px); line-height: 1.55; text-wrap: pretty; animation: landing-fade-up 900ms var(--l-ease-std) both 640ms; }
@@ -251,7 +251,7 @@ html[data-pointer-down] .landing-button:active { transform: scale(0.97); transit
 
 /* ── Sections ────────────────────────────────────────────────────────────────────────────────────────────────── */
 .landing-section { max-width: 1400px; margin: 0 auto; padding: clamp(80px, 10vw, 160px) var(--l-pad); }
-.landing-section-head { max-width: 780px; margin-bottom: clamp(40px, 5vw, 72px); }
+.landing-section-head { max-width: 1040px; margin-bottom: clamp(40px, 5vw, 72px); }
 .landing-kicker { display: inline-flex; align-items: center; gap: 10px; margin: 0 0 18px; color: var(--l-muted); font-size: 14px; font-weight: 600; letter-spacing: 0.01em; }
 .landing-kicker::before { content: ""; width: 22px; height: 8px; border-radius: 999px; background: linear-gradient(90deg, var(--secondary-orange) 0 33%, var(--logo-1) 33% 66%, var(--secondary-green) 66%); }
 .landing .landing-h2 { margin: 0; font-size: clamp(40px, 6.6vw, 100px); font-weight: 600; line-height: 1.02; letter-spacing: -0.048em; }
@@ -455,7 +455,7 @@ html[data-pointer-down] .landing-button:active { transform: scale(0.97); transit
 
 /* ── CTA ─────────────────────────────────────────────────────────────────────────────────────────────────────── */
 .landing-cta { --cta-in: 1; position: relative; isolation: isolate; display: flex; flex-direction: column; align-items: center; margin: clamp(20px, 4vw, 60px) clamp(8px, 1.5vw, 20px) 0; padding: clamp(110px, 14vw, 210px) 24px; overflow: hidden; border-radius: clamp(28px, 4vw, 56px); background: var(--l-card); text-align: center; }
-.landing .landing-cta-title { margin: 0; font-size: clamp(40px, 7.4vw, 116px); font-weight: 600; line-height: 1.02; letter-spacing: -0.05em; }
+.landing .landing-cta-title { margin: 0; text-wrap: balance; font-size: clamp(40px, 7.4vw, 116px); font-weight: 600; line-height: 1.02; letter-spacing: -0.05em; }
 .landing-cta .landing-hero-actions { animation: none; }
 /* Scroll swings the strokes from flat and small into the mark's own angles. */
 .landing-cta .landing-stroke { --u: clamp(12px, 1.7vw, 28px); translate: none; rotate: calc(var(--angle) + (1 - var(--cta-in)) * 80deg); scale: calc(0.35 + 0.65 * var(--cta-in)); opacity: calc(0.3 + 0.7 * var(--cta-in)); animation: none; transition: none; }
@@ -521,6 +521,11 @@ html[data-pointer-down] .landing-button:active { transform: scale(0.97); transit
   .landing-step { padding: 12px; border-radius: 28px; }
   .landing-chip { height: 44px; padding: 0 16px; font-size: 15px; }
   .landing-faq-item p { padding-right: 0; }
+  /* Small screens keep the strokes as accents at the edges instead of across the headline. */
+  .landing-hero .landing-stroke { --u: 6px; }
+  .landing-cta .landing-stroke { --u: 7px; }
+  .landing-hero .landing-stroke:nth-child(1) { left: 2%; top: auto; bottom: 4%; }
+  .landing-hero .landing-stroke:nth-child(4), .landing-cta .landing-stroke:nth-child(4) { display: none; }
 }
 
 @media (prefers-reduced-motion: reduce) {

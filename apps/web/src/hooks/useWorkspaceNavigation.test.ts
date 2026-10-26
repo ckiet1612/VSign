@@ -9,7 +9,7 @@ describe("useWorkspaceNavigation", () => {
     expect(result.current.view).toBe("models");
     act(() => result.current.navigate("recognize"));
     expect(result.current.view).toBe("recognize");
-    expect(window.location.pathname).toBe("/recognize");
+    expect(window.location.pathname).toBe("/workspace/recognize");
     expect(window.location.search).toBe("");
   });
 
@@ -17,14 +17,14 @@ describe("useWorkspaceNavigation", () => {
     window.history.replaceState({}, "", "/");
     const { result } = renderHook(() => useWorkspaceNavigation("overview"));
     expect(result.current.view).toBe("overview");
-    expect(window.location.pathname).toBe("/overview");
+    expect(window.location.pathname).toBe("/workspace/overview");
   });
 
   it("ghi view=recognize khi landing khác để reload vẫn ở Nhận dạng", () => {
     window.history.replaceState({}, "", "/");
     const { result } = renderHook(() => useWorkspaceNavigation("overview"));
     act(() => result.current.navigate("recognize"));
-    expect(window.location.pathname).toBe("/recognize");
+    expect(window.location.pathname).toBe("/workspace/recognize");
     const reloaded = renderHook(() => useWorkspaceNavigation("overview"));
     expect(reloaded.result.current.view).toBe("recognize");
   });
@@ -39,13 +39,22 @@ describe("useWorkspaceNavigation", () => {
     window.history.replaceState({}, "", "/data/sessions");
     const { result } = renderHook(() => useWorkspaceNavigation());
     expect(result.current.view).toBe("data");
+    expect(window.location.pathname).toBe("/workspace/data/sessions");
   });
 
   it("giữ query cũ để tương thích và đưa URL về path sạch", () => {
     window.history.replaceState({}, "", "/?view=models&tab=details");
     const { result } = renderHook(() => useWorkspaceNavigation());
     expect(result.current.view).toBe("models");
-    expect(window.location.pathname).toBe("/models");
+    expect(window.location.pathname).toBe("/workspace/models");
     expect(window.location.search).toBe("?tab=details");
+  });
+
+  it("opens and navigates within the workspace prefix", () => {
+    window.history.replaceState({}, "", "/workspace/models/details");
+    const { result } = renderHook(() => useWorkspaceNavigation());
+    expect(result.current.view).toBe("models");
+    act(() => result.current.navigate("data"));
+    expect(window.location.pathname).toBe("/workspace/data");
   });
 });

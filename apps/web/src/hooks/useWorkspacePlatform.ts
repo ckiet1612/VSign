@@ -11,6 +11,7 @@ import type {
 } from "@workspace-contracts";
 import { workspaceRequest, WorkspaceApiError } from "../lib/workspaceApi";
 import { clearViewCache } from "../lib/viewCache";
+import { workspaceHref } from "../lib/appRoutes";
 
 interface PlatformState {
   loading: boolean;
@@ -213,6 +214,7 @@ export function useWorkspacePlatform(platformUrl: string, enabled = true) {
     controllerRef.current = null;
     // Cached tab contents belong to the session that read them.
     clearViewCache();
+    window.history.replaceState(window.history.state, "", workspaceHref());
     if (mountedRef.current) setState(current => ({ ...current, user: null, capabilities: null,
       members: null, auditEvents: null, available: false, authRequired: true, submitting: true, error: "" }));
     const controller = new AbortController();
@@ -251,7 +253,6 @@ export function useWorkspacePlatform(platformUrl: string, enabled = true) {
       authRequired: serverConfirmed ? (current.context?.auth_required ?? true) : true,
       error,
     }));
-    window.history.replaceState(window.history.state, "", "/");
     if (serverConfirmed) {
       localLockRef.current = false;
       await load();
