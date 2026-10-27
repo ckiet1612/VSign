@@ -62,6 +62,7 @@ const ICONS = {
   Rocket: "rocket",
   Save: "save-floppy",
   ScanLine: "scan",
+  Screencast: "screencast",
   Search: "search",
   Send: "send-plane",
   Server: "server",
