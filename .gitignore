@@ -83,6 +83,7 @@ runs/
 !apps/web/public/models/vsign-landmark-v5.onnx
 !apps/web/public/reference-videos/common20/*.mp4
 !apps/web/public/reference-videos/sales30/*.mp4
+!apps/web/public/media/vsign-brand-film-60s.mp4
 
 # Keep intentionally small, distributable test fixtures
 !tests/fixtures/**
