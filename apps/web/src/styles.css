@@ -253,7 +253,7 @@ html:has(> body > #root:empty) { background: var(--background-2); }
 .login-words { position: relative; display: block; height: 1.25em; overflow: hidden; font-size: var(--text-32); line-height: 1.25; }
 .login-words b { position: absolute; inset: 0 auto auto 0; font-weight: var(--font-semibold); letter-spacing: -0.02em; white-space: nowrap; animation: login-word-in 420ms var(--ease-out) both; }
 
-.login-surface { width: 100%; min-width: 0; display: flex; flex-direction: column; justify-content: center; padding: var(--space-40) clamp(var(--space-24), 5vw, 56px); }
+.login-surface { position: relative; width: 100%; min-width: 0; display: flex; flex-direction: column; justify-content: center; padding: var(--space-40) clamp(var(--space-24), 5vw, 56px); }
 .login-surface > * { animation: login-rise 520ms var(--ease-out) both; }
 .login-surface > :nth-child(2) { animation-delay: 80ms; }
 .login-surface form > * { animation: login-rise 520ms var(--ease-out) both; }
@@ -298,6 +298,14 @@ html:has(> body > #root:empty) { background: var(--background-2); }
   margin: 0; padding: var(--space-8) var(--space-12); border-radius: var(--radius-8); color: var(--red); background: var(--danger-soft);
   font-size: var(--text-12); line-height: var(--leading-12); animation: login-shake 360ms var(--ease-out) both;
 }
+.login-counter-link {
+  position: absolute; top: var(--space-24); right: clamp(var(--space-24), 5vw, 56px); display: inline-flex; align-items: center; gap: var(--space-8);
+  color: var(--ink); font-size: var(--text-14); line-height: var(--leading-14);
+  font-weight: var(--font-regular); text-decoration: none; white-space: nowrap;
+  transition: color 150ms ease-out;
+}
+.login-counter-link:hover { color: var(--ink); text-decoration: none; }
+.login-counter-link > svg { display: block; flex: none; align-self: center; }
 
 /* Decoration, after the brand film. */
 .login-gate:not(.login-gate-embedded) { position: relative; overflow: hidden; isolation: isolate; }

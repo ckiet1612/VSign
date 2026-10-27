@@ -1,5 +1,5 @@
 import { useEffect, useId, useRef, useState, type KeyboardEvent } from "react";
-import { ArrowRight, Eye, EyeOff, Lock, User } from "../icons";
+import { ArrowRight, Eye, EyeOff, Lock, Screencast, User } from "../icons";
 import { LoginSignDemo } from "./LoginSignDemo";
 import { SignWordmark } from "./SignWordmark";
 
@@ -69,6 +69,10 @@ export function LoginGate({ workspaceName, busy = false, error = "", embedded = 
       <div className="login-card">
         {!embedded && <BrandPanel />}
         <section className="login-surface">
+          <a className="login-counter-link" href={`${import.meta.env.BASE_URL}display`}>
+            <Screencast size={16} aria-hidden="true" />
+            <span>Màn hình quầy</span>
+          </a>
           {embedded && <img className="login-mark" src={`${import.meta.env.BASE_URL}brand/vsign-mark.svg`} alt="" width="40" height="40" />}
           <Heading id="login-title">Đăng nhập {workspaceName}</Heading>
           <form onSubmit={async event => {
