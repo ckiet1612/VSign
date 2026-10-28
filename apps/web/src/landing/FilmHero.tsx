@@ -45,7 +45,7 @@ export function FilmHero() {
           ))}
         </h1>
         <p className="landing-hero-lede">
-          VSign nhìn đôi tay qua camera, nhận ra từng ký hiệu và ghép thành câu tiếng Việt, để người Điếc và nhân viên
+          VSign nhìn đôi tay qua camera, nhận ra từng ký hiệu và ghép thành câu tiếng Việt, để người khiếm thính và nhân viên
           quầy hiểu nhau ngay tại chỗ.
         </p>
         <div className="landing-hero-actions">
