@@ -22,12 +22,13 @@ interface ParkedSocket {
 /**
  * `modelKey` names the model behind `url`. When only the URL changes for the same key (the same
  * model on another runtime, e.g. Modal GPU and the Mac), the open socket keeps serving until the
- * new one opens, so the switch does not look like a lost connection.
+ * new one opens and `isBusy` clears. Both sends and replies stay on the old socket until then.
  */
 export function useInferenceSocket(
   url: string | null,
   onPrediction: (message: PredictionMessage) => void,
   modelKey?: string,
+  isBusy?: () => boolean,
 ): InferenceSocket {
   const [status, setStatus] = useState<ConnectionStatus>("connecting");
   const [activeUrl, setActiveUrl] = useState<string | null>(null);
@@ -37,19 +38,22 @@ export function useInferenceSocket(
   const parkedRef = useRef<ParkedSocket | null>(null);
   const predictionRef = useRef(onPrediction);
   predictionRef.current = onPrediction;
+  const busyRef = useRef(isBusy);
+  busyRef.current = isBusy;
 
-  const deliver = useCallback((event: MessageEvent<string>) => {
+  const deliver = useCallback((event: MessageEvent<string>, serving = true): string | null => {
     try {
       const parsed: unknown = JSON.parse(event.data);
       if (parsed && typeof parsed === "object" && "type" in parsed && parsed.type === "runtime_info"
           && "gpu_name" in parsed && typeof parsed.gpu_name === "string") {
-        setGpuName(parsed.gpu_name);
-        return;
+        if (serving) setGpuName(parsed.gpu_name);
+        return parsed.gpu_name;
       }
-      if (isPredictionMessage(parsed)) predictionRef.current(parsed);
+      if (serving && isPredictionMessage(parsed)) predictionRef.current(parsed);
     } catch {
       // A malformed server message is ignored; the next valid sequence can continue.
     }
+    return null;
   }, []);
 
   useEffect(() => {
@@ -71,6 +75,7 @@ export function useInferenceSocket(
     }
     let disposed = false;
     let reconnectTimer: number | undefined;
+    let handoverTimer: number | undefined;
 
     const connect = () => {
       if (disposed) return;
@@ -85,16 +90,25 @@ export function useInferenceSocket(
       }
       const socket = new WebSocket(url);
       socketRef.current = socket;
-      socket.onopen = () => {
-        if (disposed) return;
+      let serving = false;
+      let candidateGpuName: string | null = null;
+      const handOver = () => {
+        if (disposed || socketRef.current !== socket || socket.readyState !== 1) return;
+        if (parkedRef.current && busyRef.current?.()) {
+          handoverTimer = window.setTimeout(handOver, 100);
+          return;
+        }
         releaseParked();
+        serving = true;
         setStatus("connected");
         setActiveUrl(url);
-        setGpuName(null);
+        setGpuName(candidateGpuName);
       };
+      socket.onopen = handOver;
       socket.onmessage = (event: MessageEvent<string>) => {
         if (disposed || socketRef.current !== socket) return;
-        deliver(event);
+        const name = deliver(event, serving);
+        if (name !== null) candidateGpuName = name;
       };
       socket.onerror = () => {
         if (!disposed && !parkedRef.current) {
@@ -105,9 +119,12 @@ export function useInferenceSocket(
       socket.onclose = () => {
         if (socketRef.current === socket) socketRef.current = null;
         if (!disposed) {
-          releaseParked();
-          setStatus("disconnected");
-          setActiveUrl(null);
+          if (handoverTimer !== undefined) window.clearTimeout(handoverTimer);
+          if (!parkedRef.current || !busyRef.current?.()) {
+            releaseParked();
+            setStatus("disconnected");
+            setActiveUrl(null);
+          }
           reconnectTimer = window.setTimeout(connect, 2_000);
         }
       };
@@ -117,6 +134,7 @@ export function useInferenceSocket(
     return () => {
       disposed = true;
       if (reconnectTimer !== undefined) window.clearTimeout(reconnectTimer);
+      if (handoverTimer !== undefined) window.clearTimeout(handoverTimer);
       const socket = socketRef.current;
       socketRef.current = null;
       if (socket && socket.readyState === 1 && modelKey !== undefined && !parkedRef.current) {
@@ -126,10 +144,8 @@ export function useInferenceSocket(
         socket.onclose = () => {
           if (parkedRef.current?.socket !== socket) return;
           parkedRef.current = null;
-          if (socketRef.current?.readyState !== 1) {
-            setStatus("connecting");
-            setActiveUrl(null);
-          }
+          setStatus("connecting");
+          setActiveUrl(null);
         };
       } else {
         socket?.close();
@@ -144,7 +160,7 @@ export function useInferenceSocket(
 
   const sendFrames = useCallback((message: FramesMessage) => {
     const current = socketRef.current;
-    const socket = current?.readyState === 1 ? current : parkedRef.current?.socket ?? current;
+    const socket = parkedRef.current?.socket ?? current;
     if (!socket || socket.readyState !== 1) {
       throw new Error("Kết nối inference chưa sẵn sàng.");
     }

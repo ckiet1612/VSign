@@ -1,5 +1,5 @@
 interface Props {
-  location: "modal" | "mac" | "browser" | null;
+  location: "modal" | "aws" | "mac" | "browser" | null;
   connecting?: boolean;
   floating?: boolean;
   requiresLogin?: boolean;
@@ -8,7 +8,8 @@ interface Props {
 
 export function BackendLocationBadge({ location, connecting = false, floating = false, requiresLogin = false, gpuName }: Props) {
   const device = gpuName?.replace(/^(?:NVIDIA|Tesla)\s+/i, "");
-  const label = requiresLogin ? "Chưa đăng nhập" : location === "modal" ? `Modal ${device || "GPU"}` : location === "mac" ? "Mac"
+  const label = requiresLogin ? "Chưa đăng nhập" : location === "modal" ? `Modal ${device || "GPU"}`
+    : location === "aws" ? `AWS ${device || "GPU"}` : location === "mac" ? "Mac"
     : location === "browser" ? "Trình duyệt" : connecting ? "Đang kết nối" : "Chưa kết nối";
 
   return (

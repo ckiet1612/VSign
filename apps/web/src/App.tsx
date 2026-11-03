@@ -459,17 +459,19 @@ function WorkspaceApp({ platform }: { platform: WorkspacePlatform }) {
     }
     acceptPrediction(prediction);
   }, [acceptPrediction]);
-  // Recognition prefers the Modal GPU runtime and falls back to the Mac; metadata, login and
+  // Recognition prefers Modal, then AWS, then Mac; metadata, login and
   // sentence composition always stay on the Mac.
   const endpointBusyRef = useRef<() => boolean>(() => false);
-  const [inferenceSocketStatus, setInferenceSocketStatus] = useState<ConnectionStatus>("connecting");
+  const [inferenceSocketState, setInferenceSocketState] = useState<{ status: ConnectionStatus; activeUrl: string | null }>({ status: "connecting", activeUrl: null });
   const inferenceEndpoint = useInferenceEndpoint({
     gpu: config.gpuRuntime,
+    aws: config.awsRuntime,
     macWsUrl: config.publicDemo ? null : serverModel.active.wsUrl,
     platformUrl: config.platformHttpUrl,
     macMetadata: metadata,
     enabled: !config.publicDemo && serverModel.active.id === "current" && !serverModel.switching,
-    socketStatus: inferenceSocketStatus,
+    socketStatus: inferenceSocketState.status,
+    activeWsUrl: inferenceSocketState.activeUrl,
     isBusy: () => endpointBusyRef.current(),
   });
   const noteRecognitionActivity = inferenceEndpoint.noteActivity;
@@ -477,8 +479,9 @@ function WorkspaceApp({ platform }: { platform: WorkspacePlatform }) {
     inferenceEndpoint.wsUrl,
     handlePrediction,
     serverModel.active.id,
+    () => endpointBusyRef.current(),
   );
-  useEffect(() => { setInferenceSocketStatus(socket.status); }, [socket.status]);
+  useEffect(() => { setInferenceSocketState({ status: socket.status, activeUrl: socket.activeUrl }); }, [socket.status, socket.activeUrl]);
   const localModel = useLandmarkInference(landmarkRuntime);
   const inferenceRoute = chooseInferenceRoute({
     publicDemo: config.publicDemo,
@@ -488,7 +491,8 @@ function WorkspaceApp({ platform }: { platform: WorkspacePlatform }) {
   const backendLocation = inferenceRoute === "local" ? "browser"
     : socket.status === "connected" && socket.activeUrl
       ? config.gpuRuntime && socket.activeUrl.split("?")[0] === config.gpuRuntime.wsUrl.split("?")[0]
-        ? "modal" : "mac"
+        ? "modal" : config.awsRuntime && socket.activeUrl.split("?")[0] === config.awsRuntime.wsUrl.split("?")[0]
+          ? "aws" : "mac"
       : null;
   const capturePipeline = chooseCapturePipeline({
     purpose: mode,
@@ -1734,8 +1738,8 @@ function WorkspaceApp({ platform }: { platform: WorkspacePlatform }) {
           videoRef={videoRef}
           camera={camera}
           connection={connectionState}
-          runtimeLabel={config.gpuRuntime && inferenceRoute === "server"
-            ? inferenceEndpoint.kind === "gpu" ? "GPU" : "Mac" : undefined}
+          runtimeLabel={(config.gpuRuntime || config.awsRuntime) && inferenceRoute === "server"
+            ? backendLocation === "modal" ? "Modal" : backendLocation === "aws" ? "AWS" : "Mac" : undefined}
           captureStatus={capture.status}
           canCapture={canCapture}
           purpose={mode}

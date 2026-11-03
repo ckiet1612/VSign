@@ -19,3 +19,8 @@ it("does not show a previous GPU when using the Mac", () => {
   expect(screen.getByRole("status")).toHaveTextContent("Mac");
   expect(screen.getByRole("status")).not.toHaveTextContent("A10G");
 });
+
+it("labels the actual AWS GPU separately from Modal", () => {
+  render(<BackendLocationBadge location="aws" gpuName="NVIDIA L40S" />);
+  expect(screen.getByRole("status")).toHaveTextContent("AWS L40S");
+});

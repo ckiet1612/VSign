@@ -14,7 +14,54 @@ class Socket {
   send: (data: string) => void = () => undefined;
 }
 
-afterEach(() => { vi.unstubAllGlobals(); Socket.all = []; });
+afterEach(() => { vi.useRealTimers(); vi.unstubAllGlobals(); Socket.all = []; });
+
+it("keeps a pending AWS reply and sends on AWS until the Modal handover is safe", () => {
+  vi.useFakeTimers();
+  vi.stubGlobal("WebSocket", Socket);
+  let busy = false;
+  const received: number[] = [];
+  const sent: string[] = [];
+  const { result, rerender, unmount } = renderHook(({ url }) =>
+    useInferenceSocket(url, p => { received.push(p.sequence); busy = p.sequence !== 2; }, "current", () => busy),
+  { initialProps: { url: "wss://aws.example/ws/inference" } });
+  const aws = Socket.all[0];
+  aws.send = () => { sent.push("aws"); };
+  act(() => aws.onopen?.());
+  rerender({ url: "wss://modal.example/ws/inference" });
+  const modal = Socket.all[1];
+  modal.readyState = 0;
+  modal.send = () => { sent.push("modal"); };
+  busy = true;
+  act(() => result.current.sendFrames({ sequence: 1 } as never));
+  act(() => { modal.readyState = 1; modal.onopen?.(); });
+  expect(aws.readyState).toBe(1);
+  expect(result.current.activeUrl).toBe(aws.url);
+  act(() => modal.onmessage?.(new MessageEvent("message", {
+    data: JSON.stringify({ type: "runtime_info", gpu_name: "Modal GPU" }),
+  })));
+  expect(result.current.gpuName).toBeNull();
+  act(() => result.current.sendFrames({ sequence: 2 } as never));
+  expect(sent).toEqual(["aws", "aws"]);
+  const prediction = { type: "prediction", sequence: 1, status: "ok", label: "Tôi", confidence: .9,
+    top_k: [{ label: "Tôi", confidence: .9 }], model_version: "v", latency_ms: 1 };
+  act(() => aws.onmessage?.(new MessageEvent("message", { data: JSON.stringify(prediction) })));
+  expect(received).toEqual([1]);
+  act(() => vi.advanceTimersByTime(100));
+  expect(aws.readyState).toBe(1);
+  act(() => aws.onmessage?.(new MessageEvent("message", {
+    data: JSON.stringify({ ...prediction, sequence: 2 }),
+  })));
+  expect(received).toEqual([1, 2]);
+  act(() => vi.advanceTimersByTime(100));
+  expect(aws.readyState).toBe(3);
+  expect(result.current.activeUrl).toBe(modal.url);
+  expect(result.current.gpuName).toBe("Modal GPU");
+  act(() => result.current.sendFrames({ sequence: 3 } as never));
+  expect(sent).toEqual(["aws", "aws", "modal"]);
+  unmount();
+  expect(vi.getTimerCount()).toBe(0);
+});
 
 it("reports the connected GPU and clears its name on a new connection", () => {
   vi.stubGlobal("WebSocket", Socket);
@@ -96,4 +143,61 @@ it("reports a lost connection when the new runtime fails during a handover", () 
   expect(gpu.readyState).toBe(3);
   expect(result.current.status).toBe("disconnected");
   expect(result.current.activeUrl).toBeNull();
+});
+
+it("retains a busy parked socket when the replacement fails and retries without losing its reply", () => {
+  vi.useFakeTimers();
+  vi.stubGlobal("WebSocket", Socket);
+  let busy = false;
+  const received: number[] = [];
+  const { result, rerender, unmount } = renderHook(({ url }) =>
+    useInferenceSocket(url, p => { received.push(p.sequence); busy = false; }, "current", () => busy),
+  { initialProps: { url: "wss://aws.example/ws/inference" } });
+  const aws = Socket.all[0];
+  act(() => aws.onopen?.());
+  rerender({ url: "wss://modal.example/ws/inference" });
+  busy = true;
+  act(() => result.current.sendFrames({ sequence: 1 } as never));
+  const failed = Socket.all[1];
+  act(() => { failed.onopen?.(); failed.readyState = 3; failed.onclose?.(); });
+  expect(result.current.activeUrl).toBe(aws.url);
+  expect(aws.readyState).toBe(1);
+  act(() => vi.advanceTimersByTime(2_000));
+  const retry = Socket.all[2];
+  act(() => retry.onopen?.());
+  expect(result.current.activeUrl).toBe(aws.url);
+  const prediction = { type: "prediction", sequence: 1, status: "error", label: null, confidence: 0,
+    top_k: [], model_version: "v", latency_ms: 1 };
+  act(() => aws.onmessage?.(new MessageEvent("message", { data: JSON.stringify(prediction) })));
+  act(() => vi.advanceTimersByTime(100));
+  expect(received).toEqual([1]);
+  expect(result.current.activeUrl).toBe(retry.url);
+  expect(aws.readyState).toBe(3);
+  unmount();
+  expect(vi.getTimerCount()).toBe(0);
+});
+
+it("cancels a delayed handover when a different candidate replaces it", () => {
+  vi.useFakeTimers();
+  vi.stubGlobal("WebSocket", Socket);
+  let busy = false;
+  const { result, rerender, unmount } = renderHook(({ url }) =>
+    useInferenceSocket(url, () => undefined, "current", () => busy),
+  { initialProps: { url: "wss://aws.example/ws/inference?token=old" } });
+  const aws = Socket.all[0];
+  act(() => aws.onopen?.());
+  rerender({ url: "wss://modal.example/ws/inference" });
+  busy = true;
+  act(() => Socket.all[1].onopen?.());
+  rerender({ url: "wss://aws.example/ws/inference?token=new" });
+  expect(Socket.all[1].readyState).toBe(3);
+  busy = false;
+  act(() => vi.advanceTimersByTime(100));
+  expect(result.current.activeUrl).toBe(aws.url);
+  expect(aws.readyState).toBe(1);
+  act(() => Socket.all[2].onopen?.());
+  expect(result.current.activeUrl).toBe("wss://aws.example/ws/inference?token=new");
+  expect(aws.readyState).toBe(3);
+  unmount();
+  expect(vi.getTimerCount()).toBe(0);
 });

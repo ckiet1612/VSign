@@ -22,6 +22,9 @@ export function gpuRuntimeMatches(gpu: InferenceMetadata, mac: InferenceMetadata
   return !gpu.mock && !mac.mock &&
     gpu.model_version === mac.model_version &&
     gpu.protocol_version === mac.protocol_version &&
+    gpu.frame_count === mac.frame_count &&
+    gpu.frame_width === mac.frame_width &&
+    gpu.frame_height === mac.frame_height &&
     (gpu.input_framing ?? "center-square") === (mac.input_framing ?? "center-square") &&
     gpu.candidate_labels_unverified === mac.candidate_labels_unverified &&
     sameList(gpu.labels, mac.labels);
