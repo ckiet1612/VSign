@@ -66,10 +66,6 @@ export function RuntimeBoundary({ children }: { children: ReactNode }) {
   }, [windows]);
   const selected = windows ? windowsConfig() : config;
   return <RuntimeContext.Provider key={selected.platformHost} value={selected}>
-    {windows && <div role="status" className="platform-failover-notice">
-      Đang dùng máy chủ Windows. Dữ liệu độc lập với Mac; vui lòng đăng nhập bằng tài khoản Windows.
-      Tải lại trang để kiểm tra và ưu tiên Mac.
-    </div>}
     {children}
   </RuntimeContext.Provider>;
 }

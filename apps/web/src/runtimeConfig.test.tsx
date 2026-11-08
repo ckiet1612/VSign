@@ -45,6 +45,7 @@ it("requires two Mac failures, remounts all consumers, and stays on Windows afte
   expect(screen.queryByText("windows:https://windows.example")).not.toBeInTheDocument();
   await advance(5000);
   expect(screen.getByText("windows:https://windows.example")).toBeInTheDocument();
+  expect(screen.queryByRole("status")).not.toBeInTheDocument();
   expect(mounts).toBe(2);
   macRecovered = true;
   await advance(30000);
