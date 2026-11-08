@@ -61,7 +61,7 @@ import { WorkspaceData, type DataTab } from "./components/WorkspaceData";
 import { useUrlTab } from "./hooks/useUrlTab";
 import { useWorkspaceData } from "./hooks/useWorkspaceData";
 import { WorkspaceTopbar } from "./components/WorkspaceTopbar";
-import { config } from "./config";
+import { useRuntimeConfig } from "./runtimeConfig";
 import { useCamera } from "./hooks/useCamera";
 import { useCounterDisplay } from "./hooks/useCounterDisplay";
 import { CounterDisplayControl } from "./components/CounterDisplayControl";
@@ -151,6 +151,7 @@ const loadSystemDashboard = () => systemDashboardChunk ??= import("./components/
 const SystemDashboard = lazy(() => loadSystemDashboard().then(module => ({ default: module.SystemDashboard })));
 
 export default function App() {
+  const config = useRuntimeConfig();
   const platform = useWorkspacePlatform(config.platformHttpUrl, !config.publicDemo);
 
   useLayoutEffect(() => {
@@ -189,6 +190,7 @@ export default function App() {
 }
 
 function WorkspaceApp({ platform }: { platform: WorkspacePlatform }) {
+  const config = useRuntimeConfig();
   const serverModel = useServerModel(config.serverModels);
   const workspaceToolsRef = useRef<HTMLDetailsElement>(null);
   const { view: workspaceView, navigate: navigateWorkspaceView } = useWorkspaceNavigation(platform.user?.role === "system_admin" ? "overview" : "recognize");
@@ -459,8 +461,8 @@ function WorkspaceApp({ platform }: { platform: WorkspacePlatform }) {
     }
     acceptPrediction(prediction);
   }, [acceptPrediction]);
-  // Recognition prefers Modal, then AWS, then Mac; metadata, login and
-  // sentence composition always stay on the Mac.
+  // Recognition prefers Modal, then AWS, then the selected full backend.
+  // Platform failover remounts this workspace with Windows URLs and independent data.
   const endpointBusyRef = useRef<() => boolean>(() => false);
   const [inferenceSocketState, setInferenceSocketState] = useState<{ status: ConnectionStatus; activeUrl: string | null }>({ status: "connecting", activeUrl: null });
   const inferenceEndpoint = useInferenceEndpoint({
@@ -492,7 +494,7 @@ function WorkspaceApp({ platform }: { platform: WorkspacePlatform }) {
     : socket.status === "connected" && socket.activeUrl
       ? config.gpuRuntime && socket.activeUrl.split("?")[0] === config.gpuRuntime.wsUrl.split("?")[0]
         ? "modal" : config.awsRuntime && socket.activeUrl.split("?")[0] === config.awsRuntime.wsUrl.split("?")[0]
-          ? "aws" : "mac"
+          ? "aws" : config.platformHost
       : null;
   const capturePipeline = chooseCapturePipeline({
     purpose: mode,
@@ -846,7 +848,7 @@ function WorkspaceApp({ platform }: { platform: WorkspacePlatform }) {
     const interval = window.setInterval(refresh, 10000);
     window.addEventListener("focus", refresh);
     return () => { active = false; controller?.abort(); window.clearInterval(interval); window.removeEventListener("focus", refresh); };
-  }, [inferenceHttpUrl, workspaceView]);
+  }, [inferenceHttpUrl, workspaceView, config.publicDemo]);
 
   useEffect(() => {
     if (config.publicDemo) return;
@@ -877,7 +879,7 @@ function WorkspaceApp({ platform }: { platform: WorkspacePlatform }) {
         }
       });
     return () => controller.abort();
-  }, [metadata?.collection_enabled, inferenceHttpUrl, collectionContext, collectionSummaryRevision, managedData]);
+  }, [metadata?.collection_enabled, inferenceHttpUrl, collectionContext, collectionSummaryRevision, managedData, config.publicDemo]);
 
   useEffect(() => {
     if (!managedData) return;
@@ -1411,6 +1413,7 @@ function WorkspaceApp({ platform }: { platform: WorkspacePlatform }) {
     }
   }, [
     pendingSample,
+    config.platformHttpUrl,
     inferenceHttpUrl,
     changeCollectionSession,
     collectionContext,
@@ -1739,7 +1742,7 @@ function WorkspaceApp({ platform }: { platform: WorkspacePlatform }) {
           camera={camera}
           connection={connectionState}
           runtimeLabel={(config.gpuRuntime || config.awsRuntime) && inferenceRoute === "server"
-            ? backendLocation === "modal" ? "Modal" : backendLocation === "aws" ? "AWS" : "Mac" : undefined}
+            ? backendLocation === "modal" ? "Modal" : backendLocation === "aws" ? "AWS" : config.platformHost === "windows" ? "Windows" : "Mac" : undefined}
           captureStatus={capture.status}
           canCapture={canCapture}
           purpose={mode}

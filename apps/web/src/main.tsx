@@ -2,6 +2,7 @@ import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import App from "./App";
 import { config } from "./config";
+import { RuntimeBoundary, PlatformPage } from "./runtimeConfig";
 import { trackInputModality } from "./lib/inputModality";
 import { isLandingPath, landingHref } from "./lib/appRoutes";
 import "./styles.css";
@@ -24,11 +25,11 @@ void fontsReady.then(render);
 function render() {
   if (!config.publicDemo && window.location.pathname === "/invite") {
     void import("./components/InvitationAcceptance").then(({ InvitationAcceptance }) => {
-      root.render(<StrictMode><InvitationAcceptance platformUrl={config.platformHttpUrl} /></StrictMode>);
+      root.render(<StrictMode><RuntimeBoundary><PlatformPage page={InvitationAcceptance} /></RuntimeBoundary></StrictMode>);
     });
   } else if (!config.publicDemo && window.location.pathname === "/display") {
     void import("./display/CustomerDisplay").then(({ CustomerDisplay }) => {
-      root.render(<StrictMode><CustomerDisplay platformUrl={config.platformHttpUrl} /></StrictMode>);
+      root.render(<StrictMode><RuntimeBoundary><PlatformPage page={CustomerDisplay} /></RuntimeBoundary></StrictMode>);
     });
   } else if (!config.publicDemo && isLandingPath(window.location.pathname, window.location.search)) {
     if (window.location.pathname.replace(/\/+$/, "") === "/landing") {
@@ -42,6 +43,6 @@ function render() {
       root.render(<StrictMode><DevTestApp /></StrictMode>);
     });
   } else {
-    root.render(<StrictMode><App /></StrictMode>);
+    root.render(<StrictMode><RuntimeBoundary><App /></RuntimeBoundary></StrictMode>);
   }
 }

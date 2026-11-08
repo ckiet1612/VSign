@@ -6,8 +6,12 @@ const modalHttpUrl = import.meta.env.VITE_INFERENCE_MODAL_HTTP_URL?.trim().repla
 const modalWsUrl = import.meta.env.VITE_INFERENCE_MODAL_WS_URL?.trim();
 const awsHttpUrl = import.meta.env.VITE_INFERENCE_AWS_HTTP_URL?.trim().replace(/\/+$/, "");
 const awsWsUrl = import.meta.env.VITE_INFERENCE_AWS_WS_URL?.trim();
+const windowsHttpUrl = import.meta.env.VITE_WINDOWS_HTTP_URL?.trim().replace(/\/+$/, "");
+const windowsWsUrl = import.meta.env.VITE_WINDOWS_WS_URL?.trim();
 
 export const config = {
+  platformHost: "mac" as "mac" | "windows",
+  windowsRuntime: windowsHttpUrl && windowsWsUrl ? { httpUrl: windowsHttpUrl, wsUrl: windowsWsUrl } : null,
   publicDemo: import.meta.env.VITE_PUBLIC_DEMO === "true",
   inferenceWsUrl,
   inferenceHttpUrl,

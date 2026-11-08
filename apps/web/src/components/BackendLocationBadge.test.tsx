@@ -24,3 +24,8 @@ it("labels the actual AWS GPU separately from Modal", () => {
   render(<BackendLocationBadge location="aws" gpuName="NVIDIA L40S" />);
   expect(screen.getByRole("status")).toHaveTextContent("AWS L40S");
 });
+
+it("labels Windows separately from the Mac", () => {
+  render(<BackendLocationBadge location="windows" />);
+  expect(screen.getByRole("status")).toHaveTextContent("Windows");
+});
