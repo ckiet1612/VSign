@@ -41,6 +41,7 @@ from app.platform_auth import (
     verify_password,
 )
 from app.inference_token import issue_inference_token
+from app.modal_gpu_policy import ModalGpuPolicy, read_policy, write_policy
 from app.platform_db import AuditEvent, Database, Membership, User, Workspace, hash_session_token, utc_now
 
 
@@ -214,6 +215,33 @@ def create_platform_router(
         token, expires_at = issue_inference_token(settings.inference_token_secret, settings.workspace_id, current.user.id)
         response.headers["Cache-Control"] = "no-store"
         return {"token": token, "expires_at": expires_at}
+
+    @router.get("/inference/modal-policy", response_model=ModalGpuPolicy)
+    def get_modal_policy(request: Request, response: Response) -> ModalGpuPolicy:
+        require_permission(request, "recognize:use")
+        if not settings.inference_token_secret:
+            raise HTTPException(404, "Runtime GPU chưa được cấu hình")
+        try:
+            enabled = read_policy(settings.modal_gpu_policy_path)
+        except (OSError, ValueError) as exc:
+            raise HTTPException(503, "Không đọc được trạng thái GPU Modal") from exc
+        response.headers["Cache-Control"] = "no-store"
+        return ModalGpuPolicy(enabled=enabled)
+
+    @router.post("/inference/modal-policy", response_model=ModalGpuPolicy)
+    def update_modal_policy(request: Request, response: Response, payload: ModalGpuPolicy) -> ModalGpuPolicy:
+        validate_origin(request)
+        current = require_permission(request, "recognize:use")
+        if current is None or current.role != "system_admin":
+            raise HTTPException(403, "Chỉ quản trị hệ thống được đổi trạng thái GPU Modal")
+        if not settings.inference_token_secret:
+            raise HTTPException(404, "Runtime GPU chưa được cấu hình")
+        try:
+            write_policy(settings.modal_gpu_policy_path, payload.enabled)
+        except OSError as exc:
+            raise HTTPException(503, "Không lưu được trạng thái GPU Modal") from exc
+        response.headers["Cache-Control"] = "no-store"
+        return payload
 
     @router.get("/workspace", response_model=WorkspaceContextResponse)
     def workspace_context(request: Request) -> WorkspaceContextResponse:

@@ -127,6 +127,28 @@ describe("useInferenceEndpoint", () => {
     expect(fetcher).not.toHaveBeenCalled();
   });
 
+  it("cancels a pending Modal probe when Modal is turned off while AWS is configured", async () => {
+    let canceled = false;
+    const fetcher: typeof fetch = async (url, init) => {
+      if (url === `${gpu.httpUrl}/metadata`) {
+        return new Promise((_, reject) => init?.signal?.addEventListener("abort", () => {
+          canceled = true;
+          reject(new DOMException("Aborted", "AbortError"));
+        }));
+      }
+      if (url === `${aws.httpUrl}/metadata`) return new Response(JSON.stringify(runtimeMetadata));
+      return new Response(JSON.stringify({ token: "signed", expires_at: Date.now() / 1000 + 600 }));
+    };
+    const { result, rerender } = renderHook((props: Partial<InferenceEndpointOptions>) =>
+      useInferenceEndpoint(options(fetcher, { aws, ...props })), { initialProps: {} });
+    await flush();
+    expect(result.current.provider).toBe("aws");
+    rerender({ gpu: null });
+    await flush();
+    expect(canceled).toBe(true);
+    expect(result.current.provider).toBe("aws");
+  });
+
   it("keeps a connected GPU socket through a transient metadata probe failure", async () => {
     let fail = false;
     const { fetcher: base } = runtime(runtimeMetadata);

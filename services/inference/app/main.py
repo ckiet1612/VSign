@@ -271,7 +271,7 @@ def create_app(
         is_evaluation_write = request.method == "POST" and request.url.path.startswith("/api/v1/workspace/evaluations")
         is_integration_write = request.method == "POST" and request.url.path.startswith("/api/v1/workspace/integrations")
         is_team_write = request.method == 'POST' and request.url.path.startswith(('/api/v1/workspace/team', '/api/v1/invitations/'))
-        is_settings_write = request.method == 'POST' and request.url.path.startswith(('/api/v1/workspace/settings', '/api/v1/displays'))
+        is_settings_write = request.method == 'POST' and request.url.path.startswith(('/api/v1/workspace/settings', '/api/v1/displays', '/api/v1/inference/modal-policy'))
         is_data_write = request.method == "POST" and request.url.path.startswith("/api/v1/workspace/data")
         is_data_sample = is_data_write and request.url.path.endswith("/samples")
         if is_models_write or is_evaluation_write or is_integration_write or is_team_write or is_settings_write or is_data_write or request.url.path in {"/api/v1/auth/login", "/api/v1/workspace/audit/client-events"}:

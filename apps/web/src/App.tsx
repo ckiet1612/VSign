@@ -71,6 +71,7 @@ import { useAutomaticSentence } from "./hooks/useAutomaticSentence";
 import { useAutomaticCollectionCycle } from "./hooks/useAutomaticCollectionCycle";
 import { useInferenceSocket, type ConnectionStatus } from "./hooks/useInferenceSocket";
 import { useInferenceEndpoint } from "./hooks/useInferenceEndpoint";
+import { useModalGpuPolicy } from "./hooks/useModalGpuPolicy";
 import { useServerModel } from "./hooks/useServerModel";
 import { useLandmarkInference } from "./hooks/useLandmarkInference";
 import { useSignCapture } from "./hooks/useSignCapture";
@@ -465,8 +466,9 @@ function WorkspaceApp({ platform }: { platform: WorkspacePlatform }) {
   // Platform failover remounts this workspace with Windows URLs and independent data.
   const endpointBusyRef = useRef<() => boolean>(() => false);
   const [inferenceSocketState, setInferenceSocketState] = useState<{ status: ConnectionStatus; activeUrl: string | null }>({ status: "connecting", activeUrl: null });
+  const modalPolicy = useModalGpuPolicy(config.platformHttpUrl, !config.publicDemo && config.gpuRuntime ? platform.user?.id ?? null : null);
   const inferenceEndpoint = useInferenceEndpoint({
-    gpu: config.gpuRuntime,
+    gpu: modalPolicy.enabled === true ? config.gpuRuntime : null,
     aws: config.awsRuntime,
     macWsUrl: config.publicDemo ? null : serverModel.active.wsUrl,
     platformUrl: config.platformHttpUrl,
@@ -1949,7 +1951,14 @@ function WorkspaceApp({ platform }: { platform: WorkspacePlatform }) {
             </div>
           </details>}
         </div>
-        <BackendLocationBadge location={backendLocation} gpuName={socket.gpuName} connecting={socket.status === "connecting"} />
+        <BackendLocationBadge location={backendLocation} gpuName={socket.gpuName} connecting={socket.status === "connecting"}
+          modalControl={systemAdmin && !config.publicDemo && config.gpuRuntime && modalPolicy.supported ? {
+            enabled: modalPolicy.enabled, busy: modalPolicy.busy, error: modalPolicy.error,
+            onChange: enabled => {
+              if (enabled) noteRecognitionActivity();
+              void modalPolicy.setEnabled(enabled);
+            },
+          } : undefined} />
       </div>
       </div>
     </div>

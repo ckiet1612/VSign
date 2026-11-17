@@ -1,5 +1,5 @@
-import { render, screen } from "@testing-library/react";
-import { expect, it } from "vitest";
+import { fireEvent, render, screen } from "@testing-library/react";
+import { expect, it, vi } from "vitest";
 import { BackendLocationBadge } from "./BackendLocationBadge";
 
 it.each([
@@ -28,4 +28,17 @@ it("labels the actual AWS GPU separately from Modal", () => {
 it("labels Windows separately from the Mac", () => {
   render(<BackendLocationBadge location="windows" />);
   expect(screen.getByRole("status")).toHaveTextContent("Windows");
+});
+
+it("places the Modal switch directly before the backend badge", () => {
+  const change = vi.fn();
+  const { rerender } = render(<BackendLocationBadge location="mac" modalControl={{ enabled: false, onChange: change }} />);
+  const control = screen.getByRole("switch", { name: "GPU Modal" });
+  expect(screen.getByRole("status").previousElementSibling).toContainElement(control);
+  expect(control).toHaveAttribute("aria-checked", "false");
+  fireEvent.click(control);
+  expect(change).toHaveBeenCalledWith(true);
+  rerender(<BackendLocationBadge location="modal" modalControl={{ enabled: true, busy: true, onChange: change }} />);
+  expect(control).toHaveAttribute("aria-checked", "true");
+  expect(control).toBeDisabled();
 });

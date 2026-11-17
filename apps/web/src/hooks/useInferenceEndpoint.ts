@@ -161,6 +161,13 @@ export function useInferenceEndpoint(options: InferenceEndpointOptions): Inferen
     const { enabled, gpu, aws, macMetadata, isBusy } = latest.current;
     const current = gpuRef.current;
     const now = Date.now();
+    for (const [provider, runtime] of [["modal", gpu], ["aws", aws]] as const) {
+      if (runtime) continue;
+      inFlight.current.get(provider)?.abort();
+      inFlight.current.delete(provider);
+      available.current.delete(provider);
+      lastProbe.current.delete(provider);
+    }
     if (!enabled || (!gpu && !aws) || !macMetadata) {
       for (const request of inFlight.current.values()) request.abort();
       available.current.clear();
@@ -183,10 +190,7 @@ export function useInferenceEndpoint(options: InferenceEndpointOptions): Inferen
     }
     for (const provider of ["modal", "aws"] as const) {
       const runtime = provider === "modal" ? gpu : aws;
-      if (!runtime) {
-        available.current.delete(provider);
-        continue;
-      }
+      if (!runtime) continue;
       if (inFlight.current.has(provider) ||
           now - (lastProbe.current.get(provider) ?? Number.NEGATIVE_INFINITY) < GPU_PROBE_INTERVAL_MS) continue;
       lastProbe.current.set(provider, now);

@@ -9,6 +9,8 @@ data/*.db-*
 data/*.bak*
 data/benchmarks/
 data/inference-token-secret
+data/modal-gpu-enabled
+data/.modal-gpu-enabled.*
 data/display-ice-servers.json
 *.db
 *.db-*

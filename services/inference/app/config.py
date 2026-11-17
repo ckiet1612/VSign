@@ -182,6 +182,7 @@ class Settings:
     # inference tokens instead of the platform database (used by the Modal GPU runtime).
     runtime_role: str = "full"
     inference_token_secret: Optional[str] = field(default=None, repr=False)
+    modal_gpu_policy_path: Path = Path("data/modal-gpu-enabled")
 
     def __post_init__(self) -> None:
         if self.runtime_role not in {"full", "inference_only"}:
@@ -296,4 +297,5 @@ class Settings:
             display_ice_servers=_ice_servers_env(),
             runtime_role=os.getenv("RUNTIME_ROLE", "full").strip().lower() or "full",
             inference_token_secret=_inference_token_secret_env(),
+            modal_gpu_policy_path=Path(os.getenv("MODAL_GPU_POLICY_FILE") or "data/modal-gpu-enabled").expanduser(),
         )
